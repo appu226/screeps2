@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "outDir": "/home/parakram/.config/Screeps/scripts/screeps.com/default",
+        "rootDir": "src",
+        "target": "es3",
+        "noImplicitAny": false,
+        "sourceMap": false
+    },
+    "files": [
+        "src/creep.switch.ts",
+        "src/data.collect.all.ts",
+        "src/functional.ts",
+        "src/init.ts",
+        "src/main.ts",
+        "src/screeps.d.ts",
+        "src/spawn.behavior.ts",
+        "src/utils.map.ts",
+        "src/utils.memory.ts",
+        "src/utils.source.ts"
+    ]
+}
