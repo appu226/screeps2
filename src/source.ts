@@ -1,5 +1,5 @@
 import functional = require('./functional');
-import memoryUtils = require('./utils.memory');
+import memoryUtils = require('./memory');
 
 export function collectedEnergy(sources: Source[]): number {
     return functional.sum(

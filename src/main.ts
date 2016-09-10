@@ -1,7 +1,7 @@
 import init = require('./init');
-import creepSwitch = require('./creep.switch')
-import dataCollectAll = require('./data.collect.all')
-import spawnBehavior = require('./spawn.behavior')
+import creepSwitch = require('./creep')
+import dataCollectAll = require('./data')
+import spawnBehavior = require('./spawn')
 
 export function loop(): void {
     console.log("hello");

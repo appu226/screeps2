@@ -1,4 +1,4 @@
-import memoryUtils = require('./utils.memory');
+import memoryUtils = require('./memory');
 
 export function collect(): void {
     console.log("data.collect.all.collect");

@@ -8,15 +8,15 @@
         "sourceMap": false
     },
     "files": [
-        "src/creep.switch.ts",
-        "src/data.collect.all.ts",
+        "src/creep.ts",
+        "src/data.ts",
         "src/functional.ts",
         "src/init.ts",
         "src/main.ts",
         "src/screeps.d.ts",
-        "src/spawn.behavior.ts",
-        "src/utils.map.ts",
-        "src/utils.memory.ts",
-        "src/utils.source.ts"
+        "src/spawn.ts",
+        "src/map.ts",
+        "src/memory.ts",
+        "src/source.ts"
     ]
 }

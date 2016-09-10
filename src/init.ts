@@ -1,6 +1,6 @@
 
-import mapUtils = require('./utils.map');
-import memoryUtils = require('./utils.memory');
+import mapUtils = require('./map');
+import memoryUtils = require('./memory');
 import functional = require('./functional');
  
     

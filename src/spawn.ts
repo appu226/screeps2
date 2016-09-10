@@ -1,5 +1,5 @@
 import functional = require('./functional');
-import sourceUtils = require('./utils.source');
+import sourceUtils = require('./source');
 
 
 export function process(spawn: StructureSpawn): void {
