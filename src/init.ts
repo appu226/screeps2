@@ -6,15 +6,16 @@ import functional = require('./functional');
     
 /** @Param {Bool} foceInit */
 export function initializeAll(forceInit: boolean): void {
-    if (!forceInit && Memory.isInitialized && Game.time % 1000 != 0)
+    var em = memoryUtils.enrichedMemory();
+    if (!forceInit && em.isInitialized && Game.time % 1000 != 0)
         return;
-    Memory.isInitialized = false;
+    em.isInitialized = false;
     console.log("init.initializeAll: initializing");
     for (var roomName in Game.rooms) {
         var room = Game.rooms[roomName];
         this.initRoom(room);
     }
-    Memory.isInitialized = true;
+    em.isInitialized = true;
 }
     
 /** @Param {Room} room */

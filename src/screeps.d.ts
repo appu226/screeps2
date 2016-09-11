@@ -1102,7 +1102,6 @@ interface PathStep {
     y: number;
     dy: number;
     direction: number;
-    movementFactor: number;
 }
 /**
  * An object with survival game info
@@ -1219,15 +1218,6 @@ interface Transaction {
     to: string;
     description: string;
 }
-/**
- * Memory for each individual Source
- */
-interface SourceMemory {
-    energyCollection: {
-        total: number,
-        history: Array<number>
-    }
-}
 interface Memory {
     [name: string]: any;
     creeps: {
@@ -1242,13 +1232,6 @@ interface Memory {
     spawns: {
         [name: string]: any;
     };
-    sourceMemory: { [id: string]: SourceMemory };
-    storedPaths: { [id: string]: { [id: string]: StoredPath } };
-    isInitialized: boolean;
-}
-interface StoredPath {
-    path: Array<PathStep>,
-    time: number
 }
 /**
  * A mineral deposit object. Can be harvested by creeps with a WORK body part using the extractor structure.
@@ -1295,9 +1278,9 @@ interface PathFinder {
         pos: RoomPosition;
         range: number;
     }, opts?: PathFinderOpts): {
-            path: RoomPosition[];
-            ops: number;
-        };
+        path: RoomPosition[];
+        ops: number;
+    };
     /**
      * Find an optimal path between origin and goal.
      *
@@ -1309,9 +1292,9 @@ interface PathFinder {
         pos: RoomPosition;
         range: number;
     }[], opts?: PathFinderOpts): {
-            path: RoomPosition[];
-            ops: number;
-        };
+        path: RoomPosition[];
+        ops: number;
+    };
     /**
      * Specify whether to use this new experimental pathfinder in game objects methods.
      * This method should be invoked every tick. It affects the following methods behavior:

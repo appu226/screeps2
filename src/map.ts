@@ -1,6 +1,8 @@
 import functional = require('./functional');
+import memoryUtils = require('./memory');
 
-export function enrichMovementFactor(path: [PathStep], room: Room) {
+export function enrichMovementFactor(pathIn: PathStep[], room: Room): EnrichedPathStep[] {
+    var path = <EnrichedPathStep[]>pathIn;
     // console.log("utils.map.enrichMovementFactor: starting");
     for (var posNum = 0; posNum < path.length; ++posNum) {
         var pathPos = path[posNum];
@@ -11,6 +13,7 @@ export function enrichMovementFactor(path: [PathStep], room: Room) {
         var pos = room.getPositionAt(pathPos.x, pathPos.y);
         pathPos.movementFactor = this.movementFactor(this.movementTerrain(pos));
     }
+    return path;
 }
 /**
  * @Param {RoomPosition} pos
@@ -67,24 +70,24 @@ export function getStoredPath(
     bpos: RoomPosition
 ): PathStep[] {
     // console.log("init.initStoredPaths " + aid + " to " + bid);
-    functional.getOrInitObject(Memory, 'storedPaths');
-    functional.getOrInitObject(Memory.storedPaths, aid);
-    functional.getOrInitObject(Memory.storedPaths, bid);
-    if (Memory.storedPaths[aid][bid] === undefined) {
-        Memory.storedPaths[aid][bid] = { path: [], time: Game.time - 5000 };
-        Memory.storedPaths[bid][aid] = { path: [], time: Game.time - 5000 };
+    var sp = memoryUtils.storedPaths();
+    if(sp[aid] === undefined) sp[aid] = {};
+    if(sp[bid] === undefined) sp[bid] = {};
+    if (sp[aid][bid] === undefined) {
+        sp[aid][bid] = { path: [], time: Game.time - 5000 };
+        sp[bid][aid] = { path: [], time: Game.time - 5000 };
     }
         
     //was initialized in the last 50 ticks, so skip
-    if (Memory.storedPaths[aid][bid].time > Game.time - 50)
-        return Memory.storedPaths[aid][bid].path;
+    if (sp[aid][bid].time > Game.time - 50)
+        return sp[aid][bid].path;
 
     var path = apos.findPathTo(bpos);
-    Memory.storedPaths[aid][bid] = {
+    sp[aid][bid] = {
         path: path,
         time: Game.time
     };
-    Memory.storedPaths[bid][aid] = {
+    sp[bid][aid] = {
         path: path.slice(0).reverse(),
         time: Game.time
     }

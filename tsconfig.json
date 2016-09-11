@@ -8,6 +8,7 @@
         "sourceMap": false
     },
     "files": [
+        "src/custom.d.ts",
         "src/creep.ts",
         "src/data.ts",
         "src/functional.ts",
