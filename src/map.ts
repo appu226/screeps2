@@ -111,12 +111,14 @@ export function getDistance(
     wByM: number
 ): number {
     // console.log("utils.map.getDistance " + aid + " " + bid);
-    var path = this.getStoredPath(aid, apos, bid, bpos, room);
-    this.enrichMovementFactor(path, room);
+    var path = enrichMovementFactor(getStoredPath(aid, apos, bid, bpos), room);
     var result = 0;
     for (var posNum = 0; posNum < path.length; ++posNum) {
         result += Math.ceil(path[posNum].movementFactor * wByM);
     }
     return result;
 }
-    
+
+export function getAllSourcesInRoom(room: Room): Source[] {
+    return <Source[]> room.find(FIND_SOURCES);
+}

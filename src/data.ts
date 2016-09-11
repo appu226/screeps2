@@ -4,7 +4,7 @@ export function collect(): void {
     console.log("data.collect.all.collect");
     for (var roomName in Game.rooms) {
         var room = Game.rooms[roomName];
-        this.processEnergyCollection(room);
+        processEnergyCollection(room);
     }
 }
     

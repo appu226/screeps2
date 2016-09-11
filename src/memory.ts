@@ -1,7 +1,7 @@
 
 export function sourceMemory(source: Source) {
     //console.log("utils.memory.sourceMemory for source " + source.id);
-    var sm = this.enrichedMemory().sourceMemory;
+    var sm = enrichedMemory().sourceMemory;
     if (sm[source.id] === undefined) {
         sm[source.id] = {
             energyCollection: {

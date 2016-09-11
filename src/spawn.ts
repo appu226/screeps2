@@ -1,5 +1,7 @@
 import functional = require('./functional');
 import sourceUtils = require('./source');
+import mapUtils = require('./map');
+import memoryUtils = require('./memory');
 
 
 export function process(spawn: StructureSpawn): void {
@@ -13,7 +15,7 @@ export function process(spawn: StructureSpawn): void {
     //until 33% capacity, focus on harvesting
     //console.log("spawn.behavior.process actualCollected " + actualCollected + ", totalCapacity " + totalCapacity);
     if (actualCollected < totalCapacity * .33) {
-        return this.buildHarvesterOrTransporter(spawn);
+        return buildHarvesterOrTransporter(spawn);
     }
 }
     

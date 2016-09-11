@@ -24,5 +24,5 @@ interface SourceMemory {
 
 interface SourceMemoryEnergyCollection {
     total: number;
-    history: [number];
+    history: number[];
 }

@@ -13,7 +13,7 @@ export function initializeAll(forceInit: boolean): void {
     console.log("init.initializeAll: initializing");
     for (var roomName in Game.rooms) {
         var room = Game.rooms[roomName];
-        this.initRoom(room);
+        initRoom(room);
     }
     em.isInitialized = true;
 }
