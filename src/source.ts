@@ -21,3 +21,5 @@ export function totalCapacity(sources: Source[]): number {
         )
     );
 }
+
+export var timeToRegeneration = 300;

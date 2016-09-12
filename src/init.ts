@@ -10,7 +10,7 @@ export function initializeAll(forceInit: boolean): void {
     if (!forceInit && em.isInitialized && Game.time % 1000 != 0)
         return;
     em.isInitialized = false;
-    console.log("init.initializeAll: initializing");
+    // console.log("init.initializeAll: initializing");
     for (var roomName in Game.rooms) {
         var room = Game.rooms[roomName];
         initRoom(room);
@@ -45,14 +45,14 @@ export function initRoom(room: Room): void {
             }
         ).map(
             function(source) {
-                return {
+                return <SpawnToSourceDistance>{
                     id: source.id,
                     distance: mapUtils.getDistance(spawn.id, spawn.pos, source.id, source.pos, room, 1)
                 };
             }
             );
         sortedSources.sort(function(a, b) { return a.distance - b.distance; });
-        spawn.memory.sortedSources = sortedSources;
+        memoryUtils.spawnMemory(spawn).sortedSources = sortedSources;
     }
 }
     

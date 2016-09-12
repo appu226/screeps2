@@ -11,7 +11,7 @@ export function enrichMovementFactor(pathIn: PathStep[], room: Room): EnrichedPa
         }
         // console.log("utils.map.enrichMovementFactor: enriching position " + pathPos.x + " " + pathPos.y + " in " + room.name);
         var pos = room.getPositionAt(pathPos.x, pathPos.y);
-        pathPos.movementFactor = this.movementFactor(this.movementTerrain(pos));
+        pathPos.movementFactor = movementFactor(movementTerrain(pos));
     }
     return path;
 }
@@ -91,6 +91,7 @@ export function getStoredPath(
         path: path.slice(0).reverse(),
         time: Game.time
     }
+    return sp[aid][bid].path;
 }
     
     
