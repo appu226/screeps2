@@ -152,6 +152,7 @@ export function addBodyParts(input: string[], bodyPartsToAdd: string[], remainin
     while (remainingEnergy >= BODYPART_COST[bodyPartsToAdd[idx]]) {
         input.push(bodyPartsToAdd[idx]);
         remainingEnergy -= BODYPART_COST[bodyPartsToAdd[idx]];
+        idx = (idx + 1) % bodyPartsToAdd.length;
     }
     return input;
 }
