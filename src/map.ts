@@ -71,8 +71,8 @@ export function getStoredPath(
 ): PathStep[] {
     // console.log("init.initStoredPaths " + aid + " to " + bid);
     var sp = memoryUtils.storedPaths();
-    if(sp[aid] === undefined) sp[aid] = {};
-    if(sp[bid] === undefined) sp[bid] = {};
+    if (sp[aid] === undefined) sp[aid] = {};
+    if (sp[bid] === undefined) sp[bid] = {};
     if (sp[aid][bid] === undefined) {
         sp[aid][bid] = { path: [], time: Game.time - 5000 };
         sp[bid][aid] = { path: [], time: Game.time - 5000 };
@@ -121,5 +121,23 @@ export function getDistance(
 }
 
 export function getAllSourcesInRoom(room: Room): Source[] {
-    return <Source[]> room.find(FIND_SOURCES);
+    return <Source[]>room.find(FIND_SOURCES);
+}
+
+export function oppositeDirection(direction: number): number {
+    switch (direction) {
+        case TOP: return BOTTOM;
+        case TOP_RIGHT: return BOTTOM_LEFT;
+        case RIGHT: return LEFT;
+        case BOTTOM_RIGHT: return TOP_LEFT;
+        case BOTTOM: return TOP;
+        case BOTTOM_LEFT: return TOP_RIGHT;
+        case LEFT: return RIGHT;
+        case TOP_LEFT: return BOTTOM_RIGHT;
+        default: {
+            var message = "map/oppositeDirection: Unexpected direction " + direction + ".";
+            console.log(message);
+            throw message;
+        }
+    }
 }

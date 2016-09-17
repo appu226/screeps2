@@ -57,3 +57,8 @@ interface TransporterMemory extends CreepMemory {
     destination: string;
     destinationType: string;
 }
+
+interface SoldierMemory extends CreepMemory {
+    target: string;
+    targetType: string;
+}

@@ -37,9 +37,9 @@ export function process(spawn: StructureSpawn): void {
     if (actualCollected < totalCapacity * 0.95) {
         return buildHarvesterOrTransporter(spawn);
     }
-    
+
     console.log("Energy collection maximized, now what ??!!");
-    
+
 }
 
 /**
@@ -67,10 +67,10 @@ export function buildHarvesterOrTransporter(spawn: StructureSpawn): void {
                         return Game.creeps[harvesterName].getActiveBodyparts(WORK) * 2;
                     })
             );
-            
+
         console.log(
-            "spawn.ts:buildHarvestorOrTransporter: Source", 
-            source.id, 
+            "spawn.ts:buildHarvestorOrTransporter: Source",
+            source.id,
             "maxCollectionRate",
             maxCollectionRate,
             "actualCollectionRate",
@@ -106,7 +106,31 @@ export function isSoldier(role: string): boolean {
 }
 
 export function buildSoldier(numberOfSolders: number, spawn: StructureSpawn): void {
-    console.log("spawn.ts: buildSoldier: TBI");
+    //var soldierQueue = ["Archer", "Militia", "Healer", "Archer", "Militia"]
+    switch (numberOfSolders % 5) {
+        case 0:
+        case 3:
+            return buildSoldierHelper(spawn, "Archer", [MOVE, RANGED_ATTACK], [MOVE, RANGED_ATTACK]);
+        case 1:
+        case 4:
+            return buildSoldierHelper(spawn, "Militia", [MOVE, ATTACK, TOUGH], [MOVE, ATTACK, TOUGH]);
+        case 2:
+            return buildSoldierHelper(spawn, "Healer", [MOVE, HEAL, TOUGH], [MOVE, HEAL, TOUGH]);
+        default:
+            console.log("Mathematical impossibility!!!");
+    }
+}
+
+export function buildSoldierHelper(
+    spawn: StructureSpawn,
+    soldierRole: string,
+    soldierBody: string[],
+    bodyPartsToAdd: string[]
+): void {
+    addBodyParts(soldierBody, bodyPartsToAdd, spawn.energy);
+    var soldierMemory = <SoldierMemory>{ role: soldierRole, target: "" };
+    var soldierName = soldierRole + "_" + memoryUtils.getUid();
+    spawn.createCreep(soldierBody, soldierName, soldierMemory);
 }
 
 /**
@@ -140,19 +164,22 @@ export function createTransporterMemory(source: Source, spawn: StructureSpawn): 
     };
 }
 
-export function addBodyParts(input: string[], bodyPartsToAdd: string[], remainingEnergy: number): string[] {
-    remainingEnergy -=
-        functional.sum(
-            input.map(function(bp) { return BODYPART_COST[bp];})
+export function addBodyParts(input: string[], bodyPartsToAdd: string[], remainingEnergyInput: number): string[] {
+    var remainingEnergy =
+        remainingEnergyInput
+        - functional.sum(
+            input.map(function(bp) { return BODYPART_COST[bp]; })
         );
     if (bodyPartsToAdd.length == 0) {
         return input;
     }
-    var idx = 0;
-    while (remainingEnergy >= BODYPART_COST[bodyPartsToAdd[idx]]) {
+    for (
+        var idx = 0;
+        remainingEnergy >= BODYPART_COST[bodyPartsToAdd[idx]];
+        idx = (idx + 1) % bodyPartsToAdd.length
+    ) {
         input.push(bodyPartsToAdd[idx]);
         remainingEnergy -= BODYPART_COST[bodyPartsToAdd[idx]];
-        idx = (idx + 1) % bodyPartsToAdd.length;
     }
     return input;
 }
