@@ -4,7 +4,6 @@ import dataCollectAll = require('./data')
 import spawnBehavior = require('./spawn')
 
 export function loop(): void {
-    console.log("hello");
     init.initializeAll(false);
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
@@ -15,4 +14,5 @@ export function loop(): void {
         spawnBehavior.process(spawn)
     }
     dataCollectAll.collect();
+    // console.log("Tick consumed: " + Game.cpu.getUsed());
 }

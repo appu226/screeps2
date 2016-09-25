@@ -82,14 +82,14 @@ export function processHarvestor(creep: Creep): void {
         console.error("Unexpected role in creep", creep.name, ". Expected: \"Harvestor\", found \"" + creepMemory.role + "\".");
     }
     var harvestorMemory = <HarvestorMemory>creepMemory;
-    
+
     // if capacity is full, transfer to destination. 
     if (creep.carry.energy == creep.carryCapacity) {
         var destination: (Structure | Creep) = null;
         switch (harvestorMemory.destinationType) {
             case "Spawn": {
                 var spawn = <Structure>Game.getObjectById(harvestorMemory.destination);
-                var transporters = memoryUtils.sourceMemory(<Source>Game.getObjectById(harvestorMemory.source)).transporters;
+                var transporters = memoryUtils.transporterChain("Source", harvestorMemory.source, "Spawn", spawn.id).transporterNames;
                 if (transporters.length > 0) {
                     destination = Game.creeps[transporters[0]];
                 } else {
@@ -164,7 +164,7 @@ export function transportEnergyToDestination(
     transporterChain: string[]) {
 
     var tidx = transporterChain.indexOf(transporter.name);
-    
+
     // Last transporter gives to destination.
     if (tidx == transporterChain.length - 1) {
         switch (transporterMemory.destinationType) {
@@ -213,10 +213,12 @@ export function getTransporterChain(creep: Creep): string[] {
         default:
             return [];
     }
-    if (memory.sourceType == "Source")
-        return memoryUtils.sourceMemory(Game.getObjectById<Source>(memory.source)).transporters;
-    else
-        return [];
+    return memoryUtils.transporterChain(
+        memory.sourceType,
+        memory.source,
+        memory.destinationType,
+        memory.destination
+    ).transporterNames;
 }
 
 export function transportEnergyFromSource(
@@ -227,7 +229,7 @@ export function transportEnergyFromSource(
 ): void {
 
     var sourceMemory = memoryUtils.sourceMemory(source);
-    
+
     // get index of transporter in source's transporter list
     var tidx = transporterChain.indexOf(transporter.name);
     if (tidx == 0) { //first transporter collects from harvestors
@@ -243,7 +245,7 @@ export function transportEnergyFromSource(
         }
         var maxHarvestor =
             sourceMemory.harvestors.slice().sort(
-                function(h1, h2) { return Game.creeps[h2].carry.energy - Game.creeps[h1].carry.energy; }
+                function (h1, h2) { return Game.creeps[h2].carry.energy - Game.creeps[h1].carry.energy; }
             )[0];
         var harvestor = Game.creeps[maxHarvestor];
         if (harvestor.transfer(transporter, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {

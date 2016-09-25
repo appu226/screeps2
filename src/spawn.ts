@@ -94,7 +94,7 @@ export function buildHarvesterOrTransporter(spawn: StructureSpawn): void {
             var transporterName = "Transporter_" + memoryUtils.getUid();
             var transporterMemory = createTransporterMemory(source, spawn);
             if (transporterName == spawn.createCreep(transporterBody, transporterName, transporterMemory)) {
-                sourceMemory.transporters.push(transporterName);
+                memoryUtils.transporterChain("Source", source.id, "Spawn", spawn.id).transporterNames.push(transporterName);
             }
             return;
         }

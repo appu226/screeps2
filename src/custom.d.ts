@@ -12,17 +12,25 @@ interface EnrichedPathStep extends PathStep {
     movementFactor: number;
 }
 
+interface TransporterChain {
+    sourceType: string;
+    sourceId: string;
+    destinationType: string;
+    destinationId: string;
+    transporterNames: string[];
+}
+
 interface EnrichedMemory extends Memory {
     storedPaths: { [aid: string]: { [bid: string]: { path: PathStep[]; time: number } } };
     sourceMemory: { [sourceId: string]: SourceMemory };
     isInitialized: boolean;
     uid: number;
+    transporterChain: { [sourceId_destinationId: string]: TransporterChain };
 }
 
 interface SourceMemory {
     energyCollection: SourceMemoryEnergyCollection;
     harvestors: string[];
-    transporters: string[];
 }
 
 interface SourceMemoryEnergyCollection {
@@ -32,12 +40,12 @@ interface SourceMemoryEnergyCollection {
 }
 
 interface SpawnMemory {
-    sortedSources: SpawnToSourceDistance[];   
+    sortedSources: SpawnToSourceDistance[];
 }
 
 interface SpawnToSourceDistance {
     id: string;
-    distance: number;    
+    distance: number;
 }
 
 interface CreepMemory {
