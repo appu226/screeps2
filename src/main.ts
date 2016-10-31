@@ -1,10 +1,12 @@
-import init = require('./init');
-import creepSwitch = require('./creep')
-import dataCollectAll = require('./data')
-import spawnBehavior = require('./spawn')
+import creepSwitch = require('./creep');
+import dataCollectAll = require('./data');
+import spawnBehavior = require('./spawn');
+import cl = require('./cl');
 
 export function loop(): void {
-    init.initializeAll(false);
+
+    cl.executeCustomCommand();
+
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
         creepSwitch.process(creep);

@@ -3,7 +3,6 @@ import memoryUtils = require('./memory');
 
 export function enrichMovementFactor(pathIn: PathStep[], room: Room): EnrichedPathStep[] {
     var path = <EnrichedPathStep[]>pathIn;
-    // console.log("utils.map.enrichMovementFactor: starting");
     for (var posNum = 0; posNum < path.length; ++posNum) {
         var pathPos = path[posNum];
         if (pathPos.movementFactor !== undefined) {

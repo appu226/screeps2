@@ -8,12 +8,19 @@ export function sourceMemory(source: Source) {
                 total: 0,
                 history: [0],
                 previousTickEnergy: source.energy
-            },
-            harvestors: []
+            }
         };
     }
     return sm[source.id];
 };
+
+export var LogLevel = {
+    SILENT: 0,
+    ERROR: 1,
+    WARN: 2,
+    INFO: 3,
+    DEBUG: 4
+}
 
 export function enrichedMemory(): EnrichedMemory {
     var em = <EnrichedMemory>Memory;
@@ -21,10 +28,10 @@ export function enrichedMemory(): EnrichedMemory {
         em.uid = 0;
         em.storedPaths = {};
         em.sourceMemory = {};
-        em.transporterChain = {};
         em.isInitialized = false;
+        em.logLevel = LogLevel.INFO;
+        em.lastCommandNumber = 0;
     }
-
     return em;
 }
 
@@ -46,35 +53,13 @@ export function storedPaths() {
 }
 
 export function spawnMemory(spawn: StructureSpawn): SpawnMemory {
-    var sp = <SpawnMemory>spawn.memory;
-    if (sp.sortedSources === undefined) {
-        sp.sortedSources = [];
+    var sm = <SpawnMemory>spawn.memory;
+    if (sm.scheduledCreepOrders === undefined) {
+        sm.scheduledCreepOrders = [];
     }
-    return sp;
+    return sm;
 }
 
 export function getUid(): number {
     return enrichedMemory().uid++;
-}
-
-export function transporterChain(
-    sourceType: string,
-    sourceId: string,
-    destinationType: string,
-    destinationId: string
-): TransporterChain {
-    var key = sourceId + "_" + destinationId;
-    var em = enrichedMemory();
-    var result = em.transporterChain[key];
-    if (result === undefined) {
-        result = {
-            sourceType: sourceType,
-            sourceId: sourceId,
-            destinationType: destinationType,
-            destinationId: destinationId,
-            transporterNames: []
-        };
-        em.transporterChain[key] = result;
-    }
-    return result;
 }

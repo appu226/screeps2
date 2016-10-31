@@ -8,11 +8,12 @@
         "sourceMap": false
     },
     "files": [
+        "src/cl.ts",
         "src/custom.d.ts",
         "src/creep.ts",
         "src/data.ts",
         "src/functional.ts",
-        "src/init.ts",
+        "src/log.ts",
         "src/main.ts",
         "src/screeps.d.ts",
         "src/spawn.ts",
