@@ -20,7 +20,7 @@ export function process(spawn: StructureSpawn): void {
         return `spawn.process: actualCollected ${actualCollected}, totalCapacity ${totalCapacity}`;
     });
 
-    spawnMemory.scheduledCreepOrders.sort(function(a: ScheduledCreepOrder, b: ScheduledCreepOrder): number { return b.priority - a.priority; });
+    spawnMemory.scheduledCreepOrders.sort(function (a: ScheduledCreepOrder, b: ScheduledCreepOrder): number { return b.priority - a.priority; });
     var topOrder = spawnMemory.scheduledCreepOrders.shift();
     spawn.createCreep(topOrder.body, topOrder.memory.role + memoryUtils.getUid(), topOrder.memory);
 }
@@ -30,7 +30,8 @@ export function process(spawn: StructureSpawn): void {
  * Adds one MOVE part, one CARRY, plus as many WORK parts as possible.
  */
 export function createHarvestorBody(spawn: StructureSpawn): string[] {
-    return addBodyParts([MOVE, CARRY], [WORK], spawn.energy);
+    log.debug(() => { return `spawn/createHarvestorBody: creating harvestor with available energy ${spawn.energy}` })
+    return addBodyParts([MOVE, CARRY], [WORK], spawn.energyCapacity);
 }
 
 export function createHarvestorMemory(source: Source, destination: (Creep | Structure)): HarvestorMemory {
@@ -42,7 +43,7 @@ export function createHarvestorMemory(source: Source, destination: (Creep | Stru
 }
 
 export function createTransporterBody(spawn: StructureSpawn): string[] {
-    return addBodyParts([], [MOVE, CARRY], spawn.energy);
+    return addBodyParts([MOVE, WORK, CARRY], [MOVE, CARRY], spawn.energyCapacity);
 }
 
 export function createTransporterMemory(sources: string[], destination: (Creep | Structure)): TransporterMemory {
@@ -51,6 +52,13 @@ export function createTransporterMemory(sources: string[], destination: (Creep |
         sources: sources,
         destination: destination.id
     };
+}
+
+export function createControllerUpgraderMemory(controller: Controller): ControllerUpgraderMemory {
+    return {
+        role: "ControllerUpgrader",
+        destination: controller.id
+    }
 }
 
 export function addBodyParts(input: string[], bodyPartsToAdd: string[], remainingEnergyInput: number): string[] {
@@ -70,6 +78,7 @@ export function addBodyParts(input: string[], bodyPartsToAdd: string[], remainin
         input.push(bodyPartsToAdd[idx]);
         remainingEnergy -= BODYPART_COST[bodyPartsToAdd[idx]];
     }
+    log.debug(() => `spawn/addBodyParts: final remaining energy = ${remainingEnergy}`)
     return input;
 }
 

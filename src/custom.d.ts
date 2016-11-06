@@ -55,3 +55,11 @@ interface TransporterMemory extends CreepMemory {
     sources: string[];
     destination: string;
 }
+
+interface ControllerUpgraderMemory extends CreepMemory {
+    destination: string;
+}
+
+interface SoldierMemory extends CreepMemory {
+    target: string;
+}

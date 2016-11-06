@@ -1,7 +1,7 @@
 import memoryUtils = require('./memory');
 
 function log(msg: string, level: number): void {
-    if (memoryUtils.enrichedMemory().logLevel <= level) {
+    if (memoryUtils.enrichedMemory().logLevel >= level) {
         console.log(msg);
     }
 }
