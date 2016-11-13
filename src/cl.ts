@@ -42,13 +42,12 @@ export function createTransporter(spawnName: string, sourceCreepNames: string[],
             return;
         destination = destinations[0];
     }
-    var sourceIds = sourceCreepNames.map((creepName) => Game.creeps[creepName].id);
     if (destination === undefined)
         return log.error(() => {return `Destination id ${destinationId} not valid.`;});
     if (spawn === undefined)
         return log.error(() => {return `${spawnName} not a valid spawn name.`;});
     var transporterBody = spawnUtils.createTransporterBody(spawn);
-    var transporterMemory = spawnUtils.createTransporterMemory(sourceIds, destination);
+    var transporterMemory = spawnUtils.createTransporterMemory(sourceCreepNames, destination);
     spawnUtils.scheduleCreep(spawn, transporterBody, transporterMemory, 5);
 }
 
@@ -71,9 +70,38 @@ export function createArcher(spawnName: string, target: string) {
     spawnUtils.scheduleCreep(spawn, body, memory, 4);
 }
 
+export function createHarvestorChain(spawnName: string, sourceId: string, numHarvestors: number, numTransporters: number, destination: string) {
+    var uid =  memoryUtils.getUid();
+    var transporterSources: string[] = [];
+    for (var hid = 0; hid < numHarvestors; ++hid) {
+        transporterSources.push("Harvestor" + (++uid));
+        createHarvestor(sourceId, spawnName);
+    }
+    for (var tid = 0; tid < numTransporters; ++tid) {
+        createTransporter(spawnName, transporterSources, destination);
+        transporterSources = ["Transporter" + (++uid)];
+    }
+}
+
+export function createRoadSite(source: RoomPosition, destination: RoomPosition) {
+    var path = source.findPathTo(destination);
+    for (var idx = 0; idx < path.length; ++idx) {
+        new RoomPosition(path[idx].x, path[idx].y, source.roomName).createConstructionSite(STRUCTURE_ROAD);
+    }
+}
+
+export function createBuilder(spawnName: string) {
+    var spawn = Game.spawns[spawnName];
+    var bBody = spawnUtils.createHarvestorBody(spawn);
+    var bMemory: CreepMemory = {
+        role: "Builder"
+    };
+    spawnUtils.scheduleCreep(spawn, bBody, bMemory, 5);
+}
+
 export function executeCustomCommand() {
 
-    var nextCommandNumber = 1;
+    var nextCommandNumber = 11;
     if (memoryUtils.enrichedMemory().lastCommandNumber < nextCommandNumber) {
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;
         log.info(() => `Executing command ${nextCommandNumber}`)
@@ -85,14 +113,43 @@ export function executeCustomCommand() {
         //     var source = spawn.pos.findClosestByPath<Source>(FIND_SOURCES_ACTIVE);
         //     createHarvestor(source.id, spawn.name);
         // }
+
+        
         
 
         // createHarvestor("FlagSourceMain", "Spawn1");
         // createHarvestor("FlagSourceMain", "Spawn1");
+        // createTransporter("Spawn1", ["Harvestor0","Harvestor1","Harvestor2"], "Spawn1");
         // createHarvestor("Flag1", "Spawn1");
 
-        //createTransporter("Spawn1", ["Transporter8"], "ControllerUpgrader7");
+        // createTransporter("Spawn1", ["Transporter20"], "ControllerUpgrader6");
+        // createTransporter("Spawn1", ["Harvestor7"], "ControllerUpgrader6");
+        // createTransporter("Spawn1", ["Harvestor7"], "ControllerUpgrader6");
+
+        // createHarvestorChain("Spawn1", "FlagSourceMain", 3, 1, "Spawn1");
         // createControllerUpgrader("Spawn1", Game.spawns["Spawn1"].room.name);
+        // createHarvestorChain("Spawn1", "FlagSourceNE", 1, 3, "ControllerUpgrader6")
+        
+        // for (var arnum = 0; arnum < 40; ++arnum)
+        //     createArcher("Spawn1", "FlagSoldierMain");
+
+        // createRoadSite(Game.flags['FlagSourceSE'].pos, Game.spawns['Spawn1'].pos);
+
+        // for (var creepName in Game.creeps) {
+        //     var creep = Game.creeps[creepName];
+        //     var cm = memoryUtils.creepMemory(creep);
+        //     if (cm.role != "Archer")
+        //         continue;
+        //     var am = <SoldierMemory>cm;
+        //     am.target = "FlagSoldierSW";
+        // }
+        
+
+
+        // createTransporter("Spawn1", ["Transporter8"], "ControllerUpgrader7");
+        // createHarvestor("FlagSourceNE", "Spawn1");
+        // createControllerUpgrader("Spawn1", Game.spawns["Spawn1"].room.name);
+        // createTransporter("Spawn1", ["Harvestor4"], "ControllerUpgrader5");
 
         // for(var creepName in Game.creeps) {
         //     var creep = Game.creeps[creepName];

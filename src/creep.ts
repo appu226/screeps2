@@ -43,15 +43,15 @@ export function process(creep: Creep) {
         transporterMemory.sources =
             transporterMemory.sources
                 .map( // append energy to each creep id
-                id => { return { creepId: id, energy: Game.getObjectById<Creep>(id).carry.energy } }
+                creepName => { return { creepName: creepName, energy: Game.creeps[creepName].carry.energy } }
                 ).sort( // sort in decreasing order of energy
                 (a, b) => { return b.energy - a.energy; }
                 ).map( // get back creepIds
-                a => { return a.creepId; }
+                a => { return a.creepName; }
                 );
 
         // point the source to yourself
-        var source = Game.getObjectById<Creep>(transporterMemory.sources[0]);
+        var source = Game.creeps[transporterMemory.sources[0]];
         var sourceMemory = <any>memoryUtils.creepMemory(source);
         if (sourceMemory.destination !== undefined) {
             sourceMemory.destination = creep.id;
@@ -81,6 +81,14 @@ export function process(creep: Creep) {
                 archerDefendPos(creep, archerMem, attackable.pos);
             else if (creep.rangedAttack(attackable) == ERR_NOT_IN_RANGE)
                 creep.moveTo(attackable.pos);
+        }
+    } else if (memory.role.toLowerCase() == "builder") {
+        var room = Game.rooms[creep.pos.roomName];
+        var sites = room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+        if (sites.length > 0) {
+            var site = creep.pos.findClosestByPath(sites);
+            if (creep.build(site) == ERR_NOT_IN_RANGE)
+                creep.moveTo(site);
         }
     }
     else {
