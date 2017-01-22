@@ -29,10 +29,14 @@ export function enrichedMemory(): EnrichedMemory {
         em.storedPaths = {};
         em.sourceMemory = {};
         em.isInitialized = false;
-        em.logLevel = LogLevel.DEBUG;
+        em.logLevel = LogLevel.WARN;
         em.lastCommandNumber = 0;
         em.creepGroups = [];
+        em.messageLog = [];
+        em.maxMessageLogSize = 100;
     }
+    while(em.messageLog.length > em.maxMessageLogSize)
+        em.messageLog.shift();
     return em;
 }
 

@@ -20,6 +20,8 @@ interface EnrichedMemory extends Memory {
     uid: number;
     logLevel: number;
     lastCommandNumber: number;
+    messageLog: string[]; // store messages for a while
+    maxMessageLogSize: number; // how many messages
 }
 
 interface CreepGroup {
