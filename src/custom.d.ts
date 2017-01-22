@@ -13,12 +13,17 @@ interface EnrichedPathStep extends PathStep {
 }
 
 interface EnrichedMemory extends Memory {
+    creepGroups: CreepGroup[];
     storedPaths: { [aid: string]: { [bid: string]: { path: PathStep[]; time: number } } };
     sourceMemory: { [sourceId: string]: SourceMemory };
     isInitialized: boolean;
     uid: number;
     logLevel: number;
     lastCommandNumber: number;
+}
+
+interface CreepGroup {
+    creepGroupType: string; // {CHAIN}
 }
 
 interface SourceMemory {
@@ -33,33 +38,8 @@ interface SourceMemoryEnergyCollection {
 
 
 interface CreepMemory {
-    role: string;
-}
-
-interface ScheduledCreepOrder {
-    body: string[],
-    memory: CreepMemory,
-    priority: number
+    creepMemoryType: string
 }
 
 interface SpawnMemory {
-    scheduledCreepOrders: ScheduledCreepOrder[]
-}
-
-interface HarvestorMemory extends CreepMemory {
-    source: string;
-    destination: string;
-}
-
-interface TransporterMemory extends CreepMemory {
-    sources: string[];
-    destination: string;
-}
-
-interface ControllerUpgraderMemory extends CreepMemory {
-    destination: string;
-}
-
-interface SoldierMemory extends CreepMemory {
-    target: string;
 }

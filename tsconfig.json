@@ -8,6 +8,7 @@
         "sourceMap": false
     },
     "files": [
+        "src/chain.ts",
         "src/cl.ts",
         "src/custom.d.ts",
         "src/creep.ts",
@@ -18,7 +19,6 @@
         "src/screeps.d.ts",
         "src/spawn.ts",
         "src/map.ts",
-        "src/memory.ts",
-        "src/source.ts"
+        "src/memory.ts"
     ]
 }

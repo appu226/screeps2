@@ -29,17 +29,17 @@ export function enrichedMemory(): EnrichedMemory {
         em.storedPaths = {};
         em.sourceMemory = {};
         em.isInitialized = false;
-        em.logLevel = LogLevel.INFO;
+        em.logLevel = LogLevel.DEBUG;
         em.lastCommandNumber = 0;
+        em.creepGroups = [];
     }
     return em;
 }
 
 export function creepMemory(creep: Creep): CreepMemory {
     var memory = <CreepMemory>creep.memory;
-    if (memory.role === undefined) {
-        console.warn("Creep " + creep.name + " has undefined role! Returning bogus memory with role \"NA\".");
-        return { role: "NA" };
+    if (memory.creepMemoryType === undefined) {
+        console.log(`creep ${creep.name} has no creepMemoryType.`);
     }
     return memory;
 }
@@ -54,9 +54,6 @@ export function storedPaths() {
 
 export function spawnMemory(spawn: StructureSpawn): SpawnMemory {
     var sm = <SpawnMemory>spawn.memory;
-    if (sm.scheduledCreepOrders === undefined) {
-        sm.scheduledCreepOrders = [];
-    }
     return sm;
 }
 
