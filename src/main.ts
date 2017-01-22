@@ -5,7 +5,7 @@ import spawnUtils = require('./spawn');
 import log = require('./log');
 
 export function loop(): void {
-
+    log.debug(() => `main/loop: Tick ${Game.time} started.`);
     cl.executeCustomCommand();
     log.debug(() => `main/loop: customCommand executed.`);
 
