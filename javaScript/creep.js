@@ -175,8 +175,10 @@ function processIfThenElse(creep, memory) {
 }
 function createBodyPartsImpl(partsToInclude, energy) {
     var body = [];
-    for (var idx = 0; BODYPART_COST[partsToInclude[idx]] <= energy; idx = (idx + 1) % partsToInclude.length)
+    for (var idx = 0; BODYPART_COST[partsToInclude[idx]] <= energy; idx = (idx + 1) % partsToInclude.length) {
+        energy = energy - BODYPART_COST[partsToInclude[idx]];
         body.push(partsToInclude[idx]);
+    }
     return body;
 }
 function createBodyParts(action, energy) {
