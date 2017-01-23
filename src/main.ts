@@ -3,6 +3,8 @@ import dataCollectAll = require('./data');
 import cl = require('./cl');
 import spawnUtils = require('./spawn');
 import log = require('./log');
+import memoryUtils = require('./memory');
+import chainUtils = require('./chain');
 
 export function loop(): void {
     log.debug(() => `main/loop: Tick ${Game.time} started.`);
@@ -11,6 +13,11 @@ export function loop(): void {
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
         spawnUtils.processSpawn(spawn);
+    }
+
+    var groups = memoryUtils.enrichedMemory().creepGroups;
+    for(var gidx = 0; gidx < groups.length; ++gidx) {
+        chainUtils.refreshGroup(groups[gidx]);
     }
 
     for (var creepName in Game.creeps) {

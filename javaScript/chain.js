@@ -119,7 +119,10 @@ function updateCreepMemory(creep, link, linkMap) {
     });
     creep.memory = creepUtils.makeCreepMemory(link.action, sources, destinations);
 }
-function refreshChain(chain) {
+function refreshGroup(group) {
+    if (group.creepGroupType != "CHAIN")
+        return;
+    var chain = group;
     if (!mustRefreshChain(chain))
         return;
     var linkMap = {};
@@ -144,7 +147,7 @@ function refreshChain(chain) {
         updateCreepMemory(creep, creepLink, linkMap);
     }
 }
-exports.refreshChain = refreshChain;
+exports.refreshGroup = refreshGroup;
 function creepToBeSpawned(chain, energy) {
     var deadLink = null;
     for (var linkNum = 0; linkNum < chain.links.length && deadLink == null; ++linkNum) {

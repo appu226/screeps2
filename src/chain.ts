@@ -162,7 +162,10 @@ function updateCreepMemory(
     creep.memory = creepUtils.makeCreepMemory(link.action, sources, destinations);
 }
 
-export function refreshChain(chain: Chain) {
+export function refreshGroup(group: CreepGroup) {
+    if (group.creepGroupType != "CHAIN")
+        return;
+    var chain = <Chain>group;
     if (!mustRefreshChain(chain)) return;
     var linkMap: { [linkName: string]: Link } = {};
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {

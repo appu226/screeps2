@@ -4,12 +4,18 @@ var dataCollectAll = require("./data");
 var cl = require("./cl");
 var spawnUtils = require("./spawn");
 var log = require("./log");
+var memoryUtils = require("./memory");
+var chainUtils = require("./chain");
 function loop() {
     log.debug(function () { return "main/loop: Tick " + Game.time + " started."; });
     cl.executeCustomCommand();
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
         spawnUtils.processSpawn(spawn);
+    }
+    var groups = memoryUtils.enrichedMemory().creepGroups;
+    for (var gidx = 0; gidx < groups.length; ++gidx) {
+        chainUtils.refreshGroup(groups[gidx]);
     }
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
