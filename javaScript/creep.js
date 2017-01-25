@@ -122,6 +122,9 @@ function getEnergy(target) {
         case "CREEP": {
             return { energy: Game.getObjectById(target.targetId).carry.energy, target: target };
         }
+        case "SPAWN": {
+            return { energy: Game.getObjectById(target.targetId).energy, target: target };
+        }
         default: {
             log.error(function () { return "creep/getEnergy: Could not identify targetType " + target.targetType + "."; });
             return { energy: 0, target: target };
