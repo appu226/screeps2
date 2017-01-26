@@ -44,6 +44,7 @@ function createSourceToSpawnChain(sourceId, spawnId) {
     };
     return {
         creepGroupType: "CHAIN",
+        creepGroupName: "Chain" + memoryUtils.getUid(),
         sources: [sourceLinkName],
         destinations: [spawnLinkName],
         links: [sourceLink, spawnLink, harvestorLink],
@@ -119,11 +120,12 @@ function updateCreepMemory(creep, link, linkMap) {
     });
     creep.memory = creepUtils.makeCreepMemory(link.action, sources, destinations);
 }
-function refreshGroup(group) {
+function refreshGroup(group, forceRefresh) {
+    if (forceRefresh === void 0) { forceRefresh = false; }
     if (group.creepGroupType != "CHAIN")
         return;
     var chain = group;
-    if (!mustRefreshChain(chain))
+    if (!mustRefreshChain(chain) && !forceRefresh)
         return;
     var linkMap = {};
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
@@ -199,5 +201,6 @@ function addCreep(chain, action, sourceLinkNames, destinationLinkNames) {
         destinations: destinationLinkNames
     };
     chain.links.push(newLink);
+    refreshGroup(chain, true);
 }
 exports.addCreep = addCreep;

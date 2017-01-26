@@ -26,6 +26,7 @@ interface EnrichedMemory extends Memory {
 
 interface CreepGroup {
     creepGroupType: string; // {CHAIN}
+    creepGroupName: string;
 }
 
 interface SourceMemory {
