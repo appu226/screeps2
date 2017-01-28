@@ -5,12 +5,16 @@ import creepUtils = require('./creep');
 import enums = require('./enums');
 
 interface Link {
-    linkType: string; // one of SPAWN, SOURCE, CREEP
+    linkType: ELinkType;
     linkName: string;
     objectId: functional.Option<string>;
     sources: string[];
     destinations: string[]
 }
+interface ELinkType{ name: string }
+var eSpawn: ELinkType = { name: "Spawn" };
+var eSource: ELinkType = { name: "Source" };
+var eCreep: ELinkType = { name: "Creep" };
 
 interface CreepLink extends Link {
     action: string; // one of HARVEST, UPDATE, BUILD, TRANSPORT
@@ -41,14 +45,14 @@ export function createSourceToSpawnChain(sourceId: string, spawnId: string): Cha
     var spawnLinkName = "SpawnLink" + memoryUtils.getUid().toString();
     var harvestorLinkName = "HarvestorLink" + memoryUtils.getUid().toString();
     var sourceLink: Link = {
-        linkType: "SOURCE",
+        linkType: eSource,
         linkName: sourceLinkName,
         objectId: functional.Some<string>(sourceId),
         sources: [],
         destinations: [harvestorLinkName]
     };
     var harvestorLink: CreepLink = {
-        linkType: "CREEP",
+        linkType: eCreep,
         linkName: harvestorLinkName,
         objectId: functional.None<string>(),
         sources: [sourceLinkName],
@@ -58,7 +62,7 @@ export function createSourceToSpawnChain(sourceId: string, spawnId: string): Cha
         creepName: functional.None<string>()
     };
     var spawnLink: Link = {
-        linkType: "SPAWN",
+        linkType: eSpawn,
         linkName: spawnLinkName,
         objectId: functional.Some<string>(spawnId),
         sources: [harvestorLinkName],
@@ -78,7 +82,7 @@ function mustRefreshChain(chain: Chain): boolean {
     var mustRefresh = false;
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
         var link = chain.links[linkIdx];
-        if (link.linkType != "CREEP") {
+        if (link.linkType.name != eCreep.name) {
             continue;
         }
         var creepLink = <CreepLink>link;
@@ -125,7 +129,7 @@ function bfs(
     return functional.flatten<string>(current.map(
         (linkName: string) => {
             var link = linkMap[linkName];
-            if (link.linkType != "CREEP")
+            if (link.linkType.name != eCreep.name)
                 return [linkName];
             var creepLink = <CreepLink>link;
             if (creepLink.status == "ACTIVE")
@@ -133,6 +137,20 @@ function bfs(
             return bfs(expand(linkName), linkMap, expand);
         }
     ));
+}
+
+function linkTypeToCreepTargetType(
+    linkType: ELinkType
+): creepUtils.ETargetType {
+    switch(linkType.name) {
+        case eSpawn.name: return creepUtils.eSpawn;
+        case eSource.name: return creepUtils.eSource;
+        case eCreep.name: return creepUtils.eCreep;
+        default: {
+            log.error(() => `chain/linkTypeToCreepTargetType: unexpected link type ${linkType.name}`)
+            return {targetType: "NA"};
+        }
+    }
 }
 
 function updateCreepMemory(
@@ -146,7 +164,7 @@ function updateCreepMemory(
     ).map<creepUtils.Target>(
         sourceLinkName => {
             return {
-                targetType: linkMap[sourceLinkName].linkType,
+                targetType: linkTypeToCreepTargetType(linkMap[sourceLinkName].linkType),
                 targetId: linkMap[sourceLinkName].objectId.get
             }
         });
@@ -157,7 +175,7 @@ function updateCreepMemory(
     ).map<creepUtils.Target>(
         destLinkName => {
             return {
-                targetType: linkMap[destLinkName].linkType,
+                targetType: linkTypeToCreepTargetType(linkMap[destLinkName].linkType),
                 targetId: linkMap[destLinkName].objectId.get
             };
         });
@@ -175,7 +193,7 @@ export function refreshGroup(group: CreepGroup, forceRefresh: boolean = false) {
     }
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
         var link = chain.links[linkIdx];
-        if (link.linkType != "CREEP") {
+        if (link.linkType.name != eCreep.name) {
             continue;
         }
         var creepLink = <CreepLink>link;
@@ -196,7 +214,7 @@ export function creepToBeSpawned(chain: Chain, energy: number): functional.Optio
     var deadLink: CreepLink = null;
     for (var linkNum = 0; linkNum < chain.links.length && deadLink == null; ++linkNum) {
         var link = chain.links[linkNum];
-        if (link.linkType == "CREEP" && (<CreepLink>link).status == "DEAD")
+        if (link.linkType.name == eCreep.name && (<CreepLink>link).status == "DEAD")
             deadLink = <CreepLink>link;
     }
     if (deadLink == null)
@@ -249,7 +267,7 @@ export function addCreep(chain: Chain, action: string, sourceLinkNames: string[]
         action: action,
         status: "DEAD",
         creepName: functional.None<string>(),
-        linkType: "CREEP",
+        linkType: eCreep,
         linkName: newLinkName,
         objectId: functional.None<string>(),
         sources: sourceLinkNames,

@@ -3,6 +3,10 @@ var memoryUtils = require("./memory");
 var log = require("./log");
 var fun = require("./functional");
 var enums = require("./enums");
+;
+exports.eSpawn = { targetType: "Spawn" };
+exports.eSource = { targetType: "Source" };
+exports.eCreep = { targetType: "Creep" };
 function process(creep) {
     if (creep.spawning) {
         return;
@@ -78,7 +82,7 @@ function processCreepWithMemory(creep, creepMemory) {
 }
 function processWorker(creep, memory) {
     if (memory.action == "HARVEST") {
-        if (memory.target.targetType != "SOURCE") {
+        if (memory.target.targetType.targetType != exports.eSource.targetType) {
             return log.error(function () { return "creep/processWorker: action HARVEST used with targetType" + memory.target.targetType; });
         }
         var source = Game.getObjectById(memory.target.targetId);
@@ -101,8 +105,8 @@ function processTaker(creep, memory) {
         return log.error(function () { return "creep/processGiver: creep " + creep.name + " has only " + memory.sources.length + " destinations"; });
     }
     var maxTarget = maxEnergy.get.target;
-    switch (maxTarget.targetType) {
-        case "CREEP": {
+    switch (maxTarget.targetType.targetType) {
+        case exports.eCreep.targetType: {
             var giver = Game.getObjectById(maxTarget.targetId);
             if (giver == null || giver == undefined)
                 return log.error(function () { return "creep/processGiver: could not find creep " + maxTarget.targetId; });
@@ -111,23 +115,23 @@ function processTaker(creep, memory) {
             return;
         }
         default:
-            return log.error(function () { return "creep/processTaker: targetType " + maxTarget.targetType + " not supported."; });
+            return log.error(function () { return "creep/processTaker: targetType " + maxTarget.targetType.targetType + " not supported."; });
     }
 }
 function getEnergy(target) {
-    switch (target.targetType) {
-        case "SOURCE": {
+    switch (target.targetType.targetType) {
+        case exports.eSource.targetType: {
             var source = Game.getObjectById(target.targetId);
             return { energy: source.energy, target: target };
         }
-        case "CREEP": {
+        case exports.eCreep.targetType: {
             return { energy: Game.getObjectById(target.targetId).carry.energy, target: target };
         }
-        case "SPAWN": {
+        case exports.eSpawn.targetType: {
             return { energy: Game.getObjectById(target.targetId).energy, target: target };
         }
         default: {
-            log.error(function () { return "creep/getEnergy: Could not identify targetType " + target.targetType + "."; });
+            log.error(function () { return "creep/getEnergy: Could not identify targetType " + target.targetType.targetType + "."; });
             return { energy: 0, target: target };
         }
     }
@@ -139,8 +143,8 @@ function processGiver(creep, memory) {
         return log.error(function () { return "creep/processGiver: creep " + creep.name + " has only " + memory.destinations.length + " destinations"; });
     }
     var minTarget = minEnergy.get.target;
-    switch (minTarget.targetType) {
-        case "CREEP": {
+    switch (minTarget.targetType.targetType) {
+        case exports.eCreep.targetType: {
             var taker = Game.getObjectById(minTarget.targetId);
             if (taker == null || taker == undefined)
                 return log.error(function () { return "creep/processGiver: could not find creep " + minTarget.targetId; });
@@ -148,7 +152,7 @@ function processGiver(creep, memory) {
                 creep.moveTo(taker);
             return;
         }
-        case "SPAWN": {
+        case exports.eSpawn.targetType: {
             var spawn = Game.getObjectById(minTarget.targetId);
             if (spawn == null || spawn === undefined)
                 return log.error(function () { return "creep/processGiver: could not find spawn " + minTarget.targetId; });
@@ -157,7 +161,7 @@ function processGiver(creep, memory) {
             return;
         }
         default: {
-            return log.error(function () { return "creep/processGiver: targetType " + minTarget.targetType + " not yet supported."; });
+            return log.error(function () { return "creep/processGiver: targetType " + minTarget.targetType.targetType + " not yet supported."; });
         }
     }
 }
