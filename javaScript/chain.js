@@ -1,8 +1,8 @@
 "use strict";
 var memoryUtils = require("./memory");
 var log = require("./log");
-var functional = require("./functional");
-var creepUtils = require("./creep");
+var fun = require("./functional");
+var cu = require("./creep");
 var enums = require("./enums");
 var eSpawn = { name: "Spawn" };
 var eSource = { name: "Source" };
@@ -28,24 +28,24 @@ function createSourceToSpawnChain(sourceId, spawnId) {
     var sourceLink = {
         linkType: eSource,
         linkName: sourceLinkName,
-        objectId: functional.Some(sourceId),
+        objectId: fun.Some(sourceId),
         sources: [],
         destinations: [harvestorLinkName]
     };
     var harvestorLink = {
         linkType: eCreep,
         linkName: harvestorLinkName,
-        objectId: functional.None(),
+        objectId: fun.None(),
         sources: [sourceLinkName],
         destinations: [spawnLinkName],
-        creepType: creepUtils.eHarvester,
+        creepType: cu.eHarvester,
         status: eDead,
-        creepName: functional.None()
+        creepName: fun.None()
     };
     var spawnLink = {
         linkType: eSpawn,
         linkName: spawnLinkName,
-        objectId: functional.Some(spawnId),
+        objectId: fun.Some(spawnId),
         sources: [harvestorLinkName],
         destinations: []
     };
@@ -76,7 +76,7 @@ function mustRefreshChain(chain) {
                 var creepName = creepLink.creepName.get;
                 if (Game.creeps[creepName] !== undefined) {
                     creepLink.status = eActive;
-                    creepLink.objectId = functional.Some(Game.creeps[creepName].id);
+                    creepLink.objectId = fun.Some(Game.creeps[creepName].id);
                     mustRefresh = true;
                 }
                 continue;
@@ -102,7 +102,7 @@ function mustRefreshChain(chain) {
     return mustRefresh;
 }
 function bfs(current, linkMap, expand) {
-    return functional.flatten(current.map(function (linkName) {
+    return fun.flatten(current.map(function (linkName) {
         var link = linkMap[linkName];
         if (link.linkType.name != eCreep.name)
             return [linkName];
@@ -114,9 +114,9 @@ function bfs(current, linkMap, expand) {
 }
 function linkTypeToCreepTargetType(linkType) {
     switch (linkType.name) {
-        case eSpawn.name: return creepUtils.eSpawn;
-        case eSource.name: return creepUtils.eSource;
-        case eCreep.name: return creepUtils.eCreep;
+        case eSpawn.name: return cu.eSpawn;
+        case eSource.name: return cu.eSource;
+        case eCreep.name: return cu.eCreep;
         default: {
             log.error(function () { return "chain/linkTypeToCreepTargetType: unexpected link type " + linkType.name; });
             return { targetType: "NA" };
@@ -136,7 +136,7 @@ function updateCreepMemory(creep, link, linkMap) {
             targetId: linkMap[destLinkName].objectId.get
         };
     });
-    creep.memory = creepUtils.makeCreepMemory(link.creepType, sources, destinations);
+    creep.memory = cu.makeCreepMemory(link.creepType, sources, destinations);
 }
 function refreshGroup(group, forceRefresh) {
     if (forceRefresh === void 0) { forceRefresh = false; }
@@ -163,7 +163,7 @@ function refreshGroup(group, forceRefresh) {
             continue;
         }
         var creep = Game.creeps[creepLink.creepName.get];
-        creepLink.objectId = functional.Some(creep.id);
+        creepLink.objectId = fun.Some(creep.id);
         updateCreepMemory(creep, creepLink, linkMap);
     }
 }
@@ -176,13 +176,13 @@ function creepToBeSpawned(chain, energy) {
             deadLink = link;
     }
     if (deadLink == null)
-        return functional.None();
+        return fun.None();
     else {
-        var bodyParts = creepUtils.createBodyParts(deadLink.creepType, energy);
-        deadLink.creepName = functional.Some(deadLink.creepType.creepType + memoryUtils.getUid());
+        var bodyParts = cu.createBodyParts(deadLink.creepType, energy);
+        deadLink.creepName = fun.Some(deadLink.creepType.creepType + memoryUtils.getUid());
         deadLink.status = eSpawning;
-        var memory = creepUtils.makeCreepMemory(deadLink.creepType, [], []);
-        return functional.Some({
+        var memory = cu.makeCreepMemory(deadLink.creepType, [], []);
+        return fun.Some({
             creepName: deadLink.creepName.get,
             bodyParts: bodyParts,
             creepMemory: memory
@@ -194,16 +194,16 @@ function addCreep(chain, creepType, sourceLinkNames, destinationLinkNames) {
     var newLinkName = "Link" + creepType.creepType + memoryUtils.getUid();
     chain.links.forEach(function (chainLink) {
         //if it is in sourceLinkNames
-        if (functional.contains(sourceLinkNames, chainLink.linkName)) {
+        if (fun.contains(sourceLinkNames, chainLink.linkName)) {
             //remove all it's destinations that are in destinationLinkNames
-            chainLink.destinations = chainLink.destinations.filter(function (chainLinkDestination) { return functional.contains(destinationLinkNames, chainLinkDestination); });
+            chainLink.destinations = chainLink.destinations.filter(function (chainLinkDestination) { return fun.contains(destinationLinkNames, chainLinkDestination); });
             //add newLinkName as a destinations
             chainLink.destinations.push(newLinkName);
         }
         //if it is in destinationLinkNames
-        if (functional.contains(destinationLinkNames, chainLink.linkName)) {
+        if (fun.contains(destinationLinkNames, chainLink.linkName)) {
             //remove all it's sources that are in sourceLinkNames
-            chainLink.sources = chainLink.sources.filter(function (chainLinkSource) { return functional.contains(sourceLinkNames, chainLinkSource); });
+            chainLink.sources = chainLink.sources.filter(function (chainLinkSource) { return fun.contains(sourceLinkNames, chainLinkSource); });
             //add newLinkName as a source
             chainLink.sources.push(newLinkName);
         }
@@ -211,10 +211,10 @@ function addCreep(chain, creepType, sourceLinkNames, destinationLinkNames) {
     var newLink = {
         creepType: creepType,
         status: eDead,
-        creepName: functional.None(),
+        creepName: fun.None(),
         linkType: eCreep,
         linkName: newLinkName,
-        objectId: functional.None(),
+        objectId: fun.None(),
         sources: sourceLinkNames,
         destinations: destinationLinkNames
     };
@@ -222,3 +222,73 @@ function addCreep(chain, creepType, sourceLinkNames, destinationLinkNames) {
     refreshGroup(chain, true);
 }
 exports.addCreep = addCreep;
+function createLink(objId, objType, creepType) {
+    switch (objType.targetType) {
+        case cu.eCreep.targetType: {
+            if (!creepType.isPresent) {
+                log.error(function () { return "chain/createLink: creepType empty while creating link for " + objId; });
+                return null;
+            }
+            var creep = Game.getObjectById(objId);
+            if (creep == null || creep === undefined) {
+                log.error(function () { return "chain/createLink: could not find creep with id " + objId; });
+                return null;
+            }
+            var creepLink = {
+                linkType: eCreep,
+                linkName: "CreepLink" + memoryUtils.getUid(),
+                objectId: fun.Some(objId),
+                creepType: creepType.get,
+                status: eActive,
+                creepName: fun.Some(creep.name),
+                sources: [],
+                destinations: []
+            };
+            return creepLink;
+        }
+        case cu.eSource.targetType: {
+            var sourceLink = {
+                linkType: eSource,
+                linkName: "LinkSource" + memoryUtils.getUid(),
+                objectId: fun.Some(objId),
+                sources: [],
+                destinations: []
+            };
+            return sourceLink;
+        }
+        case cu.eSpawn.targetType: {
+            var spawnLink = {
+                linkType: eSpawn,
+                linkName: "LinkSpawn" + memoryUtils.getUid(),
+                objectId: fun.Some(objId),
+                sources: [],
+                destinations: []
+            };
+        }
+        default: {
+            log.error(function () { return "chain/createLink: objType " + objType.targetType + " not supported."; });
+        }
+    }
+}
+function createChain(sourceId, sourceType, targetId, targetType, spawnId, sourceCreepType, targetCreepType) {
+    if (sourceCreepType === void 0) { sourceCreepType = fun.None(); }
+    if (targetCreepType === void 0) { targetCreepType = fun.None(); }
+    var source = createLink(sourceId, sourceType, sourceCreepType);
+    if (source == null)
+        return null;
+    var destination = createLink(targetId, targetType, targetCreepType);
+    if (destination == null)
+        return null;
+    source.destinations = [destination.linkName];
+    destination.sources = [source.linkName];
+    var chain = {
+        creepGroupType: enums.eChain,
+        creepGroupName: "Chain" + memoryUtils.getUid(),
+        sources: [source.linkName],
+        destinations: [destination.linkName],
+        links: [source, destination],
+        spawnId: spawnId
+    };
+    return chain;
+}
+exports.createChain = createChain;

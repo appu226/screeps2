@@ -253,7 +253,7 @@ export function createBodyParts(creepType: ECreepType, energy: number): string[]
         case eHarvester.creepType:
         case eUpdater.creepType:
         case eBuilder.creepType:
-            return createBodyPartsImpl([MOVE, CARRY, WORK, MOVE], energy);
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, MOVE, MOVE], energy);
         case eTransporter.creepType:
             return createBodyPartsImpl([MOVE, CARRY], energy);
         default:

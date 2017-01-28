@@ -1,26 +1,43 @@
 import memoryUtils = require('./memory');
 import log = require('./log');
-import functional = require('./functional');
+import fun = require('./functional');
 import chain = require('./chain');
-import creepUtils = require('./creep');
+import cu = require('./creep');
 import enums = require('./enums');
 
-function createSourceToSpawnChain(sourceId: string, spawnId: string) {
-    memoryUtils.enrichedMemory().creepGroups.push(chain.createSourceToSpawnChain(sourceId, spawnId));
+function createChain(
+    sourceId: string, sourceType: cu.ETargetType,
+    targetId: string, targetType: cu.ETargetType,
+    spawnId: string,
+    sourceCreepType: fun.Option<cu.ECreepType> = fun.None<cu.ECreepType>(),
+    targetCreepType: fun.Option<cu.ECreepType> = fun.None<cu.ECreepType>()
+) {
+    var chn = chain.createChain(
+        sourceId, sourceType,
+        targetId, targetType,
+        spawnId,
+        sourceCreepType, targetCreepType);
+    if (chn != null)
+        memoryUtils.enrichedMemory().creepGroups.push(chn);
 }
 
-function addTransporterToChain(chainName: string, sourceLinkName: string, destinationLinkName: string) {
-    for(var groupIdx = 0; groupIdx < memoryUtils.enrichedMemory().creepGroups.length; ++groupIdx) {
-        var group = memoryUtils.enrichedMemory().creepGroups[groupIdx];
-        if (group.creepGroupType.name == enums.eChain.name && group.creepGroupName == chainName) {
-            var theChain = <chain.Chain>group;
-            chain.addCreep(theChain, creepUtils.eTransporter, [sourceLinkName], [destinationLinkName]);
+function addCreep(
+    chainName: string,
+    creepType: cu.ECreepType,
+    sourceLinkNames: string[],
+    destinationLinkNames: string[]
+) {
+    var creepGroups = memoryUtils.enrichedMemory().creepGroups;
+    for (var ci = 0; ci < creepGroups.length; ++ci) {
+        var creepGroup = creepGroups[ci];
+        if (creepGroup.creepGroupName == chainName &&
+            creepGroup.creepGroupType === enums.eChain) {
+            chain.addCreep(<chain.Chain>creepGroup, creepType, sourceLinkNames, destinationLinkNames);
         }
     }
 }
 
 export function executeCustomCommand() {
-
     var nextCommandNumber = 0;
     if (memoryUtils.enrichedMemory().lastCommandNumber < nextCommandNumber) {
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;

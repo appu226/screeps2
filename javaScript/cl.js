@@ -1,18 +1,23 @@
 "use strict";
 var memoryUtils = require("./memory");
 var log = require("./log");
+var fun = require("./functional");
 var chain = require("./chain");
-var creepUtils = require("./creep");
 var enums = require("./enums");
-function createSourceToSpawnChain(sourceId, spawnId) {
-    memoryUtils.enrichedMemory().creepGroups.push(chain.createSourceToSpawnChain(sourceId, spawnId));
+function createChain(sourceId, sourceType, targetId, targetType, spawnId, sourceCreepType, targetCreepType) {
+    if (sourceCreepType === void 0) { sourceCreepType = fun.None(); }
+    if (targetCreepType === void 0) { targetCreepType = fun.None(); }
+    var chn = chain.createChain(sourceId, sourceType, targetId, targetType, spawnId, sourceCreepType, targetCreepType);
+    if (chn != null)
+        memoryUtils.enrichedMemory().creepGroups.push(chn);
 }
-function addTransporterToChain(chainName, sourceLinkName, destinationLinkName) {
-    for (var groupIdx = 0; groupIdx < memoryUtils.enrichedMemory().creepGroups.length; ++groupIdx) {
-        var group = memoryUtils.enrichedMemory().creepGroups[groupIdx];
-        if (group.creepGroupType.name == enums.eChain.name && group.creepGroupName == chainName) {
-            var theChain = group;
-            chain.addCreep(theChain, creepUtils.eTransporter, [sourceLinkName], [destinationLinkName]);
+function addCreep(chainName, creepType, sourceLinkNames, destinationLinkNames) {
+    var creepGroups = memoryUtils.enrichedMemory().creepGroups;
+    for (var ci = 0; ci < creepGroups.length; ++ci) {
+        var creepGroup = creepGroups[ci];
+        if (creepGroup.creepGroupName == chainName &&
+            creepGroup.creepGroupType === enums.eChain) {
+            chain.addCreep(creepGroup, creepType, sourceLinkNames, destinationLinkNames);
         }
     }
 }
