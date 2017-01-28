@@ -26,9 +26,13 @@ export const eBuilder: ECreepType = { creepType: "Builder" };
 export const eTransporter: ECreepType = { creepType: "Transporter" };
 
 interface WorkerMemory extends CreepMemory {
-    action: string
+    action: EWorkerAction
     target: Target
 }
+interface EWorkerAction { action: string }
+const eBuild: EWorkerAction = { action: "Build" };
+const eHarvest: EWorkerAction = { action: "Harvest" };
+const eUpdate: EWorkerAction = { action: "Update" };
 
 interface GiverMemory extends CreepMemory {
     destinations: Target[]
@@ -69,7 +73,7 @@ export function makeCreepMemory(creepType: ECreepType, sources: Target[], destin
             };
             var elsePart: WorkerMemory = {
                 creepMemoryType: enums.eWorkerMemory,
-                action: "HARVEST",
+                action: eHarvest,
                 target: sources[0]
             };
             return <IfThenElseMemory>{
@@ -122,7 +126,7 @@ function processCreepWithMemory(creep: Creep, creepMemory: CreepMemory) {
 }
 
 function processWorker(creep: Creep, memory: WorkerMemory) {
-    if (memory.action == "HARVEST") {
+    if (memory.action.action == eHarvest.action) {
         if (memory.target.targetType.targetType != eSource.targetType) {
             return log.error(() => "creep/processWorker: action HARVEST used with targetType" + memory.target.targetType);
         }
@@ -135,7 +139,7 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
         }
         return;
     } else {
-        return log.error(() => `creep/processWorker: unexpected action ${memory.action}.`);
+        return log.error(() => `creep/processWorker: unexpected action ${memory.action.action}.`);
     }
 }
 

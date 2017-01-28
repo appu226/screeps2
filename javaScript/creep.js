@@ -12,6 +12,9 @@ exports.eHarvester = { creepType: "Harvester" };
 exports.eUpdater = { creepType: "Updater" };
 exports.eBuilder = { creepType: "Builder" };
 exports.eTransporter = { creepType: "Transporter" };
+var eBuild = { action: "Build" };
+var eHarvest = { action: "Harvest" };
+var eUpdate = { action: "Update" };
 function process(creep) {
     if (creep.spawning) {
         return;
@@ -34,7 +37,7 @@ function makeCreepMemory(creepType, sources, destinations) {
             };
             var elsePart = {
                 creepMemoryType: enums.eWorkerMemory,
-                action: "HARVEST",
+                action: eHarvest,
                 target: sources[0]
             };
             return {
@@ -86,7 +89,7 @@ function processCreepWithMemory(creep, creepMemory) {
     }
 }
 function processWorker(creep, memory) {
-    if (memory.action == "HARVEST") {
+    if (memory.action.action == eHarvest.action) {
         if (memory.target.targetType.targetType != exports.eSource.targetType) {
             return log.error(function () { return "creep/processWorker: action HARVEST used with targetType" + memory.target.targetType; });
         }
@@ -100,7 +103,7 @@ function processWorker(creep, memory) {
         return;
     }
     else {
-        return log.error(function () { return "creep/processWorker: unexpected action " + memory.action + "."; });
+        return log.error(function () { return "creep/processWorker: unexpected action " + memory.action.action + "."; });
     }
 }
 function processTaker(creep, memory) {
