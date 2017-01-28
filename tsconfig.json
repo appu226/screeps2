@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-         "outDir": "/home/parakram/.config/Screeps/scripts/screeps.com/default",
-        //"outDir": "javaScript",
+         //"outDir": "/home/parakram/.config/Screeps/scripts/screeps.com/default",
+        "outDir": "javaScript",
         "rootDir": "src",
         "target": "es3",
         "noImplicitAny": false,
@@ -14,6 +14,7 @@
         "src/custom.d.ts",
         "src/creep.ts",
         "src/data.ts",
+        "src/enums.ts",
         "src/functional.ts",
         "src/log.ts",
         "src/main.ts",

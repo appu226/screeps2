@@ -17,7 +17,7 @@ var eSource: ELinkType = { name: "Source" };
 var eCreep: ELinkType = { name: "Creep" };
 
 interface CreepLink extends Link {
-    action: string; // one of HARVEST, UPDATE, BUILD, TRANSPORT
+    creepType: creepUtils.ECreepType;
     status: string; // one of DEAD, SPAWNING, ACTIVE
     creepName: functional.Option<string>;
 }
@@ -57,7 +57,7 @@ export function createSourceToSpawnChain(sourceId: string, spawnId: string): Cha
         objectId: functional.None<string>(),
         sources: [sourceLinkName],
         destinations: [spawnLinkName],
-        action: "HARVEST",
+        creepType: creepUtils.eHarvester,
         status: "DEAD",
         creepName: functional.None<string>()
     };
@@ -179,7 +179,7 @@ function updateCreepMemory(
                 targetId: linkMap[destLinkName].objectId.get
             };
         });
-    creep.memory = creepUtils.makeCreepMemory(link.action, sources, destinations);
+    creep.memory = creepUtils.makeCreepMemory(link.creepType, sources, destinations);
 }
 
 export function refreshGroup(group: CreepGroup, forceRefresh: boolean = false) {
@@ -220,10 +220,10 @@ export function creepToBeSpawned(chain: Chain, energy: number): functional.Optio
     if (deadLink == null)
         return functional.None<creepUtils.CreepToBeSpawned>();
     else {
-        var bodyParts = creepUtils.createBodyParts(deadLink.action, energy);
-        deadLink.creepName = functional.Some<string>(deadLink.action + memoryUtils.getUid());
+        var bodyParts = creepUtils.createBodyParts(deadLink.creepType, energy);
+        deadLink.creepName = functional.Some<string>(deadLink.creepType.creepType + memoryUtils.getUid());
         deadLink.status = "SPAWNING";
-        var memory = creepUtils.makeCreepMemory(deadLink.action, [], []);
+        var memory = creepUtils.makeCreepMemory(deadLink.creepType, [], []);
         return functional.Some<creepUtils.CreepToBeSpawned>(
             {
                 creepName: deadLink.creepName.get,
@@ -234,8 +234,8 @@ export function creepToBeSpawned(chain: Chain, energy: number): functional.Optio
     }
 }
 
-export function addCreep(chain: Chain, action: string, sourceLinkNames: string[], destinationLinkNames: string[]) {
-    var newLinkName = `Link${action}${memoryUtils.getUid()}`;
+export function addCreep(chain: Chain, creepType: creepUtils.ECreepType, sourceLinkNames: string[], destinationLinkNames: string[]) {
+    var newLinkName = `Link${creepType.creepType}${memoryUtils.getUid()}`;
     chain.links.forEach(
         (chainLink: Link) => {
             //if it is in sourceLinkNames
@@ -264,7 +264,7 @@ export function addCreep(chain: Chain, action: string, sourceLinkNames: string[]
         }
     );
     var newLink: CreepLink = {
-        action: action,
+        creepType: creepType,
         status: "DEAD",
         creepName: functional.None<string>(),
         linkType: eCreep,

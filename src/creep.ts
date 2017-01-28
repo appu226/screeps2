@@ -19,6 +19,12 @@ export var eSpawn: ETargetType = { targetType: "Spawn" };
 export var eSource: ETargetType = { targetType: "Source" };
 export var eCreep: ETargetType = { targetType: "Creep" };
 
+export interface ECreepType { creepType: string };
+export var eHarvester: ECreepType = { creepType: "Harvester" };
+export var eUpdater: ECreepType = { creepType: "Updater" };
+export var eBuilder: ECreepType = { creepType: "Builder" };
+export var eTransporter: ECreepType = { creepType: "Transporter" };
+
 interface WorkerMemory extends CreepMemory {
     action: string
     target: Target
@@ -54,9 +60,9 @@ export function process(creep: Creep) {
     processCreepWithMemory(creep, creepMemory);
 }
 
-export function makeCreepMemory(action: string, sources: Target[], destinations: Target[]): CreepMemory {
-    switch (action) {
-        case "HARVEST": {
+export function makeCreepMemory(creepType: ECreepType, sources: Target[], destinations: Target[]): CreepMemory {
+    switch (creepType.creepType) {
+        case eHarvester.creepType: {
             var thenPart: GiverMemory = {
                 creepMemoryType: enums.eGiverMemory,
                 destinations: destinations
@@ -73,7 +79,7 @@ export function makeCreepMemory(action: string, sources: Target[], destinations:
                 elsePart: elsePart
             };
         }
-        case "TRANSPORT": {
+        case eTransporter.creepType: {
             var giverMemory: GiverMemory = {
                 creepMemoryType: enums.eGiverMemory,
                 destinations: destinations
@@ -90,7 +96,7 @@ export function makeCreepMemory(action: string, sources: Target[], destinations:
             };
         }
         default:
-            log.error(() => "creep/makeCreepMemory: action ${action} not supported.");
+            log.error(() => `creep/makeCreepMemory: Creep type ${creepType.creepType} not supported.`);
             return null;
     }
 }
@@ -167,7 +173,7 @@ function getEnergy(target: Target): { energy: number, target: Target } {
             return { energy: Game.getObjectById<Creep>(target.targetId).carry.energy, target };
         }
         case eSpawn.targetType: {
-            return {energy: Game.getObjectById<Spawn>(target.targetId).energy, target};
+            return { energy: Game.getObjectById<Spawn>(target.targetId).energy, target };
         }
         default: {
             log.error(() => `creep/getEnergy: Could not identify targetType ${target.targetType.targetType}.`);
@@ -235,16 +241,16 @@ function createBodyPartsImpl(partsToInclude: string[], energy: number): string[]
     return body;
 }
 
-export function createBodyParts(action: string, energy: number): string[] {
-    switch (action) {
-        case "HARVEST":
-        case "UPDATE":
-        case "BUILD":
+export function createBodyParts(creepType: ECreepType, energy: number): string[] {
+    switch (creepType.creepType) {
+        case eHarvester.creepType:
+        case eUpdater.creepType:
+        case eBuilder.creepType:
             return createBodyPartsImpl([MOVE, CARRY, WORK, MOVE], energy);
-        case "TRANSPORT":
+        case eTransporter.creepType:
             return createBodyPartsImpl([MOVE, CARRY], energy);
         default:
-            log.error(() => `creep/createBodyParts: action ${action} not yet supported.`);
+            log.error(() => `creep/createBodyParts: Creep type ${creepType.creepType} not yet supported.`);
             return createBodyPartsImpl(BODYPARTS_ALL, energy);
     }
 }

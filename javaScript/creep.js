@@ -7,6 +7,11 @@ var enums = require("./enums");
 exports.eSpawn = { targetType: "Spawn" };
 exports.eSource = { targetType: "Source" };
 exports.eCreep = { targetType: "Creep" };
+;
+exports.eHarvester = { creepType: "Harvester" };
+exports.eUpdater = { creepType: "Updater" };
+exports.eBuilder = { creepType: "Builder" };
+exports.eTransporter = { creepType: "Transporter" };
 function process(creep) {
     if (creep.spawning) {
         return;
@@ -20,9 +25,9 @@ function process(creep) {
     processCreepWithMemory(creep, creepMemory);
 }
 exports.process = process;
-function makeCreepMemory(action, sources, destinations) {
-    switch (action) {
-        case "HARVEST": {
+function makeCreepMemory(creepType, sources, destinations) {
+    switch (creepType.creepType) {
+        case exports.eHarvester.creepType: {
             var thenPart = {
                 creepMemoryType: enums.eGiverMemory,
                 destinations: destinations
@@ -39,7 +44,7 @@ function makeCreepMemory(action, sources, destinations) {
                 elsePart: elsePart
             };
         }
-        case "TRANSPORT": {
+        case exports.eTransporter.creepType: {
             var giverMemory = {
                 creepMemoryType: enums.eGiverMemory,
                 destinations: destinations
@@ -56,7 +61,7 @@ function makeCreepMemory(action, sources, destinations) {
             };
         }
         default:
-            log.error(function () { return "creep/makeCreepMemory: action ${action} not supported."; });
+            log.error(function () { return "creep/makeCreepMemory: Creep type " + creepType.creepType + " not supported."; });
             return null;
     }
 }
@@ -189,16 +194,16 @@ function createBodyPartsImpl(partsToInclude, energy) {
     }
     return body;
 }
-function createBodyParts(action, energy) {
-    switch (action) {
-        case "HARVEST":
-        case "UPDATE":
-        case "BUILD":
+function createBodyParts(creepType, energy) {
+    switch (creepType.creepType) {
+        case exports.eHarvester.creepType:
+        case exports.eUpdater.creepType:
+        case exports.eBuilder.creepType:
             return createBodyPartsImpl([MOVE, CARRY, WORK, MOVE], energy);
-        case "TRANSPORT":
+        case exports.eTransporter.creepType:
             return createBodyPartsImpl([MOVE, CARRY], energy);
         default:
-            log.error(function () { return "creep/createBodyParts: action " + action + " not yet supported."; });
+            log.error(function () { return "creep/createBodyParts: Creep type " + creepType.creepType + " not yet supported."; });
             return createBodyPartsImpl(BODYPARTS_ALL, energy);
     }
 }

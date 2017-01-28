@@ -35,7 +35,7 @@ function createSourceToSpawnChain(sourceId, spawnId) {
         objectId: functional.None(),
         sources: [sourceLinkName],
         destinations: [spawnLinkName],
-        action: "HARVEST",
+        creepType: creepUtils.eHarvester,
         status: "DEAD",
         creepName: functional.None()
     };
@@ -133,7 +133,7 @@ function updateCreepMemory(creep, link, linkMap) {
             targetId: linkMap[destLinkName].objectId.get
         };
     });
-    creep.memory = creepUtils.makeCreepMemory(link.action, sources, destinations);
+    creep.memory = creepUtils.makeCreepMemory(link.creepType, sources, destinations);
 }
 function refreshGroup(group, forceRefresh) {
     if (forceRefresh === void 0) { forceRefresh = false; }
@@ -175,10 +175,10 @@ function creepToBeSpawned(chain, energy) {
     if (deadLink == null)
         return functional.None();
     else {
-        var bodyParts = creepUtils.createBodyParts(deadLink.action, energy);
-        deadLink.creepName = functional.Some(deadLink.action + memoryUtils.getUid());
+        var bodyParts = creepUtils.createBodyParts(deadLink.creepType, energy);
+        deadLink.creepName = functional.Some(deadLink.creepType.creepType + memoryUtils.getUid());
         deadLink.status = "SPAWNING";
-        var memory = creepUtils.makeCreepMemory(deadLink.action, [], []);
+        var memory = creepUtils.makeCreepMemory(deadLink.creepType, [], []);
         return functional.Some({
             creepName: deadLink.creepName.get,
             bodyParts: bodyParts,
@@ -187,8 +187,8 @@ function creepToBeSpawned(chain, energy) {
     }
 }
 exports.creepToBeSpawned = creepToBeSpawned;
-function addCreep(chain, action, sourceLinkNames, destinationLinkNames) {
-    var newLinkName = "Link" + action + memoryUtils.getUid();
+function addCreep(chain, creepType, sourceLinkNames, destinationLinkNames) {
+    var newLinkName = "Link" + creepType.creepType + memoryUtils.getUid();
     chain.links.forEach(function (chainLink) {
         //if it is in sourceLinkNames
         if (functional.contains(sourceLinkNames, chainLink.linkName)) {
@@ -206,7 +206,7 @@ function addCreep(chain, action, sourceLinkNames, destinationLinkNames) {
         }
     });
     var newLink = {
-        action: action,
+        creepType: creepType,
         status: "DEAD",
         creepName: functional.None(),
         linkType: eCreep,

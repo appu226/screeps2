@@ -2,6 +2,7 @@ import memoryUtils = require('./memory');
 import log = require('./log');
 import functional = require('./functional');
 import chain = require('./chain');
+import creepUtils = require('./creep');
 import enums = require('./enums');
 
 function createSourceToSpawnChain(sourceId: string, spawnId: string) {
@@ -13,7 +14,7 @@ function addTransporterToChain(chainName: string, sourceLinkName: string, destin
         var group = memoryUtils.enrichedMemory().creepGroups[groupIdx];
         if (group.creepGroupType.name == enums.eChain.name && group.creepGroupName == chainName) {
             var theChain = <chain.Chain>group;
-            chain.addCreep(theChain, "TRANSPORT", [sourceLinkName], [destinationLinkName]);
+            chain.addCreep(theChain, creepUtils.eTransporter, [sourceLinkName], [destinationLinkName]);
         }
     }
 }
