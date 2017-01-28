@@ -31,7 +31,7 @@ function addCreep(
     for (var ci = 0; ci < creepGroups.length; ++ci) {
         var creepGroup = creepGroups[ci];
         if (creepGroup.creepGroupName == chainName &&
-            creepGroup.creepGroupType === enums.eChain) {
+            creepGroup.creepGroupType.name == enums.eChain.name) {
             chain.addCreep(<chain.Chain>creepGroup, creepType, sourceLinkNames, destinationLinkNames);
         }
     }
@@ -41,9 +41,10 @@ export function executeCustomCommand() {
     var nextCommandNumber = 0;
     if (memoryUtils.enrichedMemory().lastCommandNumber < nextCommandNumber) {
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;
+        // memoryUtils.enrichedMemory().logLevel = memoryUtils.LogLevel.INFO;
         log.info(() => `Executing command ${nextCommandNumber}`)
-        //createSourceToSpawnChain("2b142296f7490604e687c16f", "2db005a02a4fe5394ade3f45");
-        //addTransporterToChain("Chain8", "HarvestorLink7", "SpawnLink6")
+        // createChain("f5418cf86cdcafa8a05d2fcc", cu.eSource, "5daa0db5010afb8b3ce82c71", cu.eSpawn, "5daa0db5010afb8b3ce82c71");
+        // addCreep("Chain9", cu.eHarvester, ["LinkSource7"], ["LinkHarvester10"]);
         log.info(() => `Successfully executed command ${nextCommandNumber}`)
     }
 }

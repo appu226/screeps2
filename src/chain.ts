@@ -264,8 +264,6 @@ export function addCreep(chain: Chain, creepType: cu.ECreepType, sourceLinkNames
                 //add newLinkName as a source
                 chainLink.sources.push(newLinkName);
             }
-
-
         }
     );
     var newLink: CreepLink = {
