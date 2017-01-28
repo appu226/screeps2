@@ -43,7 +43,7 @@ exports.enrichedMemory = enrichedMemory;
 function creepMemory(creep) {
     var memory = creep.memory;
     if (memory.creepMemoryType === undefined) {
-        console.log("creep " + creep.name + " has no creepMemoryType.");
+        console.log("memory/creepMemory: creep " + creep.name + " has no creepMemoryType.");
     }
     return memory;
 }

@@ -25,9 +25,10 @@ interface EnrichedMemory extends Memory {
 }
 
 interface CreepGroup {
-    creepGroupType: string; // {CHAIN}
+    creepGroupType: ECreepGroupType;
     creepGroupName: string;
 }
+interface ECreepGroupType { name: string }
 
 interface SourceMemory {
     energyCollection: SourceMemoryEnergyCollection;
@@ -39,10 +40,10 @@ interface SourceMemoryEnergyCollection {
     history: number[];
 }
 
-
 interface CreepMemory {
-    creepMemoryType: string
+    creepMemoryType: ECreepMemoryType;
 }
+interface ECreepMemoryType { name: string }
 
 interface SpawnMemory {
 }

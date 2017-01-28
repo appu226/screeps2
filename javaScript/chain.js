@@ -3,6 +3,7 @@ var memoryUtils = require("./memory");
 var log = require("./log");
 var functional = require("./functional");
 var creepUtils = require("./creep");
+var enums = require("./enums");
 function createSourceToSpawnChain(sourceId, spawnId) {
     var source = Game.getObjectById(sourceId);
     if (source == null || source === undefined) {
@@ -43,7 +44,7 @@ function createSourceToSpawnChain(sourceId, spawnId) {
         destinations: []
     };
     return {
-        creepGroupType: "CHAIN",
+        creepGroupType: enums.eChain,
         creepGroupName: "Chain" + memoryUtils.getUid(),
         sources: [sourceLinkName],
         destinations: [spawnLinkName],
@@ -122,7 +123,7 @@ function updateCreepMemory(creep, link, linkMap) {
 }
 function refreshGroup(group, forceRefresh) {
     if (forceRefresh === void 0) { forceRefresh = false; }
-    if (group.creepGroupType != "CHAIN")
+    if (group.creepGroupType.name != enums.eChain.name)
         return;
     var chain = group;
     if (!mustRefreshChain(chain) && !forceRefresh)

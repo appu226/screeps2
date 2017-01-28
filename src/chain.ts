@@ -2,6 +2,7 @@ import memoryUtils = require('./memory');
 import log = require('./log')
 import functional = require('./functional');
 import creepUtils = require('./creep');
+import enums = require('./enums');
 
 interface Link {
     linkType: string; // one of SPAWN, SOURCE, CREEP
@@ -64,7 +65,7 @@ export function createSourceToSpawnChain(sourceId: string, spawnId: string): Cha
         destinations: []
     };
     return {
-        creepGroupType: "CHAIN",
+        creepGroupType: enums.eChain,
         creepGroupName: "Chain" + memoryUtils.getUid(),
         sources: [sourceLinkName],
         destinations: [spawnLinkName],
@@ -164,7 +165,7 @@ function updateCreepMemory(
 }
 
 export function refreshGroup(group: CreepGroup, forceRefresh: boolean = false) {
-    if (group.creepGroupType != "CHAIN")
+    if (group.creepGroupType.name != enums.eChain.name)
         return;
     var chain = <Chain>group;
     if (!mustRefreshChain(chain) && !forceRefresh) return;

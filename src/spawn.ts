@@ -3,6 +3,7 @@ import memoryUtils = require('./memory');
 import chainUtils = require('./chain');
 import functional = require('./functional');
 import log = require('./log');
+import enums = require('./enums');
 
 export function processSpawn(spawn: Spawn) {
     if (spawn.energy < spawn.energyCapacity)
@@ -23,7 +24,7 @@ export function processSpawn(spawn: Spawn) {
     var creepToBeSpawned: functional.Option<creepUtils.CreepToBeSpawned> = functional.None<creepUtils.CreepToBeSpawned>();
     for (var groupNum = 0; groupNum < groups.length && !creepToBeSpawned.isPresent; ++groupNum) {
         var group = groups[groupNum];
-        if (group.creepGroupType != "CHAIN")
+        if (group.creepGroupType.name != enums.eChain.name)
             return;
         var chain = <chainUtils.Chain>group;
         creepToBeSpawned = chainUtils.creepToBeSpawned(chain, spawn.energy);

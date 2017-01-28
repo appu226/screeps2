@@ -2,6 +2,7 @@
 var memoryUtils = require("./memory");
 var log = require("./log");
 var fun = require("./functional");
+var enums = require("./enums");
 function process(creep) {
     if (creep.spawning) {
         return;
@@ -19,16 +20,16 @@ function makeCreepMemory(action, sources, destinations) {
     switch (action) {
         case "HARVEST": {
             var thenPart = {
-                creepMemoryType: "GIVERMEMORY",
+                creepMemoryType: enums.eGiverMemory,
                 destinations: destinations
             };
             var elsePart = {
-                creepMemoryType: "WORKERMEMORY",
+                creepMemoryType: enums.eWorkerMemory,
                 action: "HARVEST",
                 target: sources[0]
             };
             return {
-                creepMemoryType: "IFTHENELSEMEMORY",
+                creepMemoryType: enums.eIfThenElseMemory,
                 condition: "ISFULL",
                 thenPart: thenPart,
                 elsePart: elsePart
@@ -36,15 +37,15 @@ function makeCreepMemory(action, sources, destinations) {
         }
         case "TRANSPORT": {
             var giverMemory = {
-                creepMemoryType: "GIVERMEMORY",
+                creepMemoryType: enums.eGiverMemory,
                 destinations: destinations
             };
             var takerMemory = {
-                creepMemoryType: "TAKERMEMORY",
+                creepMemoryType: enums.eTakerMemory,
                 sources: sources
             };
             return {
-                creepMemoryType: "IFTHENELSEMEMORY",
+                creepMemoryType: enums.eIfThenElseMemory,
                 condition: "ISFULL",
                 thenPart: giverMemory,
                 elsePart: takerMemory
@@ -57,21 +58,21 @@ function makeCreepMemory(action, sources, destinations) {
 }
 exports.makeCreepMemory = makeCreepMemory;
 function processCreepWithMemory(creep, creepMemory) {
-    switch (creepMemory.creepMemoryType.toUpperCase()) {
-        case "WORKERMEMORY":
+    switch (creepMemory.creepMemoryType.name) {
+        case enums.eWorkerMemory.name:
             processWorker(creep, creepMemory);
             break;
-        case "GIVERMEMORY":
+        case enums.eGiverMemory.name:
             processGiver(creep, creepMemory);
             break;
-        case "TAKERMEMORY":
+        case enums.eTakerMemory.name:
             processTaker(creep, creepMemory);
             break;
-        case "IFTHENELSEMEMORY":
+        case enums.eIfThenElseMemory.name:
             processIfThenElse(creep, creepMemory);
             break;
         default:
-            log.error(function () { return "Unexpected creepMemoryType " + creepMemory.creepMemoryType + " for creep " + creep.name + "."; });
+            log.error(function () { return "Unexpected creepMemoryType " + creepMemory.creepMemoryType.name + " for creep " + creep.name + "."; });
             break;
     }
 }
