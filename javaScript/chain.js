@@ -264,6 +264,7 @@ function createLink(objId, objType, creepType) {
                 sources: [],
                 destinations: []
             };
+            return spawnLink;
         }
         default: {
             log.error(function () { return "chain/createLink: objType " + objType.targetType + " not supported."; });

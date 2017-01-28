@@ -327,6 +327,7 @@ function createLink(
                 sources: [],
                 destinations: []
             }
+            return spawnLink;
         }
         default: {
             log.error(() => `chain/createLink: objType ${objType.targetType} not supported.`)
