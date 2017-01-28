@@ -15,15 +15,15 @@ export interface Target {
     targetId: string
 }
 export interface ETargetType { targetType: string };
-export var eSpawn: ETargetType = { targetType: "Spawn" };
-export var eSource: ETargetType = { targetType: "Source" };
-export var eCreep: ETargetType = { targetType: "Creep" };
+export const eSpawn: ETargetType = { targetType: "Spawn" };
+export const eSource: ETargetType = { targetType: "Source" };
+export const eCreep: ETargetType = { targetType: "Creep" };
 
 export interface ECreepType { creepType: string };
-export var eHarvester: ECreepType = { creepType: "Harvester" };
-export var eUpdater: ECreepType = { creepType: "Updater" };
-export var eBuilder: ECreepType = { creepType: "Builder" };
-export var eTransporter: ECreepType = { creepType: "Transporter" };
+export const eHarvester: ECreepType = { creepType: "Harvester" };
+export const eUpdater: ECreepType = { creepType: "Updater" };
+export const eBuilder: ECreepType = { creepType: "Builder" };
+export const eTransporter: ECreepType = { creepType: "Transporter" };
 
 interface WorkerMemory extends CreepMemory {
     action: string

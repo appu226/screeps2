@@ -12,15 +12,20 @@ interface Link {
     destinations: string[]
 }
 interface ELinkType{ name: string }
-var eSpawn: ELinkType = { name: "Spawn" };
-var eSource: ELinkType = { name: "Source" };
-var eCreep: ELinkType = { name: "Creep" };
+const eSpawn: ELinkType = { name: "Spawn" };
+const eSource: ELinkType = { name: "Source" };
+const eCreep: ELinkType = { name: "Creep" };
 
 interface CreepLink extends Link {
     creepType: creepUtils.ECreepType;
-    status: string; // one of DEAD, SPAWNING, ACTIVE
+    status: ELinkStatus;
     creepName: functional.Option<string>;
 }
+interface ELinkStatus{ status: string }
+const eDead: ELinkStatus = { status: "Dead" };
+const eSpawning: ELinkStatus = { status: "Spawning" };
+const eActive: ELinkStatus = { status: "Active" };
+
 
 export interface Chain extends CreepGroup {
     sources: string[];
@@ -58,7 +63,7 @@ export function createSourceToSpawnChain(sourceId: string, spawnId: string): Cha
         sources: [sourceLinkName],
         destinations: [spawnLinkName],
         creepType: creepUtils.eHarvester,
-        status: "DEAD",
+        status: eDead,
         creepName: functional.None<string>()
     };
     var spawnLink: Link = {
@@ -86,15 +91,15 @@ function mustRefreshChain(chain: Chain): boolean {
             continue;
         }
         var creepLink = <CreepLink>link;
-        switch (creepLink.status) {
-            case "SPAWNING": {
+        switch (creepLink.status.status) {
+            case eSpawning.status: {
                 if (creepLink.creepName.isPresent == false) {
                     log.error(() => `chain/mustRefreshChain: spawning link ${creepLink.linkName} does not have a creep name!`);
                     continue;
                 }
                 var creepName = creepLink.creepName.get;
                 if (Game.creeps[creepName] !== undefined) {
-                    creepLink.status = "ACTIVE";
+                    creepLink.status = eActive;
                     creepLink.objectId = functional.Some<string>(Game.creeps[creepName].id);
                     mustRefresh = true;
                 }
@@ -109,7 +114,7 @@ function mustRefreshChain(chain: Chain): boolean {
                 if (Game.creeps[creepName] === undefined) {
                     if (Memory.creeps[creepName] !== undefined)
                         (delete (Memory.creeps)[creepName]);
-                    creepLink.status = "DEAD";
+                    creepLink.status = eDead;
                     mustRefresh = true;
                 }
                 continue;
@@ -132,7 +137,7 @@ function bfs(
             if (link.linkType.name != eCreep.name)
                 return [linkName];
             var creepLink = <CreepLink>link;
-            if (creepLink.status == "ACTIVE")
+            if (creepLink.status.status == eActive.status)
                 return [linkName];
             return bfs(expand(linkName), linkMap, expand);
         }
@@ -197,7 +202,7 @@ export function refreshGroup(group: CreepGroup, forceRefresh: boolean = false) {
             continue;
         }
         var creepLink = <CreepLink>link;
-        if (creepLink.status != "ACTIVE") {
+        if (creepLink.status.status != eActive.status) {
             continue;
         }
         if (!creepLink.creepName.isPresent) {
@@ -214,7 +219,7 @@ export function creepToBeSpawned(chain: Chain, energy: number): functional.Optio
     var deadLink: CreepLink = null;
     for (var linkNum = 0; linkNum < chain.links.length && deadLink == null; ++linkNum) {
         var link = chain.links[linkNum];
-        if (link.linkType.name == eCreep.name && (<CreepLink>link).status == "DEAD")
+        if (link.linkType.name == eCreep.name && (<CreepLink>link).status.status == eDead.status)
             deadLink = <CreepLink>link;
     }
     if (deadLink == null)
@@ -222,7 +227,7 @@ export function creepToBeSpawned(chain: Chain, energy: number): functional.Optio
     else {
         var bodyParts = creepUtils.createBodyParts(deadLink.creepType, energy);
         deadLink.creepName = functional.Some<string>(deadLink.creepType.creepType + memoryUtils.getUid());
-        deadLink.status = "SPAWNING";
+        deadLink.status = eSpawning;
         var memory = creepUtils.makeCreepMemory(deadLink.creepType, [], []);
         return functional.Some<creepUtils.CreepToBeSpawned>(
             {
@@ -265,7 +270,7 @@ export function addCreep(chain: Chain, creepType: creepUtils.ECreepType, sourceL
     );
     var newLink: CreepLink = {
         creepType: creepType,
-        status: "DEAD",
+        status: eDead,
         creepName: functional.None<string>(),
         linkType: eCreep,
         linkName: newLinkName,
