@@ -15,6 +15,8 @@ exports.eTransporter = { creepType: "Transporter" };
 var eBuild = { action: "Build" };
 var eHarvest = { action: "Harvest" };
 var eUpdate = { action: "Update" };
+var eIsFull = { name: "IsFull" };
+var eIsEmpty = { name: "IsEmpty" };
 function process(creep) {
     if (creep.spawning) {
         return;
@@ -42,7 +44,7 @@ function makeCreepMemory(creepType, sources, destinations) {
             };
             return {
                 creepMemoryType: enums.eIfThenElseMemory,
-                condition: "ISFULL",
+                condition: eIsFull,
                 thenPart: thenPart,
                 elsePart: elsePart
             };
@@ -58,7 +60,7 @@ function makeCreepMemory(creepType, sources, destinations) {
             };
             return {
                 creepMemoryType: enums.eIfThenElseMemory,
-                condition: "ISFULL",
+                condition: eIsFull,
                 thenPart: giverMemory,
                 elsePart: takerMemory
             };
@@ -174,13 +176,13 @@ function processGiver(creep, memory) {
     }
 }
 function processIfThenElse(creep, memory) {
-    switch (memory.condition) {
-        case "ISFULL":
+    switch (memory.condition.name) {
+        case eIsFull.name:
             if (creep.carry.energy == creep.carryCapacity)
                 return processCreepWithMemory(creep, memory.thenPart);
             else
                 return processCreepWithMemory(creep, memory.elsePart);
-        case "ISEMPTY":
+        case eIsEmpty.name:
             if (creep.carry.energy == 0)
                 return processCreepWithMemory(creep, memory.thenPart);
             else

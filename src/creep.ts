@@ -43,10 +43,13 @@ interface TakerMemory extends CreepMemory {
 }
 
 interface IfThenElseMemory extends CreepMemory {
-    condition: string // one of {ISFULL, ISEMPTY}
+    condition: ECreepCondition
     thenPart: CreepMemory
     elsePart: CreepMemory
 }
+interface ECreepCondition { name: string }
+const eIsFull: ECreepCondition = { name: "IsFull" };
+const eIsEmpty: ECreepCondition = { name: "IsEmpty" };
 
 export function process(creep: Creep) {
 
@@ -78,7 +81,7 @@ export function makeCreepMemory(creepType: ECreepType, sources: Target[], destin
             };
             return <IfThenElseMemory>{
                 creepMemoryType: enums.eIfThenElseMemory,
-                condition: "ISFULL",
+                condition: eIsFull,
                 thenPart: thenPart,
                 elsePart: elsePart
             };
@@ -94,7 +97,7 @@ export function makeCreepMemory(creepType: ECreepType, sources: Target[], destin
             };
             return <IfThenElseMemory>{
                 creepMemoryType: enums.eIfThenElseMemory,
-                condition: "ISFULL",
+                condition: eIsFull,
                 thenPart: giverMemory,
                 elsePart: takerMemory
             };
@@ -220,13 +223,13 @@ function processGiver(creep: Creep, memory: GiverMemory) {
 }
 
 function processIfThenElse(creep: Creep, memory: IfThenElseMemory) {
-    switch (memory.condition) {
-        case "ISFULL":
+    switch (memory.condition.name) {
+        case eIsFull.name:
             if (creep.carry.energy == creep.carryCapacity)
                 return processCreepWithMemory(creep, memory.thenPart);
             else
                 return processCreepWithMemory(creep, memory.elsePart);
-        case "ISEMPTY":
+        case eIsEmpty.name:
             if (creep.carry.energy == 0)
                 return processCreepWithMemory(creep, memory.thenPart);
             else
