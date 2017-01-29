@@ -128,6 +128,28 @@ function makeUpdaterMemory(sources: Target[], destinations: Target[]): IfThenEls
     }
 }
 
+function makeBuilderMemory(sources: Target[], destinations: Target[]): IfThenElseMemory {
+    var takerMemory: TakerMemory = {
+        creepMemoryType: enums.eTakerMemory,
+        sources: sources
+    };
+    if (destinations.length != 1) {
+        log.error(() => `creep/makeUpdaterMemory: Exactly one destination expected, found ${destinations.length}`)
+        return null;
+    }
+    var builderMemory: WorkerMemory = {
+        creepMemoryType: enums.eWorkerMemory,
+        action: eBuild,
+        target: destinations[0]
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsEmpty,
+        thenPart: takerMemory,
+        elsePart: builderMemory
+    }
+}
+
 export function makeCreepMemory(creepType: ECreepType, sources: Target[], destinations: Target[]): CreepMemory {
     switch (creepType.creepType) {
         case eHarvester.creepType:
@@ -136,6 +158,8 @@ export function makeCreepMemory(creepType: ECreepType, sources: Target[], destin
             return makeTransporterMemory(sources, destinations);
         case eUpdater.creepType:
             return makeUpdaterMemory(sources, destinations);
+        case eBuilder.creepType:
+            return makeBuilderMemory(sources, destinations);
         default:
             log.error(() => `creep/makeCreepMemory: Creep type ${creepType.creepType} not supported.`);
             return null;
@@ -187,6 +211,17 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
             creep.moveTo(controller);
         }
         return;
+    } else if (memory.action.action == eBuild.action) {
+        var site = creep.pos.findClosestByRange<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+        if (site !== undefined && site != null
+            && site.progress !== undefined && site.progressTotal !== undefined
+            && site.progress < site.progressTotal) {
+            if (creep.build(site) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(site);
+            }
+            return;
+        }
+        return;
     } else {
         return log.error(() => `creep/processWorker: unexpected action ${memory.action.action}.`);
     }
@@ -220,13 +255,19 @@ function getEnergy(target: Target): { energy: number, target: Target } {
     switch (target.targetType.targetType) {
         case eSource.targetType: {
             var source = Game.getObjectById<Source>(target.targetId);
-            return { energy: source.energy, target: target }
+            return { energy: source.energy / source.energyCapacity, target: target }
         }
         case eCreep.targetType: {
-            return { energy: Game.getObjectById<Creep>(target.targetId).carry.energy, target };
+            var creep = Game.getObjectById<Creep>(target.targetId);
+            return { energy: creep.carry.energy / creep.carryCapacity, target: target };
         }
         case eSpawn.targetType: {
-            return { energy: Game.getObjectById<Spawn>(target.targetId).energy, target };
+            var spawn = Game.getObjectById<Spawn>(target.targetId);
+            return { energy: spawn.energy / spawn.energyCapacity, target: target };
+        }
+        case eController.targetType: {
+            var controller = Game.getObjectById<Controller>(target.targetId);
+            return { energy: controller.progress / controller.progressTotal, target: target };
         }
         default: {
             log.error(() => `creep/getEnergy: Could not identify targetType ${target.targetType.targetType}.`);

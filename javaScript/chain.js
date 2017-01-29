@@ -125,6 +125,18 @@ function linkTypeToCreepTargetType(linkType) {
         }
     }
 }
+function creepTargetTypeToLinkType(targetType) {
+    switch (targetType.targetType) {
+        case cu.eSpawn.targetType: return eSpawn;
+        case cu.eSource.targetType: return eSource;
+        case cu.eCreep.targetType: return eCreep;
+        case cu.eController.targetType: return eController;
+        default: {
+            log.error(function () { return "chain/creepTargetTypeToLinkType: unexpected creep target type " + targetType.targetType; });
+            return { name: "NA" };
+        }
+    }
+}
 function updateCreepMemory(creep, link, linkMap) {
     var sources = bfs(link.sources, linkMap, function (linkName) { return linkMap[linkName].sources; }).map(function (sourceLinkName) {
         return {
@@ -304,3 +316,21 @@ function createChain(sourceId, sourceType, targetId, targetType, spawnId, source
     return chain;
 }
 exports.createChain = createChain;
+function addNonCreep(chain, target, isSource, isDestination) {
+    var newLinkName = "Link" + target.targetType.targetType + memoryUtils.getUid();
+    var newLink = {
+        linkType: creepTargetTypeToLinkType(target.targetType),
+        linkName: newLinkName,
+        objectId: fun.Some(target.targetId),
+        sources: [],
+        destinations: []
+    };
+    if (isSource)
+        chain.sources.push(newLinkName);
+    if (isDestination)
+        chain.destinations.push(newLinkName);
+    chain.links.push(newLink);
+    refreshGroup(chain, true);
+    return newLinkName;
+}
+exports.addNonCreep = addNonCreep;

@@ -160,6 +160,21 @@ function linkTypeToCreepTargetType(
     }
 }
 
+function creepTargetTypeToLinkType(
+    targetType: cu.ETargetType
+): ELinkType {
+    switch (targetType.targetType) {
+        case cu.eSpawn.targetType: return eSpawn;
+        case cu.eSource.targetType: return eSource;
+        case cu.eCreep.targetType: return eCreep;
+        case cu.eController.targetType: return eController;
+        default: {
+            log.error(() => `chain/creepTargetTypeToLinkType: unexpected creep target type ${targetType.targetType}`)
+            return { name: "NA" };
+        }
+    }
+}
+
 function updateCreepMemory(
     creep: Creep,
     link: CreepLink,
@@ -231,9 +246,9 @@ export function creepToBeSpawned(chain: Chain, energy: number): fun.Option<cu.Cr
         deadLink.creepName = fun.Some<string>(deadLink.creepType.creepType + memoryUtils.getUid());
         deadLink.status = eSpawning;
         return fun.Some<cu.CreepToBeSpawned>({
-                creepName: deadLink.creepName.get,
-                bodyParts: bodyParts
-            });
+            creepName: deadLink.creepName.get,
+            bodyParts: bodyParts
+        });
     }
 }
 
@@ -363,4 +378,20 @@ export function createChain(
         spawnId: spawnId
     };
     return chain;
+}
+
+export function addNonCreep(chain: Chain, target: cu.Target, isSource: Boolean, isDestination: Boolean): string {
+    var newLinkName = `Link${target.targetType.targetType}${memoryUtils.getUid()}`;
+    var newLink: Link = {
+        linkType: creepTargetTypeToLinkType(target.targetType),
+        linkName: newLinkName,
+        objectId: fun.Some<string>(target.targetId),
+        sources: [],
+        destinations: []
+    };
+    if (isSource) chain.sources.push(newLinkName);
+    if (isDestination) chain.destinations.push(newLinkName);
+    chain.links.push(newLink);
+    refreshGroup(chain, true);
+    return newLinkName;
 }

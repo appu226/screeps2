@@ -89,6 +89,27 @@ function makeUpdaterMemory(sources, destinations) {
         elsePart: updaterMemory
     };
 }
+function makeBuilderMemory(sources, destinations) {
+    var takerMemory = {
+        creepMemoryType: enums.eTakerMemory,
+        sources: sources
+    };
+    if (destinations.length != 1) {
+        log.error(function () { return "creep/makeUpdaterMemory: Exactly one destination expected, found " + destinations.length; });
+        return null;
+    }
+    var builderMemory = {
+        creepMemoryType: enums.eWorkerMemory,
+        action: eBuild,
+        target: destinations[0]
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsEmpty,
+        thenPart: takerMemory,
+        elsePart: builderMemory
+    };
+}
 function makeCreepMemory(creepType, sources, destinations) {
     switch (creepType.creepType) {
         case exports.eHarvester.creepType:
@@ -97,6 +118,8 @@ function makeCreepMemory(creepType, sources, destinations) {
             return makeTransporterMemory(sources, destinations);
         case exports.eUpdater.creepType:
             return makeUpdaterMemory(sources, destinations);
+        case exports.eBuilder.creepType:
+            return makeBuilderMemory(sources, destinations);
         default:
             log.error(function () { return "creep/makeCreepMemory: Creep type " + creepType.creepType + " not supported."; });
             return null;
@@ -149,6 +172,18 @@ function processWorker(creep, memory) {
         }
         return;
     }
+    else if (memory.action.action == eBuild.action) {
+        var site = creep.pos.findClosestByRange(FIND_MY_CONSTRUCTION_SITES);
+        if (site !== undefined && site != null
+            && site.progress !== undefined && site.progressTotal !== undefined
+            && site.progress < site.progressTotal) {
+            if (creep.build(site) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(site);
+            }
+            return;
+        }
+        return;
+    }
     else {
         return log.error(function () { return "creep/processWorker: unexpected action " + memory.action.action + "."; });
     }
@@ -177,13 +212,19 @@ function getEnergy(target) {
     switch (target.targetType.targetType) {
         case exports.eSource.targetType: {
             var source = Game.getObjectById(target.targetId);
-            return { energy: source.energy, target: target };
+            return { energy: source.energy / source.energyCapacity, target: target };
         }
         case exports.eCreep.targetType: {
-            return { energy: Game.getObjectById(target.targetId).carry.energy, target: target };
+            var creep = Game.getObjectById(target.targetId);
+            return { energy: creep.carry.energy / creep.carryCapacity, target: target };
         }
         case exports.eSpawn.targetType: {
-            return { energy: Game.getObjectById(target.targetId).energy, target: target };
+            var spawn = Game.getObjectById(target.targetId);
+            return { energy: spawn.energy / spawn.energyCapacity, target: target };
+        }
+        case exports.eController.targetType: {
+            var controller = Game.getObjectById(target.targetId);
+            return { energy: controller.progress / controller.progressTotal, target: target };
         }
         default: {
             log.error(function () { return "creep/getEnergy: Could not identify targetType " + target.targetType.targetType + "."; });
