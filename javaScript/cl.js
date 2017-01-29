@@ -17,7 +17,7 @@ function addCreep(chainName, creepType, sourceLinkNames, destinationLinkNames) {
         var creepGroup = creepGroups[ci];
         if (creepGroup.creepGroupName == chainName &&
             creepGroup.creepGroupType.name == enums.eChain.name) {
-            chain.addCreep(creepGroup, creepType, sourceLinkNames, destinationLinkNames);
+            return chain.addCreep(creepGroup, creepType, sourceLinkNames, destinationLinkNames);
         }
     }
 }
@@ -27,8 +27,14 @@ function executeCustomCommand() {
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;
         // memoryUtils.enrichedMemory().logLevel = memoryUtils.LogLevel.INFO;
         log.info(function () { return "Executing command " + nextCommandNumber; });
-        // createChain("f5418cf86cdcafa8a05d2fcc", cu.eSource, "5daa0db5010afb8b3ce82c71", cu.eSpawn, "5daa0db5010afb8b3ce82c71");
-        // addCreep("Chain9", cu.eHarvester, ["LinkSource7"], ["LinkHarvester10"]);
+        // var transporterLinkName = addCreep("Chain3", cu.eTransporter, ["HarvestorLink2"], ["SpawnLink1"]);
+        // addCreep("Chain3", cu.eHarvester, ["SourceLink0"], [transporterLinkName]);
+        // addCreep("Chain3", cu.eHarvester, ["SourceLink0"], [transporterLinkName]);
+        // createChain("66de2bae17e896771900f65e", cu.eSource, "c5739989d73eff2611f52ee3", cu.eController, "ab6610bdfe6d68c7c5e7fb1d");
+        // var A = addCreep("Chain14", cu.eHarvester, ["LinkSource12"], ["LinkController13"]);
+        // var B = addCreep("Chain14", cu.eUpdater, [A], ["LinkController13"]);
+        // var C = addCreep("Chain14", cu.eTransporter, [A], [B]);
+        // var D = addCreep("Chain14", cu.eTransporter, [C], [B]);
         log.info(function () { return "Successfully executed command " + nextCommandNumber; });
     }
 }

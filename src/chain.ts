@@ -15,6 +15,7 @@ interface ELinkType { name: string }
 const eSpawn: ELinkType = { name: "Spawn" };
 const eSource: ELinkType = { name: "Source" };
 const eCreep: ELinkType = { name: "Creep" };
+const eController: ELinkType = { name: "Controller" };
 
 interface CreepLink extends Link {
     creepType: cu.ECreepType;
@@ -98,14 +99,14 @@ function mustRefreshChain(chain: Chain): boolean {
                     continue;
                 }
                 var creepName = creepLink.creepName.get;
-                if (Game.creeps[creepName] !== undefined) {
+                if (Game.creeps[creepName] !== undefined && Game.creeps[creepName].id !== undefined) {
                     creepLink.status = eActive;
                     creepLink.objectId = fun.Some<string>(Game.creeps[creepName].id);
                     mustRefresh = true;
                 }
                 continue;
             }
-            case "ACTIVE": {
+            case eActive.status: {
                 if (creepLink.creepName.isPresent == false) {
                     log.error(() => `chain/mustRefreshChain: active link ${creepLink.linkName} does not have a creep name!`);
                     continue;
@@ -151,6 +152,7 @@ function linkTypeToCreepTargetType(
         case eSpawn.name: return cu.eSpawn;
         case eSource.name: return cu.eSource;
         case eCreep.name: return cu.eCreep;
+        case eController.name: return cu.eController;
         default: {
             log.error(() => `chain/linkTypeToCreepTargetType: unexpected link type ${linkType.name}`)
             return { targetType: "NA" };
@@ -228,18 +230,14 @@ export function creepToBeSpawned(chain: Chain, energy: number): fun.Option<cu.Cr
         var bodyParts = cu.createBodyParts(deadLink.creepType, energy);
         deadLink.creepName = fun.Some<string>(deadLink.creepType.creepType + memoryUtils.getUid());
         deadLink.status = eSpawning;
-        var memory = cu.makeCreepMemory(deadLink.creepType, [], []);
-        return fun.Some<cu.CreepToBeSpawned>(
-            {
+        return fun.Some<cu.CreepToBeSpawned>({
                 creepName: deadLink.creepName.get,
-                bodyParts: bodyParts,
-                creepMemory: memory
-            }
-        )
+                bodyParts: bodyParts
+            });
     }
 }
 
-export function addCreep(chain: Chain, creepType: cu.ECreepType, sourceLinkNames: string[], destinationLinkNames: string[]) {
+export function addCreep(chain: Chain, creepType: cu.ECreepType, sourceLinkNames: string[], destinationLinkNames: string[]): string {
     var newLinkName = `Link${creepType.creepType}${memoryUtils.getUid()}`;
     chain.links.forEach(
         (chainLink: Link) => {
@@ -247,7 +245,7 @@ export function addCreep(chain: Chain, creepType: cu.ECreepType, sourceLinkNames
             if (fun.contains(sourceLinkNames, chainLink.linkName)) {
                 //remove all it's destinations that are in destinationLinkNames
                 chainLink.destinations = chainLink.destinations.filter(
-                    (chainLinkDestination: string) => fun.contains(destinationLinkNames, chainLinkDestination)
+                    (chainLinkDestination: string) => !fun.contains(destinationLinkNames, chainLinkDestination)
                 );
 
                 //add newLinkName as a destinations
@@ -258,7 +256,7 @@ export function addCreep(chain: Chain, creepType: cu.ECreepType, sourceLinkNames
             if (fun.contains(destinationLinkNames, chainLink.linkName)) {
                 //remove all it's sources that are in sourceLinkNames
                 chainLink.sources = chainLink.sources.filter(
-                    (chainLinkSource: string) => fun.contains(sourceLinkNames, chainLinkSource)
+                    (chainLinkSource: string) => !fun.contains(sourceLinkNames, chainLinkSource)
                 );
 
                 //add newLinkName as a source
@@ -278,6 +276,7 @@ export function addCreep(chain: Chain, creepType: cu.ECreepType, sourceLinkNames
     };
     chain.links.push(newLink);
     refreshGroup(chain, true);
+    return newLinkName;
 }
 
 function createLink(
@@ -326,6 +325,16 @@ function createLink(
                 destinations: []
             }
             return spawnLink;
+        }
+        case cu.eController.targetType: {
+            var controllerLink: Link = {
+                linkType: eController,
+                linkName: `LinkController${memoryUtils.getUid()}`,
+                objectId: fun.Some<string>(objId),
+                sources: [],
+                destinations: []
+            }
+            return controllerLink;
         }
         default: {
             log.error(() => `chain/createLink: objType ${objType.targetType} not supported.`)

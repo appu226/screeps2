@@ -7,7 +7,6 @@ import enums = require('./enums');
 export interface CreepToBeSpawned {
     creepName: string;
     bodyParts: string[];
-    creepMemory: CreepMemory;
 }
 
 export interface Target {
@@ -18,6 +17,7 @@ export interface ETargetType { targetType: string };
 export const eSpawn: ETargetType = { targetType: "Spawn" };
 export const eSource: ETargetType = { targetType: "Source" };
 export const eCreep: ETargetType = { targetType: "Creep" };
+export const eController: ETargetType = { targetType: "Controller" };
 
 export interface ECreepType { creepType: string };
 export const eHarvester: ECreepType = { creepType: "Harvester" };
@@ -67,41 +67,75 @@ export function process(creep: Creep) {
     processCreepWithMemory(creep, creepMemory);
 }
 
+function makeHarvestorMemory(sources: Target[], destinations: Target[]): IfThenElseMemory {
+    var thenPart: GiverMemory = {
+        creepMemoryType: enums.eGiverMemory,
+        destinations: destinations
+    };
+    if (sources.length != 1) {
+        log.error(() => `creep/makeHarvestorMemory: Exactly one source expected, found: ${sources.length}`);
+        return null;
+    }
+    var elsePart: WorkerMemory = {
+        creepMemoryType: enums.eWorkerMemory,
+        action: eHarvest,
+        target: sources[0]
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsFull,
+        thenPart: thenPart,
+        elsePart: elsePart
+    }
+}
+
+function makeTransporterMemory(sources: Target[], destinations: Target[]): IfThenElseMemory {
+    var giverMemory: GiverMemory = {
+        creepMemoryType: enums.eGiverMemory,
+        destinations: destinations
+    };
+    var takerMemory: TakerMemory = {
+        creepMemoryType: enums.eTakerMemory,
+        sources: sources.filter((target: Target) => target.targetType.targetType != eSource.targetType)
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsFull,
+        thenPart: giverMemory,
+        elsePart: takerMemory
+    };
+}
+
+function makeUpdaterMemory(sources: Target[], destinations: Target[]): IfThenElseMemory {
+    var takerMemory: TakerMemory = {
+        creepMemoryType: enums.eTakerMemory,
+        sources: sources
+    };
+    if (destinations.length != 1) {
+        log.error(() => `creep/makeUpdaterMemory: Exactly one destination expected, found ${destinations.length}`)
+        return null;
+    }
+    var updaterMemory: WorkerMemory = {
+        creepMemoryType: enums.eWorkerMemory,
+        action: eUpdate,
+        target: destinations[0]
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsEmpty,
+        thenPart: takerMemory,
+        elsePart: updaterMemory
+    }
+}
+
 export function makeCreepMemory(creepType: ECreepType, sources: Target[], destinations: Target[]): CreepMemory {
     switch (creepType.creepType) {
-        case eHarvester.creepType: {
-            var thenPart: GiverMemory = {
-                creepMemoryType: enums.eGiverMemory,
-                destinations: destinations
-            };
-            var elsePart: WorkerMemory = {
-                creepMemoryType: enums.eWorkerMemory,
-                action: eHarvest,
-                target: sources[0]
-            };
-            return <IfThenElseMemory>{
-                creepMemoryType: enums.eIfThenElseMemory,
-                condition: eIsFull,
-                thenPart: thenPart,
-                elsePart: elsePart
-            };
-        }
-        case eTransporter.creepType: {
-            var giverMemory: GiverMemory = {
-                creepMemoryType: enums.eGiverMemory,
-                destinations: destinations
-            };
-            var takerMemory: TakerMemory = {
-                creepMemoryType: enums.eTakerMemory,
-                sources: sources
-            };
-            return <IfThenElseMemory>{
-                creepMemoryType: enums.eIfThenElseMemory,
-                condition: eIsFull,
-                thenPart: giverMemory,
-                elsePart: takerMemory
-            };
-        }
+        case eHarvester.creepType:
+            return makeHarvestorMemory(sources, destinations);
+        case eTransporter.creepType:
+            return makeTransporterMemory(sources, destinations);
+        case eUpdater.creepType:
+            return makeUpdaterMemory(sources, destinations);
         default:
             log.error(() => `creep/makeCreepMemory: Creep type ${creepType.creepType} not supported.`);
             return null;
@@ -139,6 +173,18 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
         }
         if (creep.harvest(source) == ERR_NOT_IN_RANGE) {
             creep.moveTo(source);
+        }
+        return;
+    } else if (memory.action.action == eUpdate.action) {
+        if (memory.target.targetType.targetType != eController.targetType) {
+            return log.error(() => `creep/processWorker: action ${memory.action.action} used with targetType ${memory.target.targetType.targetType}`);
+        }
+        var controller = Game.getObjectById<Controller>(memory.target.targetId);
+        if (controller == null || controller === undefined) {
+            return log.error(() => `creep/processWorker: action ${memory.action.action} could not find controller with id ${memory.target.targetId}`);
+        }
+        if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) {
+            creep.moveTo(controller);
         }
         return;
     } else {

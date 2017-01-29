@@ -32,8 +32,7 @@ export function processSpawn(spawn: Spawn) {
     if (creepToBeSpawned.isPresent) {
         spawn.createCreep(
             creepToBeSpawned.get.bodyParts,
-            creepToBeSpawned.get.creepName,
-            creepToBeSpawned.get.creepMemory);
+            creepToBeSpawned.get.creepName);
         return;
     }
 }

@@ -9,6 +9,7 @@ var chainUtils = require("./chain");
 function loop() {
     log.debug(function () { return "main/loop: Tick " + Game.time + " started."; });
     cl.executeCustomCommand();
+    // var startTime = performance.now();
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
         spawnUtils.processSpawn(spawn);
@@ -22,6 +23,8 @@ function loop() {
         creepSwitch.process(creep);
     }
     dataCollectAll.collect();
+    // var endTime = performance.now();
+    // console.log(`total time taken by main = ${endTime - startTime}ms`)
     log.debug(function () { return "main/loop: data collected. Tick " + Game.time + " consumed " + Game.cpu.getUsed() + " cycles."; });
 }
 exports.loop = loop;

@@ -29,7 +29,7 @@ function processSpawn(spawn) {
         creepToBeSpawned = chainUtils.creepToBeSpawned(chain, spawn.energy);
     }
     if (creepToBeSpawned.isPresent) {
-        spawn.createCreep(creepToBeSpawned.get.bodyParts, creepToBeSpawned.get.creepName, creepToBeSpawned.get.creepMemory);
+        spawn.createCreep(creepToBeSpawned.get.bodyParts, creepToBeSpawned.get.creepName);
         return;
     }
 }

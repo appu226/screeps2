@@ -9,7 +9,7 @@ import chainUtils = require('./chain');
 export function loop(): void {
     log.debug(() => `main/loop: Tick ${Game.time} started.`);
     cl.executeCustomCommand();
-
+    // var startTime = performance.now();
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
         spawnUtils.processSpawn(spawn);
@@ -26,5 +26,7 @@ export function loop(): void {
     }
 
     dataCollectAll.collect();
+    // var endTime = performance.now();
+    // console.log(`total time taken by main = ${endTime - startTime}ms`)
     log.debug(() => `main/loop: data collected. Tick ${Game.time} consumed ${Game.cpu.getUsed()} cycles.`);
 }

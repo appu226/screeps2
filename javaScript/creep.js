@@ -7,6 +7,7 @@ var enums = require("./enums");
 exports.eSpawn = { targetType: "Spawn" };
 exports.eSource = { targetType: "Source" };
 exports.eCreep = { targetType: "Creep" };
+exports.eController = { targetType: "Controller" };
 ;
 exports.eHarvester = { creepType: "Harvester" };
 exports.eUpdater = { creepType: "Updater" };
@@ -30,41 +31,72 @@ function process(creep) {
     processCreepWithMemory(creep, creepMemory);
 }
 exports.process = process;
+function makeHarvestorMemory(sources, destinations) {
+    var thenPart = {
+        creepMemoryType: enums.eGiverMemory,
+        destinations: destinations
+    };
+    if (sources.length != 1) {
+        log.error(function () { return "creep/makeHarvestorMemory: Exactly one source expected, found: " + sources.length; });
+        return null;
+    }
+    var elsePart = {
+        creepMemoryType: enums.eWorkerMemory,
+        action: eHarvest,
+        target: sources[0]
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsFull,
+        thenPart: thenPart,
+        elsePart: elsePart
+    };
+}
+function makeTransporterMemory(sources, destinations) {
+    var giverMemory = {
+        creepMemoryType: enums.eGiverMemory,
+        destinations: destinations
+    };
+    var takerMemory = {
+        creepMemoryType: enums.eTakerMemory,
+        sources: sources.filter(function (target) { return target.targetType.targetType != exports.eSource.targetType; })
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsFull,
+        thenPart: giverMemory,
+        elsePart: takerMemory
+    };
+}
+function makeUpdaterMemory(sources, destinations) {
+    var takerMemory = {
+        creepMemoryType: enums.eTakerMemory,
+        sources: sources
+    };
+    if (destinations.length != 1) {
+        log.error(function () { return "creep/makeUpdaterMemory: Exactly one destination expected, found " + destinations.length; });
+        return null;
+    }
+    var updaterMemory = {
+        creepMemoryType: enums.eWorkerMemory,
+        action: eUpdate,
+        target: destinations[0]
+    };
+    return {
+        creepMemoryType: enums.eIfThenElseMemory,
+        condition: eIsEmpty,
+        thenPart: takerMemory,
+        elsePart: updaterMemory
+    };
+}
 function makeCreepMemory(creepType, sources, destinations) {
     switch (creepType.creepType) {
-        case exports.eHarvester.creepType: {
-            var thenPart = {
-                creepMemoryType: enums.eGiverMemory,
-                destinations: destinations
-            };
-            var elsePart = {
-                creepMemoryType: enums.eWorkerMemory,
-                action: eHarvest,
-                target: sources[0]
-            };
-            return {
-                creepMemoryType: enums.eIfThenElseMemory,
-                condition: eIsFull,
-                thenPart: thenPart,
-                elsePart: elsePart
-            };
-        }
-        case exports.eTransporter.creepType: {
-            var giverMemory = {
-                creepMemoryType: enums.eGiverMemory,
-                destinations: destinations
-            };
-            var takerMemory = {
-                creepMemoryType: enums.eTakerMemory,
-                sources: sources
-            };
-            return {
-                creepMemoryType: enums.eIfThenElseMemory,
-                condition: eIsFull,
-                thenPart: giverMemory,
-                elsePart: takerMemory
-            };
-        }
+        case exports.eHarvester.creepType:
+            return makeHarvestorMemory(sources, destinations);
+        case exports.eTransporter.creepType:
+            return makeTransporterMemory(sources, destinations);
+        case exports.eUpdater.creepType:
+            return makeUpdaterMemory(sources, destinations);
         default:
             log.error(function () { return "creep/makeCreepMemory: Creep type " + creepType.creepType + " not supported."; });
             return null;
@@ -101,6 +133,19 @@ function processWorker(creep, memory) {
         }
         if (creep.harvest(source) == ERR_NOT_IN_RANGE) {
             creep.moveTo(source);
+        }
+        return;
+    }
+    else if (memory.action.action == eUpdate.action) {
+        if (memory.target.targetType.targetType != exports.eController.targetType) {
+            return log.error(function () { return "creep/processWorker: action " + memory.action.action + " used with targetType " + memory.target.targetType.targetType; });
+        }
+        var controller = Game.getObjectById(memory.target.targetId);
+        if (controller == null || controller === undefined) {
+            return log.error(function () { return "creep/processWorker: action " + memory.action.action + " could not find controller with id " + memory.target.targetId; });
+        }
+        if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) {
+            creep.moveTo(controller);
         }
         return;
     }
