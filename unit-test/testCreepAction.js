@@ -68,6 +68,12 @@ function testMakePath() {
         mapUtils.findLinearPath(0, 0, 5, 3),
         fun.aToBStepC(0, 5, 1).map(function (i) { return { x: i, y: ys[i] }; })
     ));
+
+    var xs = [8, 9, 9, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 16, 16, 17, 17, 18, 18];
+    assert(pathEquality(
+        mapUtils.findLinearPath(8, 20, 18, 38),
+        fun.aToBStepC(20, 38, 1).map(function (i) { return { x: xs[i - 20], y: i }; })
+    ));
 }
 
 function pathEquality(a, b) {

@@ -209,7 +209,9 @@ export function findLinearPath(x1: number, y1: number, x2: number, y2: number): 
             if (result.length >= 3) {
                 var last_dx = result[result.length - 1].x - result[result.length - 2].x;
                 var last_to_last_dx = result[result.length - 2].x - result[result.length - 3].x;
-                if (last_dx != last_to_last_dx) { // change in direction
+                var last_dy = result[result.length - 1].y - result[result.length - 2].y;
+                var last_to_last_dy = result[result.length - 2].y - result[result.length - 3].y;
+                if (last_dx != last_to_last_dx && last_dy != last_to_last_dy) { // change in direction
                     //remove second-last point
                     result.splice(result.length - 2, 1);
                 }
