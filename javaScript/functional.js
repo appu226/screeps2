@@ -64,3 +64,28 @@ function contains(array, elem) {
     return array.indexOf(elem) != -1;
 }
 exports.contains = contains;
+function aToBStepC(a, b, c) {
+    var result = [a];
+    if (a == b) {
+        return result;
+    }
+    else if (a < b) {
+        if (c <= 0)
+            return result;
+        while (a + c <= b) {
+            a = a + c;
+            result.push(a);
+        }
+        return result;
+    }
+    else {
+        if (c >= 0)
+            return result;
+        while (a + c >= b) {
+            a = a + c;
+            result.push(a);
+        }
+        return result;
+    }
+}
+exports.aToBStepC = aToBStepC;

@@ -70,3 +70,26 @@ export function None<TElem>(): Option<TElem> {
 export function contains<TElem>(array: Array<TElem>, elem: TElem): boolean {
     return array.indexOf(elem) != -1;
 }
+
+export function aToBStepC(a: number, b: number, c: number): number[] {
+    var result: number[] = [a];
+    if(a == b) {
+        return result;
+    } else if( a < b) {
+        if(c <= 0)
+            return result;
+        while(a + c <= b) {
+            a = a + c;
+            result.push(a);
+        }
+        return result;
+    } else {
+        if (c >= 0)
+            return result;
+        while(a + c >= b) {
+            a = a + c;
+            result.push(a);
+        }
+        return result;
+    }
+}

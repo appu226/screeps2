@@ -395,3 +395,21 @@ export function addNonCreep(chain: Chain, target: cu.Target, isSource: Boolean, 
     refreshGroup(chain, true);
     return newLinkName;
 }
+
+export function printChain(chain: Chain) {
+    for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
+        var link = chain.links[linkIdx];
+        var output = `Link ${link.linkName} from [`;
+        output = link.sources.reduce<string>((prev: string, current: string) => `${prev}  ${current}`, output);
+        output = output + " ] to ["
+        output = link.destinations.reduce<string>((prev: string, current: string) => `${prev} ${current}`, output);
+        output = output + " ]"
+        if(link.linkType.name == eCreep.name) {
+            var creepLink = <CreepLink>link;
+            if(creepLink.status.status == eActive.status && creepLink.creepName.isPresent) {
+                output = output + " as creep " + creepLink.creepName.get;
+            }
+        }
+        console.log(output);
+    }
+}

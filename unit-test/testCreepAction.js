@@ -1,5 +1,7 @@
 var creepUtils = require('../javaScript/creep');
 var assert = require('assert');
+var mapUtils = require('../javaScript/map');
+var fun = require('../javaScript/functional');
 
 global.MOVE = "move";
 global.WORK = "work";
@@ -39,8 +41,63 @@ function testBuilderBodyCreation() {
     }
 }
 
+function testMakePath() {
+    assert(pathEquality(
+        mapUtils.findLinearPath(0, 0, 5, 5),
+        fun.aToBStepC(0, 5, 1).map(function (i) { return { x: i, y: i }; })
+    ));
+    assert(pathEquality(
+        mapUtils.findLinearPath(0, 5, 5, 0),
+        fun.aToBStepC(0, 5, 1).map(function (i) { return { x: i, y: 5 - i }; })
+    ));
+    assert(pathEquality(
+        mapUtils.findLinearPath(0, 0, 5, 0),
+        fun.aToBStepC(0, 5, 1).map(function (i) { return { x: i, y: 0 }; })
+    ));
+    assert(pathEquality(
+        mapUtils.findLinearPath(0, 0, 0, -5),
+        fun.aToBStepC(0, 5, 1).map(function (i) { return { x: 0, y: (0 - i) }; })
+    ));
+    assert(pathEquality(
+        mapUtils.findLinearPath(0, 0, 5, 1),
+        fun.aToBStepC(0, 5, 1).map(function (i) { return { x: i, y: Math.floor(i / 3) }; })
+    ));
+
+    var ys = [0, 1, 1, 2, 3, 3];
+    assert(pathEquality(
+        mapUtils.findLinearPath(0, 0, 5, 3),
+        fun.aToBStepC(0, 5, 1).map(function (i) { return { x: i, y: ys[i] }; })
+    ));
+}
+
+function pathEquality(a, b) {
+    if (a.length == null || a.length === undefined
+        || b.length == null || b.length === undefined
+        || a.length != b.length) {
+        console.log("Length " + a.length + " != " + b.length);
+        return false;
+    }
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i].x == null || a[i].x === undefined
+            || b[i].x == null || b[i].x === undefined
+            || a[i].x != b[i].x) {
+            console.log(i + "th x value " + a[i].x + " != " + b[i].x);
+            return false;
+        }
+        if (a[i].y == null || a[i].y === undefined
+            || b[i].y == null || b[i].y === undefined
+            || a[i].y != b[i].y) {
+            console.log(i + "th y value " + a[i].y + " != " + b[i].y);
+            return false;
+        }
+    }
+    return true;
+
+}
+
 var allTests = {
-    testBuilderBodyCreation: testBuilderBodyCreation
+    testBuilderBodyCreation: testBuilderBodyCreation,
+    testMakePath: testMakePath
 }
 
 var ran = 0;

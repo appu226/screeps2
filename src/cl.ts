@@ -5,7 +5,7 @@ import chain = require('./chain');
 import cu = require('./creep');
 import enums = require('./enums');
 
-function createChain(
+export function createChain(
     sourceId: string, sourceType: cu.ETargetType,
     targetId: string, targetType: cu.ETargetType,
     spawnId: string,
@@ -21,7 +21,7 @@ function createChain(
         memoryUtils.enrichedMemory().creepGroups.push(chn);
 }
 
-function addNonCreepLink(
+export function addNonCreepLink(
     chainName: string,
     target: cu.Target,
     isSource: Boolean,
@@ -37,7 +37,7 @@ function addNonCreepLink(
     }
 }
 
-function addCreep(
+export function addCreep(
     chainName: string,
     creepType: cu.ECreepType,
     sourceLinkNames: string[],
@@ -54,7 +54,7 @@ function addCreep(
 }
 
 export function executeCustomCommand() {
-    var nextCommandNumber = 15;
+    var nextCommandNumber = 16;
     if (memoryUtils.enrichedMemory().lastCommandNumber < nextCommandNumber) {
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;
         memoryUtils.enrichedMemory().logLevel = memoryUtils.LogLevel.INFO;
@@ -105,6 +105,8 @@ export function executeCustomCommand() {
         // for (var y = 44; y < 47; ++y) {
         //     (new RoomPosition(24, y, roomName)).createConstructionSite(STRUCTURE_ROAD);
         // }
+
+        // addCreep("Chain3", cu.eUpdater, ["LinkTransporter15", "LinkTransporter19"], ["LinkController11"]);
 
         log.info(() => `Successfully executed command ${nextCommandNumber}`);
     }

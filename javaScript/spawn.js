@@ -5,7 +5,7 @@ var functional = require("./functional");
 var log = require("./log");
 var enums = require("./enums");
 function processSpawn(spawn) {
-    if (spawn.energy < spawn.energyCapacity)
+    if (spawn.energy < spawn.energyCapacity || spawn.spawning != null)
         return;
     var groups = memoryUtils.enrichedMemory().creepGroups;
     if (groups.length == 0) {

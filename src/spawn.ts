@@ -6,7 +6,7 @@ import log = require('./log');
 import enums = require('./enums');
 
 export function processSpawn(spawn: Spawn) {
-    if (spawn.energy < spawn.energyCapacity)
+    if (spawn.energy < spawn.energyCapacity || spawn.spawning != null)
         return;
     var groups = memoryUtils.enrichedMemory().creepGroups;
     if (groups.length == 0) {

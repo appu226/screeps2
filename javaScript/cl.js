@@ -11,6 +11,7 @@ function createChain(sourceId, sourceType, targetId, targetType, spawnId, source
     if (chn != null)
         memoryUtils.enrichedMemory().creepGroups.push(chn);
 }
+exports.createChain = createChain;
 function addNonCreepLink(chainName, target, isSource, isDestination) {
     var creepGroups = memoryUtils.enrichedMemory().creepGroups;
     for (var ci = 0; ci < creepGroups.length; ++ci) {
@@ -21,6 +22,7 @@ function addNonCreepLink(chainName, target, isSource, isDestination) {
         }
     }
 }
+exports.addNonCreepLink = addNonCreepLink;
 function addCreep(chainName, creepType, sourceLinkNames, destinationLinkNames) {
     var creepGroups = memoryUtils.enrichedMemory().creepGroups;
     for (var ci = 0; ci < creepGroups.length; ++ci) {
@@ -31,8 +33,9 @@ function addCreep(chainName, creepType, sourceLinkNames, destinationLinkNames) {
         }
     }
 }
+exports.addCreep = addCreep;
 function executeCustomCommand() {
-    var nextCommandNumber = 15;
+    var nextCommandNumber = 16;
     if (memoryUtils.enrichedMemory().lastCommandNumber < nextCommandNumber) {
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;
         memoryUtils.enrichedMemory().logLevel = memoryUtils.LogLevel.INFO;
@@ -78,6 +81,7 @@ function executeCustomCommand() {
         // for (var y = 44; y < 47; ++y) {
         //     (new RoomPosition(24, y, roomName)).createConstructionSite(STRUCTURE_ROAD);
         // }
+        // addCreep("Chain3", cu.eUpdater, ["LinkTransporter15", "LinkTransporter19"], ["LinkController11"]);
         log.info(function () { return "Successfully executed command " + nextCommandNumber; });
     }
 }

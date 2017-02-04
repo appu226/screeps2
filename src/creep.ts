@@ -221,6 +221,21 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
             }
             return;
         }
+        var structures = creep.room.find<Structure>(FIND_STRUCTURES).filter(
+            function (s) { return s.structureType != STRUCTURE_CONTROLLER; }
+        );
+        var weakestStructure = fun.maxBy(structures, function (s) {
+            var dx = s.pos.x - creep.pos.x;
+            var dy = s.pos.y - creep.pos.y;
+            var res = (Math.min(s.hitsMax, 100000) / s.hits) / (Math.pow(2, Math.sqrt(dx * dx + dy * dy) / 20));
+            return res;
+        });
+        if (weakestStructure.isPresent) {
+            var structure = weakestStructure.get;
+            log.debug(() => `repairing structure ${structure.structureType}`);
+            if (creep.repair(structure) == ERR_NOT_IN_RANGE)
+                creep.moveTo(structure);
+        };
         return;
     } else {
         return log.error(() => `creep/processWorker: unexpected action ${memory.action.action}.`);

@@ -334,3 +334,21 @@ function addNonCreep(chain, target, isSource, isDestination) {
     return newLinkName;
 }
 exports.addNonCreep = addNonCreep;
+function printChain(chain) {
+    for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
+        var link = chain.links[linkIdx];
+        var output = "Link " + link.linkName + " from [";
+        output = link.sources.reduce(function (prev, current) { return prev + "  " + current; }, output);
+        output = output + " ] to [";
+        output = link.destinations.reduce(function (prev, current) { return prev + " " + current; }, output);
+        output = output + " ]";
+        if (link.linkType.name == eCreep.name) {
+            var creepLink = link;
+            if (creepLink.status.status == eActive.status && creepLink.creepName.isPresent) {
+                output = output + " as creep " + creepLink.creepName.get;
+            }
+        }
+        console.log(output);
+    }
+}
+exports.printChain = printChain;
