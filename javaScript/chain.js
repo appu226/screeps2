@@ -371,3 +371,19 @@ function printChain(chain) {
     }
 }
 exports.printChain = printChain;
+function editLink(chain, linkName, sources, destinations) {
+    if (!verifyLinkNames(chain, sources == null ? [] : sources) || !verifyLinkNames(chain, destinations == null ? [] : destinations)) {
+        return log.error(function () { return "chain/editLink: Cannot find some linkName, please verify."; });
+    }
+    for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
+        var link = chain.links[linkIdx];
+        if (link.linkName == linkName) {
+            if (sources != null)
+                link.sources = sources;
+            if (destinations != null)
+                link.destinations = destinations;
+            refreshGroup(chain, true);
+        }
+    }
+}
+exports.editLink = editLink;
