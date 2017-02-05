@@ -160,8 +160,8 @@ function processTransporterMemory(creep, transporterMemory) {
     else {
         var takeAppeal = resetContainerEnergy(maxSourceEnergy.get, .0000001) * (1 - creep.carry.energy / creep.carryCapacity);
         var giveAppeal = resetContainerEnergy(minDestinationEnergy.get, .9999999) * creep.carry.energy / creep.carryCapacity;
-        console.log("creep " + creep.name + " has appeals " + takeAppeal + " " + giveAppeal);
-        if (takeAppeal > giveAppeal || giveAppeal == 0) {
+        log.debug(function () { return "creep " + creep.name + " has appeals " + takeAppeal + " " + giveAppeal; });
+        if (takeAppeal > giveAppeal || (giveAppeal == takeAppeal && creep.carry.energy < creep.carryCapacity / 2)) {
             return take(creep, maxSourceEnergy.get.target);
         }
         else {
