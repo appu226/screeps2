@@ -16,6 +16,9 @@ const eSpawn: ELinkType = { name: "Spawn" };
 const eSource: ELinkType = { name: "Source" };
 const eCreep: ELinkType = { name: "Creep" };
 const eController: ELinkType = { name: "Controller" };
+const eTower: ELinkType = { name: "Tower" };
+const eExtension: ELinkType = { name: "Extension" };
+const eContainer: ELinkType = { name: "Container" };
 
 interface CreepLink extends Link {
     creepType: cu.ECreepType;
@@ -153,6 +156,9 @@ function linkTypeToCreepTargetType(
         case eSource.name: return cu.eSource;
         case eCreep.name: return cu.eCreep;
         case eController.name: return cu.eController;
+        case eTower.name: return cu.eTower;
+        case eExtension.name: return cu.eExtension;
+        case eContainer.name: return cu.eContainer;
         default: {
             log.error(() => `chain/linkTypeToCreepTargetType: unexpected link type ${linkType.name}`)
             return { targetType: "NA" };
@@ -168,6 +174,9 @@ function creepTargetTypeToLinkType(
         case cu.eSource.targetType: return eSource;
         case cu.eCreep.targetType: return eCreep;
         case cu.eController.targetType: return eController;
+        case cu.eTower.targetType: return eTower;
+        case cu.eExtension.targetType: return eExtension;
+        case cu.eContainer.targetType: return eContainer;
         default: {
             log.error(() => `chain/creepTargetTypeToLinkType: unexpected creep target type ${targetType.targetType}`)
             return { name: "NA" };
@@ -252,8 +261,22 @@ export function creepToBeSpawned(chain: Chain, energy: number): fun.Option<cu.Cr
     }
 }
 
+function verifyLinkNames(chain: Chain, linkNames: string[]): boolean {
+    var validNames = chain.links.map((link: Link) => { return link.linkName; });
+    return linkNames.reduce<boolean>(
+        (previousValue: boolean, currentValue: string) => {
+            return previousValue && fun.contains<string>(validNames, currentValue);
+        },
+        true
+    );
+}
+
 export function addCreep(chain: Chain, creepType: cu.ECreepType, sourceLinkNames: string[], destinationLinkNames: string[]): string {
     var newLinkName = `Link${creepType.creepType}${memoryUtils.getUid()}`;
+    if (!verifyLinkNames(chain, sourceLinkNames) || !verifyLinkNames(chain, destinationLinkNames)) {
+        log.error(() => `chain/addCreep: Please verify link names!!`);
+        return "";
+    }
     chain.links.forEach(
         (chainLink: Link) => {
             //if it is in sourceLinkNames
@@ -404,9 +427,9 @@ export function printChain(chain: Chain) {
         output = output + " ] to ["
         output = link.destinations.reduce<string>((prev: string, current: string) => `${prev} ${current}`, output);
         output = output + " ]"
-        if(link.linkType.name == eCreep.name) {
+        if (link.linkType.name == eCreep.name) {
             var creepLink = <CreepLink>link;
-            if(creepLink.status.status == eActive.status && creepLink.creepName.isPresent) {
+            if (creepLink.status.status == eActive.status && creepLink.creepName.isPresent) {
                 output = output + " as creep " + creepLink.creepName.get;
             }
         }

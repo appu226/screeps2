@@ -8,6 +8,9 @@ var eSpawn = { name: "Spawn" };
 var eSource = { name: "Source" };
 var eCreep = { name: "Creep" };
 var eController = { name: "Controller" };
+var eTower = { name: "Tower" };
+var eExtension = { name: "Extension" };
+var eContainer = { name: "Container" };
 var eDead = { status: "Dead" };
 var eSpawning = { status: "Spawning" };
 var eActive = { status: "Active" };
@@ -119,6 +122,9 @@ function linkTypeToCreepTargetType(linkType) {
         case eSource.name: return cu.eSource;
         case eCreep.name: return cu.eCreep;
         case eController.name: return cu.eController;
+        case eTower.name: return cu.eTower;
+        case eExtension.name: return cu.eExtension;
+        case eContainer.name: return cu.eContainer;
         default: {
             log.error(function () { return "chain/linkTypeToCreepTargetType: unexpected link type " + linkType.name; });
             return { targetType: "NA" };
@@ -131,6 +137,9 @@ function creepTargetTypeToLinkType(targetType) {
         case cu.eSource.targetType: return eSource;
         case cu.eCreep.targetType: return eCreep;
         case cu.eController.targetType: return eController;
+        case cu.eTower.targetType: return eTower;
+        case cu.eExtension.targetType: return eExtension;
+        case cu.eContainer.targetType: return eContainer;
         default: {
             log.error(function () { return "chain/creepTargetTypeToLinkType: unexpected creep target type " + targetType.targetType; });
             return { name: "NA" };
@@ -202,8 +211,18 @@ function creepToBeSpawned(chain, energy) {
     }
 }
 exports.creepToBeSpawned = creepToBeSpawned;
+function verifyLinkNames(chain, linkNames) {
+    var validNames = chain.links.map(function (link) { return link.linkName; });
+    return linkNames.reduce(function (previousValue, currentValue) {
+        return previousValue && fun.contains(validNames, currentValue);
+    }, true);
+}
 function addCreep(chain, creepType, sourceLinkNames, destinationLinkNames) {
     var newLinkName = "Link" + creepType.creepType + memoryUtils.getUid();
+    if (!verifyLinkNames(chain, sourceLinkNames) || !verifyLinkNames(chain, destinationLinkNames)) {
+        log.error(function () { return "chain/addCreep: Please verify link names!!"; });
+        return "";
+    }
     chain.links.forEach(function (chainLink) {
         //if it is in sourceLinkNames
         if (fun.contains(sourceLinkNames, chainLink.linkName)) {

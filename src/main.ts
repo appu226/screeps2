@@ -5,6 +5,7 @@ import spawnUtils = require('./spawn');
 import log = require('./log');
 import memoryUtils = require('./memory');
 import chainUtils = require('./chain');
+import struct = require('./struct');
 
 export function loop(): void {
     log.debug(() => `main/loop: Tick ${Game.time} started.`);
@@ -13,6 +14,10 @@ export function loop(): void {
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
         spawnUtils.processSpawn(spawn);
+    }
+
+    for (var structure in Game.structures) {
+        struct.processStructure(Game.structures[structure]);
     }
 
     var groups = memoryUtils.enrichedMemory().creepGroups;

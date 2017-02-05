@@ -54,11 +54,17 @@ export function addCreep(
 }
 
 export function executeCustomCommand() {
-    var nextCommandNumber = 16;
+    var nextCommandNumber = 4;
     if (memoryUtils.enrichedMemory().lastCommandNumber < nextCommandNumber) {
+
+        // delete (memoryUtils.enrichedMemory()).isInitialized;
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;
         memoryUtils.enrichedMemory().logLevel = memoryUtils.LogLevel.INFO;
-        log.info(() => `Executing command ${nextCommandNumber}`)
+        log.info(() => `Executing command ${nextCommandNumber}`);
+
+        (<chain.Chain>(memoryUtils.enrichedMemory().creepGroups[0])).links[19].sources[0] = "LinkTransporter45";
+        chain.refreshGroup(<chain.Chain>(memoryUtils.enrichedMemory().creepGroups[0]), true);
+
         // var transporterLinkName = addCreep("Chain3", cu.eTransporter, ["HarvestorLink2"], ["SpawnLink1"]);
         // addCreep("Chain3", cu.eHarvester, ["SourceLink0"], [transporterLinkName]);
         // addCreep("Chain3", cu.eHarvester, ["SourceLink0"], [transporterLinkName]);

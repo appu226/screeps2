@@ -26,7 +26,7 @@ function processSpawn(spawn) {
         if (group.creepGroupType.name != enums.eChain.name)
             return;
         var chain = group;
-        creepToBeSpawned = chainUtils.creepToBeSpawned(chain, spawn.energy);
+        creepToBeSpawned = chainUtils.creepToBeSpawned(chain, spawn.room.energyAvailable);
     }
     if (creepToBeSpawned.isPresent) {
         spawn.createCreep(creepToBeSpawned.get.bodyParts, creepToBeSpawned.get.creepName);

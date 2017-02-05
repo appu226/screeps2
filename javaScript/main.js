@@ -6,6 +6,7 @@ var spawnUtils = require("./spawn");
 var log = require("./log");
 var memoryUtils = require("./memory");
 var chainUtils = require("./chain");
+var struct = require("./struct");
 function loop() {
     log.debug(function () { return "main/loop: Tick " + Game.time + " started."; });
     cl.executeCustomCommand();
@@ -13,6 +14,9 @@ function loop() {
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
         spawnUtils.processSpawn(spawn);
+    }
+    for (var structure in Game.structures) {
+        struct.processStructure(Game.structures[structure]);
     }
     var groups = memoryUtils.enrichedMemory().creepGroups;
     for (var gidx = 0; gidx < groups.length; ++gidx) {

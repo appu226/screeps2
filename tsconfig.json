@@ -18,9 +18,10 @@
         "src/functional.ts",
         "src/log.ts",
         "src/main.ts",
+        "src/map.ts",
+        "src/memory.ts",
         "src/screeps.d.ts",
         "src/spawn.ts",
-        "src/map.ts",
-        "src/memory.ts"
+        "src/struct.ts"
     ]
 }

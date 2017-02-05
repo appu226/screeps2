@@ -8,6 +8,9 @@ exports.eSpawn = { targetType: "Spawn" };
 exports.eSource = { targetType: "Source" };
 exports.eCreep = { targetType: "Creep" };
 exports.eController = { targetType: "Controller" };
+exports.eTower = { targetType: "Tower" };
+exports.eExtension = { targetType: "Extension" };
+exports.eContainer = { targetType: "Container" };
 ;
 exports.eHarvester = { creepType: "Harvester" };
 exports.eUpdater = { creepType: "Updater" };
@@ -53,19 +56,10 @@ function makeHarvestorMemory(sources, destinations) {
     };
 }
 function makeTransporterMemory(sources, destinations) {
-    var giverMemory = {
-        creepMemoryType: enums.eGiverMemory,
-        destinations: destinations
-    };
-    var takerMemory = {
-        creepMemoryType: enums.eTakerMemory,
-        sources: sources.filter(function (target) { return target.targetType.targetType != exports.eSource.targetType; })
-    };
     return {
-        creepMemoryType: enums.eIfThenElseMemory,
-        condition: eIsFull,
-        thenPart: giverMemory,
-        elsePart: takerMemory
+        creepMemoryType: enums.eTransporterMemory,
+        sources: sources,
+        destinations: destinations
     };
 }
 function makeUpdaterMemory(sources, destinations) {
@@ -126,6 +120,52 @@ function makeCreepMemory(creepType, sources, destinations) {
     }
 }
 exports.makeCreepMemory = makeCreepMemory;
+function distanceHeuristic(pos1, pos2) {
+    var dx = pos1.x - pos2.x;
+    var dy = pos1.y - pos2.y;
+    return Math.pow(2, Math.sqrt(dx * dx + dy * dy) / 20);
+}
+function resetContainerEnergy(te, hardCodedContainerEnergy) {
+    if (te.target.targetType != exports.eContainer)
+        return te.energy;
+    else {
+        var container = Game.getObjectById(te.target.targetId);
+        return te.energy / hardCodedContainerEnergy * (container.store / container.storeCapacity);
+    }
+}
+function processTransporterMemory(creep, transporterMemory) {
+    var maxSourceEnergy = fun.maxBy(transporterMemory.sources.map(function (source) { return getEnergy(source, .0000001); }), function (e) {
+        return e.energy
+            / distanceHeuristic(creep.pos, Game.getObjectById(e.target.targetId).pos);
+    });
+    var minDestinationEnergy = fun.maxBy(transporterMemory.destinations.map(function (destination) { return getEnergy(destination, .9999999); }), function (e) {
+        return (1 - e.energy)
+            / distanceHeuristic(creep.pos, Game.getObjectById(e.target.targetId).pos);
+    });
+    if (!maxSourceEnergy.isPresent && !minDestinationEnergy.isPresent) {
+        log.error(function () {
+            return "creep/processTransporterMemory: creep " + creep.name + " has "
+                + (transporterMemory.sources.length + " sources and ")
+                + (transporterMemory.destinations.length + " destinations.");
+        });
+    }
+    else if (!maxSourceEnergy.isPresent) {
+        return give(creep, minDestinationEnergy.get.target);
+    }
+    else if (!minDestinationEnergy.isPresent) {
+        return take(creep, maxSourceEnergy.get.target);
+    }
+    else {
+        var takeAppeal = resetContainerEnergy(maxSourceEnergy.get, .0000001) * (1 - creep.carry.energy / creep.carryCapacity);
+        var giveAppeal = resetContainerEnergy(minDestinationEnergy.get, .9999999) * creep.carry.energy / creep.carryCapacity;
+        if (takeAppeal > giveAppeal || giveAppeal == 0) {
+            return take(creep, maxSourceEnergy.get.target);
+        }
+        else {
+            return give(creep, minDestinationEnergy.get.target);
+        }
+    }
+}
 function processCreepWithMemory(creep, creepMemory) {
     switch (creepMemory.creepMemoryType.name) {
         case enums.eWorkerMemory.name:
@@ -139,6 +179,9 @@ function processCreepWithMemory(creep, creepMemory) {
             break;
         case enums.eIfThenElseMemory.name:
             processIfThenElse(creep, creepMemory);
+            break;
+        case enums.eTransporterMemory.name:
+            processTransporterMemory(creep, creepMemory);
             break;
         default:
             log.error(function () { return "Unexpected creepMemoryType " + creepMemory.creepMemoryType.name + " for creep " + creep.name + "."; });
@@ -167,7 +210,8 @@ function processWorker(creep, memory) {
         if (controller == null || controller === undefined) {
             return log.error(function () { return "creep/processWorker: action " + memory.action.action + " could not find controller with id " + memory.target.targetId; });
         }
-        if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) {
+        var dx = creep.pos.x - controller.pos.x, dy = creep.pos.y - controller.pos.y;
+        if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE || (dx * dx + dy * dy > 8)) {
             creep.moveTo(controller);
         }
         return;
@@ -202,39 +246,53 @@ function processWorker(creep, memory) {
         return log.error(function () { return "creep/processWorker: unexpected action " + memory.action.action + "."; });
     }
 }
+function take(creep, maxTarget) {
+    switch (maxTarget.targetType.targetType) {
+        case exports.eCreep.targetType: {
+            var giver = Game.getObjectById(maxTarget.targetId);
+            if (giver == null || giver == undefined)
+                return log.error(function () { return "creep/take: could not find creep " + maxTarget.targetId; });
+            if (giver.transfer(creep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
+                creep.moveTo(giver);
+            return;
+        }
+        case exports.eContainer.targetType: {
+            var container = Game.getObjectById(maxTarget.targetId);
+            if (container == null || container == undefined)
+                return log.error(function () { return "creep/take: could not find container " + maxTarget.targetId; });
+            if (container.transfer(creep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
+                creep.moveTo(container);
+            return;
+        }
+        default:
+            return log.error(function () { return "creep/take: targetType " + maxTarget.targetType.targetType + " not supported."; });
+    }
+}
 function processTaker(creep, memory) {
-    var energies = memory.sources.map(getEnergy);
+    var energies = memory.sources.map(function (t) { return getEnergy(t, .0000000001); });
     var maxEnergy = fun.maxBy(energies, (function (x) { return x.energy; }));
     if (!maxEnergy.isPresent) {
         return log.error(function () { return "creep/processGiver: creep " + creep.name + " has only " + memory.sources.length + " destinations"; });
     }
     var maxTarget = maxEnergy.get.target;
-    switch (maxTarget.targetType.targetType) {
-        case exports.eCreep.targetType: {
-            var giver = Game.getObjectById(maxTarget.targetId);
-            if (giver == null || giver == undefined)
-                return log.error(function () { return "creep/processGiver: could not find creep " + maxTarget.targetId; });
-            if (giver.transfer(creep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(giver);
-            return;
-        }
-        default:
-            return log.error(function () { return "creep/processTaker: targetType " + maxTarget.targetType.targetType + " not supported."; });
-    }
+    return take(creep, maxTarget);
 }
-function getEnergy(target) {
+function getEnergy(target, containerEnergy) {
     switch (target.targetType.targetType) {
+        case exports.eTower.targetType:
+        case exports.eSpawn.targetType:
+        case exports.eExtension.targetType:
         case exports.eSource.targetType: {
             var source = Game.getObjectById(target.targetId);
             return { energy: source.energy / source.energyCapacity, target: target };
         }
+        case exports.eContainer.targetType: {
+            var container = Game.getObjectById(target.targetId);
+            return { energy: containerEnergy, target: target }; // fill containers after everything else is full
+        }
         case exports.eCreep.targetType: {
             var creep = Game.getObjectById(target.targetId);
             return { energy: creep.carry.energy / creep.carryCapacity, target: target };
-        }
-        case exports.eSpawn.targetType: {
-            var spawn = Game.getObjectById(target.targetId);
-            return { energy: spawn.energy / spawn.energyCapacity, target: target };
         }
         case exports.eController.targetType: {
             var controller = Game.getObjectById(target.targetId);
@@ -246,34 +304,54 @@ function getEnergy(target) {
         }
     }
 }
+function give(creep, minTarget) {
+    switch (minTarget.targetType.targetType) {
+        case exports.eCreep.targetType: {
+            var taker = Game.getObjectById(minTarget.targetId);
+            if (taker == null || taker == undefined)
+                return log.error(function () { return "creep/give: could not find creep " + minTarget.targetId; });
+            if (creep.transfer(taker, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
+                creep.moveTo(taker);
+            return;
+        }
+        case exports.eSpawn.targetType:
+        case exports.eTower.targetType:
+        case exports.eExtension.targetType:
+        case exports.eContainer.targetType: {
+            var spawn = Game.getObjectById(minTarget.targetId);
+            if (spawn == null || spawn === undefined)
+                return log.error(function () { return "creep/give: could not find spawn " + minTarget.targetId; });
+            if (creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
+                creep.moveTo(spawn);
+            return;
+        }
+        case exports.eController.targetType: {
+            if (creep.getActiveBodyparts(WORK) > 0) {
+                var controller = Game.getObjectById(minTarget.targetId);
+                if (controller == null || controller === undefined) {
+                    return log.error(function () { return "creep/give: Creep " + creep.name + " could not find controller " + controller.id; });
+                }
+                if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(controller);
+                }
+                return;
+            }
+            log.error(function () { return "creep/give: Creep " + creep.name + " does not have WORK parts to upgrade controller " + minTarget.targetId; });
+            return;
+        }
+        default: {
+            return log.error(function () { return "creep/give: targetType " + minTarget.targetType.targetType + " not yet supported."; });
+        }
+    }
+}
 function processGiver(creep, memory) {
-    var energies = memory.destinations.map(getEnergy);
+    var energies = memory.destinations.map(function (t) { return getEnergy(t, .999999999); });
     var minEnergy = fun.maxBy(energies, (function (x) { return x.energy * -1; }));
     if (!minEnergy.isPresent) {
         return log.error(function () { return "creep/processGiver: creep " + creep.name + " has only " + memory.destinations.length + " destinations"; });
     }
     var minTarget = minEnergy.get.target;
-    switch (minTarget.targetType.targetType) {
-        case exports.eCreep.targetType: {
-            var taker = Game.getObjectById(minTarget.targetId);
-            if (taker == null || taker == undefined)
-                return log.error(function () { return "creep/processGiver: could not find creep " + minTarget.targetId; });
-            if (creep.transfer(taker, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(taker);
-            return;
-        }
-        case exports.eSpawn.targetType: {
-            var spawn = Game.getObjectById(minTarget.targetId);
-            if (spawn == null || spawn === undefined)
-                return log.error(function () { return "creep/processGiver: could not find spawn " + minTarget.targetId; });
-            if (creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(spawn);
-            return;
-        }
-        default: {
-            return log.error(function () { return "creep/processGiver: targetType " + minTarget.targetType.targetType + " not yet supported."; });
-        }
-    }
+    return give(creep, minTarget);
 }
 function processIfThenElse(creep, memory) {
     switch (memory.condition.name) {
