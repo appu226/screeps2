@@ -174,7 +174,7 @@ function distanceHeuristic(pos1: RoomPosition, pos2: RoomPosition): number {
 
 function resetContainerEnergy(te: TargetEnergy, hardCodedContainerEnergy: number): number {
     if (te.target.targetType != eContainer)
-    return te.energy;
+        return te.energy;
     else {
         var container = Game.getObjectById<Container>(te.target.targetId);
         return te.energy / hardCodedContainerEnergy * (container.store / container.storeCapacity);
@@ -194,6 +194,9 @@ function processTransporterMemory(creep: Creep, transporterMemory: TransporterMe
         (e: TargetEnergy) => {
             return (1 - e.energy)
                 / distanceHeuristic(creep.pos, Game.getObjectById<RoomObject>(e.target.targetId).pos);
+        }).map<TargetEnergy>(
+        (teIn: TargetEnergy) => {
+            return { energy: (1 - teIn.energy), target: teIn.target };
         });
 
     if (!maxSourceEnergy.isPresent && !minDestinationEnergy.isPresent) {
@@ -209,6 +212,7 @@ function processTransporterMemory(creep: Creep, transporterMemory: TransporterMe
     } else {
         var takeAppeal = resetContainerEnergy(maxSourceEnergy.get, .0000001) * (1 - creep.carry.energy / creep.carryCapacity);
         var giveAppeal = resetContainerEnergy(minDestinationEnergy.get, .9999999) * creep.carry.energy / creep.carryCapacity;
+        console.log(`creep ${creep.name} has appeals ${takeAppeal} ${giveAppeal}`);
         if (takeAppeal > giveAppeal || giveAppeal == 0) {
             return take(creep, maxSourceEnergy.get.target);
         } else {

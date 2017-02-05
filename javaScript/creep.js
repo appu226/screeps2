@@ -141,6 +141,8 @@ function processTransporterMemory(creep, transporterMemory) {
     var minDestinationEnergy = fun.maxBy(transporterMemory.destinations.map(function (destination) { return getEnergy(destination, .9999999); }), function (e) {
         return (1 - e.energy)
             / distanceHeuristic(creep.pos, Game.getObjectById(e.target.targetId).pos);
+    }).map(function (teIn) {
+        return { energy: (1 - teIn.energy), target: teIn.target };
     });
     if (!maxSourceEnergy.isPresent && !minDestinationEnergy.isPresent) {
         log.error(function () {
@@ -158,6 +160,7 @@ function processTransporterMemory(creep, transporterMemory) {
     else {
         var takeAppeal = resetContainerEnergy(maxSourceEnergy.get, .0000001) * (1 - creep.carry.energy / creep.carryCapacity);
         var giveAppeal = resetContainerEnergy(minDestinationEnergy.get, .9999999) * creep.carry.energy / creep.carryCapacity;
+        console.log("creep " + creep.name + " has appeals " + takeAppeal + " " + giveAppeal);
         if (takeAppeal > giveAppeal || giveAppeal == 0) {
             return take(creep, maxSourceEnergy.get.target);
         }
