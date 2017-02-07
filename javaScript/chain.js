@@ -161,8 +161,8 @@ function updateCreepMemory(creep, link, linkMap) {
     });
     creep.memory = cu.makeCreepMemory(link.creepType, sources, destinations);
 }
-function refreshGroup(group, forceRefruesh) {
-    if (forceRefruesh === void 0) { forceRefruesh = false; }
+function refreshGroup(group, forceRefresh) {
+    if (forceRefresh === void 0) { forceRefresh = false; }
     if (group.creepGroupType.name != enums.eChain.name)
         return;
     var chain = group;

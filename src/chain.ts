@@ -213,7 +213,7 @@ function updateCreepMemory(
     creep.memory = cu.makeCreepMemory(link.creepType, sources, destinations);
 }
 
-export function refreshGroup(group: CreepGroup, forceRefruesh: boolean = false) {
+export function refreshGroup(group: CreepGroup, forceRefresh: boolean = false) {
     if (group.creepGroupType.name != enums.eChain.name)
         return;
     var chain = <Chain>group;
