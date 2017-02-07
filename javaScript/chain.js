@@ -161,8 +161,8 @@ function updateCreepMemory(creep, link, linkMap) {
     });
     creep.memory = cu.makeCreepMemory(link.creepType, sources, destinations);
 }
-function refreshGroup(group, forceRefresh) {
-    if (forceRefresh === void 0) { forceRefresh = false; }
+function refreshGroup(group, forceRefruesh) {
+    if (forceRefruesh === void 0) { forceRefruesh = false; }
     if (group.creepGroupType.name != enums.eChain.name)
         return;
     var chain = group;
@@ -387,3 +387,45 @@ function editLink(chain, linkName, sources, destinations) {
     }
 }
 exports.editLink = editLink;
+function connectLinks(chain, sourceLinkName, destinationLinkName) {
+    if (!verifyLinkNames(chain, [sourceLinkName, destinationLinkName]))
+        return log.error(function () { return "chain/connectLink: cannot find link, please verify."; });
+    var addAndUniqify = function (elem, arr) {
+        arr.push(elem);
+        return fun.uniqify(arr);
+    };
+    for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
+        var link = chain.links[linkIdx];
+        if (link.linkName == sourceLinkName) {
+            link.destinations = addAndUniqify(destinationLinkName, link.destinations);
+        }
+        else if (link.linkName == destinationLinkName) {
+            link.sources = addAndUniqify(sourceLinkName, link.sources);
+        }
+    }
+    refreshGroup(chain, true);
+}
+exports.connectLinks = connectLinks;
+function disconnectLinks(chain, sourceLinkName, destinationLinkName) {
+    if (!verifyLinkNames(chain, [sourceLinkName, destinationLinkName]))
+        return log.error(function () { return "chain/disconnectLink: cannot find link, please verify."; });
+    chain.links.forEach(function (link) {
+        if (link.linkName == sourceLinkName)
+            link.destinations = link.destinations.filter(function (destName) { return destName != destinationLinkName; });
+        else if (link.linkName == destinationLinkName)
+            link.sources = link.sources.filter(function (srcName) { return srcName != sourceLinkName; });
+    });
+    refreshGroup(chain, true);
+}
+exports.disconnectLinks = disconnectLinks;
+function deleteLink(chain, linkName) {
+    if (!verifyLinkNames(chain, [linkName]))
+        return log.error(function () { return "chain/deleteLink: cannot find linkName " + linkName; });
+    chain.links.forEach(function (link) {
+        link.sources = link.sources.filter(function (src) { return src != linkName; });
+        link.destinations = link.destinations.filter(function (dest) { return dest != linkName; });
+    });
+    chain.links = chain.links.filter(function (link) { return link.linkName != linkName; });
+    refreshGroup(chain, true);
+}
+exports.deleteLink = deleteLink;

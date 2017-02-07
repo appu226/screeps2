@@ -89,3 +89,12 @@ function aToBStepC(a, b, c) {
     }
 }
 exports.aToBStepC = aToBStepC;
+function uniqify(arr) {
+    var res = [];
+    arr.forEach(function (elem) {
+        if (!contains(res, elem))
+            res.push(elem);
+    });
+    return res;
+}
+exports.uniqify = uniqify;

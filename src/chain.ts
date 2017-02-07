@@ -213,7 +213,7 @@ function updateCreepMemory(
     creep.memory = cu.makeCreepMemory(link.creepType, sources, destinations);
 }
 
-export function refreshGroup(group: CreepGroup, forceRefresh: boolean = false) {
+export function refreshGroup(group: CreepGroup, forceRefruesh: boolean = false) {
     if (group.creepGroupType.name != enums.eChain.name)
         return;
     var chain = <Chain>group;
@@ -438,15 +438,56 @@ export function printChain(chain: Chain) {
 }
 
 export function editLink(chain: Chain, linkName: string, sources: string[], destinations: string[]) {
-    if (!verifyLinkNames(chain, sources == null ? [] : sources) || !verifyLinkNames(chain, destinations == null ? []: destinations)) {
+    if (!verifyLinkNames(chain, sources == null ? [] : sources) || !verifyLinkNames(chain, destinations == null ? [] : destinations)) {
         return log.error(() => `chain/editLink: Cannot find some linkName, please verify.`);
     }
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
         var link = chain.links[linkIdx];
         if (link.linkName == linkName) {
-            if(sources != null) link.sources = sources;
-            if(destinations != null) link.destinations = destinations;
+            if (sources != null) link.sources = sources;
+            if (destinations != null) link.destinations = destinations;
             refreshGroup(chain, true);
         }
     }
+}
+
+export function connectLinks(chain: Chain, sourceLinkName: string, destinationLinkName: string) {
+    if (!verifyLinkNames(chain, [sourceLinkName, destinationLinkName]))
+        return log.error(() => `chain/connectLink: cannot find link, please verify.`);
+    var addAndUniqify = function (elem: string, arr: string[]): string[] {
+        arr.push(elem);
+        return fun.uniqify<string>(arr);
+    }
+    for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
+        var link = chain.links[linkIdx];
+        if (link.linkName == sourceLinkName) {
+            link.destinations = addAndUniqify(destinationLinkName, link.destinations);
+        } else if (link.linkName == destinationLinkName) {
+            link.sources = addAndUniqify(sourceLinkName, link.sources);
+        }
+    }
+    refreshGroup(chain, true);
+}
+
+export function disconnectLinks(chain: Chain, sourceLinkName: string, destinationLinkName: string) {
+    if (!verifyLinkNames(chain, [sourceLinkName, destinationLinkName]))
+        return log.error(() => `chain/disconnectLink: cannot find link, please verify.`);
+    chain.links.forEach((link: Link) => {
+        if (link.linkName == sourceLinkName)
+            link.destinations = link.destinations.filter((destName: string) => { return destName != destinationLinkName; });
+        else if (link.linkName == destinationLinkName)
+            link.sources = link.sources.filter((srcName: string) => { return srcName != sourceLinkName; });
+    });
+    refreshGroup(chain, true);
+}
+
+export function deleteLink(chain: Chain, linkName: string) {
+    if (!verifyLinkNames(chain, [linkName]))
+        return log.error(() => `chain/deleteLink: cannot find linkName ${linkName}`);
+    chain.links.forEach((link: Link) => {
+        link.sources = link.sources.filter((src: string) => { return src != linkName; });
+        link.destinations = link.destinations.filter((dest: string) => { return dest != linkName; });
+    });
+    chain.links = chain.links.filter((link: Link) => { return link.linkName != linkName; });
+    refreshGroup(chain, true);
 }

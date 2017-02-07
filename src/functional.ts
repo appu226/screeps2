@@ -73,12 +73,12 @@ export function contains<TElem>(array: Array<TElem>, elem: TElem): boolean {
 
 export function aToBStepC(a: number, b: number, c: number): number[] {
     var result: number[] = [a];
-    if(a == b) {
+    if (a == b) {
         return result;
-    } else if( a < b) {
-        if(c <= 0)
+    } else if (a < b) {
+        if (c <= 0)
             return result;
-        while(a + c <= b) {
+        while (a + c <= b) {
             a = a + c;
             result.push(a);
         }
@@ -86,10 +86,19 @@ export function aToBStepC(a: number, b: number, c: number): number[] {
     } else {
         if (c >= 0)
             return result;
-        while(a + c >= b) {
+        while (a + c >= b) {
             a = a + c;
             result.push(a);
         }
         return result;
     }
+}
+
+export function uniqify<TElem>(arr: TElem[]): TElem[] {
+    var res: TElem[] = [];
+    arr.forEach((elem: TElem) => {
+        if (!contains<TElem>(res, elem))
+            res.push(elem);
+    });
+    return res;
 }
