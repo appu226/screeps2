@@ -10,6 +10,7 @@ var struct = require("./struct");
 function loop() {
     log.debug(function () { return "main/loop: Tick " + Game.time + " started."; });
     cl.executeCustomCommand();
+    var mem = memoryUtils.enrichedMemory();
     // var startTime = performance.now();
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
@@ -18,13 +19,17 @@ function loop() {
     for (var structure in Game.structures) {
         struct.processStructure(Game.structures[structure]);
     }
-    var groups = memoryUtils.enrichedMemory().creepGroups;
+    var groups = mem.creepGroups;
     for (var gidx = 0; gidx < groups.length; ++gidx) {
         chainUtils.refreshGroup(groups[gidx]);
     }
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
         creepSwitch.process(creep);
+    }
+    if (mem.neutralStructures.length > 0) {
+        var neutralStructure = mem.neutralStructures[Game.time % mem.neutralStructures.length];
+        (new RoomPosition(neutralStructure.x, neutralStructure.y, neutralStructure.roomName)).createConstructionSite(neutralStructure.structureType);
     }
     dataCollectAll.collect();
     // var endTime = performance.now();

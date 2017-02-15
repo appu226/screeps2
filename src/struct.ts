@@ -2,16 +2,14 @@ import log = require('./log');
 import fun = require('./functional');
 
 function processTower(tower: StructureTower) {
-    var hostiles = fun.maxBy<Creep>(
-        tower.room.find<Creep>(FIND_HOSTILE_CREEPS),
-        (creep: Creep) => {
-            var dx = creep.pos.x - tower.pos.x;
-            var dy = creep.pos.y - tower.pos.y;
-            return (1 + creep.getActiveBodyparts(ATTACK) + creep.getActiveBodyparts(RANGED_ATTACK))
-                / (1 + creep.getActiveBodyparts(TOUGH))
-                / (Math.pow(2, Math.sqrt(dx * dx + dy * dy) / 20));
-        }
-    );
+    var hostiles =
+        fun.maxBy<Creep>(
+            tower.room.find<Creep>(FIND_HOSTILE_CREEPS),
+            (creep: Creep) => {
+                return (1 + creep.getActiveBodyparts(ATTACK) + creep.getActiveBodyparts(RANGED_ATTACK))
+                    / (1 + creep.getActiveBodyparts(TOUGH));
+            }
+        );
     if (hostiles.isPresent) {
         return tower.attack(hostiles.get);
     }
@@ -19,32 +17,28 @@ function processTower(tower: StructureTower) {
     var patient =
         fun.maxBy<Creep>(
             tower.room.find<Creep>(FIND_MY_CREEPS).filter(
-                (creep: Creep) => { return creep.hits < creep.hitsMax; }),
-            (creep: Creep) => {
-                var dx = creep.pos.x - tower.pos.y;
-                var dy = creep.pos.x - tower.pos.y;
-                return creep.hitsMax
-                    / (creep.hits + 1)
-                    / Math.pow(2, Math.sqrt(dx * dx + dy * dy) / 20);
-            });
+                (creep: Creep) => { return creep.hits < creep.hitsMax; }
+            ),
+            (creep: Creep) => { return creep.hits * -1; });
     if (patient.isPresent) {
         return tower.heal(patient.get);
     }
 
     var repairs =
         fun.maxBy<Structure>(
-            tower.room.find<Structure>(FIND_MY_STRUCTURES).filter(
-                (structure: Structure) => { return structure.hits < structure.hitsMax; }
+            tower.room.find<Structure>(FIND_STRUCTURES).filter(
+                (structure: Structure) => {
+                    return structure.hits < structure.hitsMax
+                        && structure.structureType != STRUCTURE_CONTROLLER
+                        && (
+                            (<OwnedStructure>structure).my === undefined
+                            || (<OwnedStructure>structure).my
+                        );
+                }
             ),
-            (structure: Structure) => {
-                var dx = structure.pos.x - tower.pos.x;
-                var dy = structure.pos.y - tower.pos.y;
-                return structure.hitsMax
-                    / (1 + structure.hits)
-                    / Math.pow(2, Math.sqrt(dx * dx + dy * dy));
-            }
+            (structure: Structure) => { return structure.hits * -1; }
         );
-    if(repairs.isPresent) {
+    if (repairs.isPresent) {
         return tower.repair(repairs.get);
     }
     return;

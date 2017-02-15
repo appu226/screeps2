@@ -67,43 +67,89 @@ function mustRefreshChain(chain) {
     var mustRefresh = false;
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
         var link = chain.links[linkIdx];
-        if (link.linkType.name != eCreep.name) {
-            continue;
+        if (link.linkType.name == eCreep.name) {
+            var creepLink = link;
+            switch (creepLink.status.status) {
+                case eSpawning.status: {
+                    if (creepLink.creepName.isPresent == false) {
+                        log.error(function () { return "chain/mustRefreshChain: spawning link " + creepLink.linkName + " does not have a creep name!"; });
+                        continue;
+                    }
+                    var creepName = creepLink.creepName.get;
+                    if (Game.creeps[creepName] !== undefined && Game.creeps[creepName].id !== undefined) {
+                        creepLink.status = eActive;
+                        creepLink.objectId = fun.Some(Game.creeps[creepName].id);
+                        mustRefresh = true;
+                    }
+                    continue;
+                }
+                case eActive.status: {
+                    if (creepLink.creepName.isPresent == false) {
+                        log.error(function () { return "chain/mustRefreshChain: active link " + creepLink.linkName + " does not have a creep name!"; });
+                        continue;
+                    }
+                    var creepName = creepLink.creepName.get;
+                    if (Game.creeps[creepName] === undefined) {
+                        if (Memory.creeps[creepName] !== undefined)
+                            (delete (Memory.creeps)[creepName]);
+                        creepLink.status = eDead;
+                        mustRefresh = true;
+                    }
+                    continue;
+                }
+                default:
+                    continue;
+            }
         }
-        var creepLink = link;
-        switch (creepLink.status.status) {
-            case eSpawning.status: {
-                if (creepLink.creepName.isPresent == false) {
-                    log.error(function () { return "chain/mustRefreshChain: spawning link " + creepLink.linkName + " does not have a creep name!"; });
-                    continue;
-                }
-                var creepName = creepLink.creepName.get;
-                if (Game.creeps[creepName] !== undefined && Game.creeps[creepName].id !== undefined) {
-                    creepLink.status = eActive;
-                    creepLink.objectId = fun.Some(Game.creeps[creepName].id);
-                    mustRefresh = true;
-                }
-                continue;
-            }
-            case eActive.status: {
-                if (creepLink.creepName.isPresent == false) {
-                    log.error(function () { return "chain/mustRefreshChain: active link " + creepLink.linkName + " does not have a creep name!"; });
-                    continue;
-                }
-                var creepName = creepLink.creepName.get;
-                if (Game.creeps[creepName] === undefined) {
-                    if (Memory.creeps[creepName] !== undefined)
-                        (delete (Memory.creeps)[creepName]);
-                    creepLink.status = eDead;
-                    mustRefresh = true;
-                }
-                continue;
-            }
-            default:
-                continue;
+        else if (link.linkType.name != eController.name
+            && link.linkType.name != eSource.name) {
+            mustRefresh = mustRefresh || mustRefreshStructLink(link);
         }
     }
     return mustRefresh;
+}
+function linkTypeToStructureType(linkType) {
+    switch (linkType.name) {
+        case eTower.name:
+            return STRUCTURE_TOWER;
+        case eSpawn.name:
+            return STRUCTURE_SPAWN;
+        case eExtension.name:
+            return STRUCTURE_EXTENSION;
+        case eContainer.name:
+            return STRUCTURE_CONTAINER;
+        default: {
+            var err = "chain/linkTypeToStructureType: Cannot convert linkType " + linkType.name + " to structureType";
+            log.error(function () { return err; });
+            return err;
+        }
+    }
+}
+function mustRefreshStructLink(slink) {
+    if (slink.objectId.isPresent && Game.getObjectById(slink.objectId.get) != null)
+        return false; // structure known to be built, and is still standing
+    var result = slink.objectId.isPresent; // if structure has been destroyed, then return true
+    slink.objectId = fun.None();
+    var isScheduled = false;
+    var structureType = linkTypeToStructureType(slink.linkType);
+    var pos = (new RoomPosition(slink.x, slink.y, slink.roomName));
+    pos.look().forEach(function (value) {
+        if (value.constructionSite !== undefined
+            && value.constructionSite != null
+            && value.constructionSite.structureType == structureType) {
+            isScheduled = true;
+        }
+        else if (value.structure !== undefined
+            && value.structure != null
+            && value.structure.structureType == structureType
+            && value.structure.my) {
+            slink.objectId = fun.Some(value.structure.id);
+            result = true;
+        }
+    });
+    if (!isScheduled)
+        pos.createConstructionSite(structureType);
+    return result;
 }
 function bfs(current, linkMap, expand) {
     return fun.flatten(current.map(function (linkName) {

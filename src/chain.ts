@@ -31,6 +31,12 @@ const eSpawning: ELinkStatus = { status: "Spawning" };
 const eActive: ELinkStatus = { status: "Active" };
 
 
+interface StructLink extends Link {
+    roomName: string;
+    x: number;
+    y: number;
+}
+
 export interface Chain extends CreepGroup {
     sources: string[];
     destinations: string[];
@@ -91,43 +97,96 @@ function mustRefreshChain(chain: Chain): boolean {
     var mustRefresh = false;
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
         var link = chain.links[linkIdx];
-        if (link.linkType.name != eCreep.name) {
-            continue;
-        }
-        var creepLink = <CreepLink>link;
-        switch (creepLink.status.status) {
-            case eSpawning.status: {
-                if (creepLink.creepName.isPresent == false) {
-                    log.error(() => `chain/mustRefreshChain: spawning link ${creepLink.linkName} does not have a creep name!`);
+        if (link.linkType.name == eCreep.name) {
+            var creepLink = <CreepLink>link;
+            switch (creepLink.status.status) {
+                case eSpawning.status: {
+                    if (creepLink.creepName.isPresent == false) {
+                        log.error(() => `chain/mustRefreshChain: spawning link ${creepLink.linkName} does not have a creep name!`);
+                        continue;
+                    }
+                    var creepName = creepLink.creepName.get;
+                    if (Game.creeps[creepName] !== undefined && Game.creeps[creepName].id !== undefined) {
+                        creepLink.status = eActive;
+                        creepLink.objectId = fun.Some<string>(Game.creeps[creepName].id);
+                        mustRefresh = true;
+                    }
                     continue;
                 }
-                var creepName = creepLink.creepName.get;
-                if (Game.creeps[creepName] !== undefined && Game.creeps[creepName].id !== undefined) {
-                    creepLink.status = eActive;
-                    creepLink.objectId = fun.Some<string>(Game.creeps[creepName].id);
-                    mustRefresh = true;
-                }
-                continue;
-            }
-            case eActive.status: {
-                if (creepLink.creepName.isPresent == false) {
-                    log.error(() => `chain/mustRefreshChain: active link ${creepLink.linkName} does not have a creep name!`);
+                case eActive.status: {
+                    if (creepLink.creepName.isPresent == false) {
+                        log.error(() => `chain/mustRefreshChain: active link ${creepLink.linkName} does not have a creep name!`);
+                        continue;
+                    }
+                    var creepName = creepLink.creepName.get;
+                    if (Game.creeps[creepName] === undefined) {
+                        if (Memory.creeps[creepName] !== undefined)
+                            (delete (Memory.creeps)[creepName]);
+                        creepLink.status = eDead;
+                        mustRefresh = true;
+                    }
                     continue;
                 }
-                var creepName = creepLink.creepName.get;
-                if (Game.creeps[creepName] === undefined) {
-                    if (Memory.creeps[creepName] !== undefined)
-                        (delete (Memory.creeps)[creepName]);
-                    creepLink.status = eDead;
-                    mustRefresh = true;
-                }
-                continue;
+                default:
+                    continue;
             }
-            default:
-                continue;
+        } else if (link.linkType.name != eController.name
+            && link.linkType.name != eSource.name) {
+            mustRefresh = mustRefresh || mustRefreshStructLink(<StructLink>link);
         }
     }
     return mustRefresh;
+}
+
+function linkTypeToStructureType(linkType: ELinkType): string {
+    switch (linkType.name) {
+        case eTower.name:
+            return STRUCTURE_TOWER;
+        case eSpawn.name:
+            return STRUCTURE_SPAWN;
+        case eExtension.name:
+            return STRUCTURE_EXTENSION;
+        case eContainer.name:
+            return STRUCTURE_CONTAINER;
+        default: {
+            var err = `chain/linkTypeToStructureType: Cannot convert linkType ${linkType.name} to structureType`;
+            log.error(() => err);
+            return err;
+        }
+    }
+}
+
+function mustRefreshStructLink(slink: StructLink): boolean {
+    if (slink.objectId.isPresent && Game.getObjectById(slink.objectId.get) != null)
+        return false; // structure known to be built, and is still standing
+
+    var result = slink.objectId.isPresent; // if structure has been destroyed, then return true
+    slink.objectId = fun.None<string>();
+    var isScheduled = false;
+    var structureType: string = linkTypeToStructureType(slink.linkType);
+    var pos = (new RoomPosition(slink.x, slink.y, slink.roomName));
+
+    pos.look().forEach(
+        (value: LookAtResult) => {
+            if ( // if already scheduled for construction
+                value.constructionSite !== undefined
+                && value.constructionSite != null
+                && value.constructionSite.structureType == structureType) {
+                isScheduled = true;
+            } else if ( // if structure was newly built, return true
+                value.structure !== undefined
+                && value.structure != null
+                && value.structure.structureType == structureType
+                && (<OwnedStructure>value.structure).my) {
+                slink.objectId = fun.Some<string>(value.structure.id);
+                result = true;
+            }
+        }
+    );
+
+    if (!isScheduled) pos.createConstructionSite(structureType);
+
+    return result;
 }
 
 function bfs(

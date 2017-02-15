@@ -6,7 +6,7 @@ import log = require('./log');
 import enums = require('./enums');
 
 export function processSpawn(spawn: Spawn) {
-    if (spawn.energy < spawn.energyCapacity || spawn.spawning != null)
+    if (spawn.room.energyAvailable < 300 || spawn.spawning != null)
         return;
     var groups = memoryUtils.enrichedMemory().creepGroups;
     if (groups.length == 0) {
@@ -25,8 +25,10 @@ export function processSpawn(spawn: Spawn) {
     for (var groupNum = 0; groupNum < groups.length && !creepToBeSpawned.isPresent; ++groupNum) {
         var group = groups[groupNum];
         if (group.creepGroupType.name != enums.eChain.name)
-            return;
+            continue;
         var chain = <chainUtils.Chain>group;
+        if (chain.spawnId != spawn.id)
+            continue;
         creepToBeSpawned = chainUtils.creepToBeSpawned(chain, spawn.room.energyAvailable);
     }
     if (creepToBeSpawned.isPresent) {

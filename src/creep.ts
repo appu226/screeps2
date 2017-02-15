@@ -212,7 +212,7 @@ function processTransporterMemory(creep: Creep, transporterMemory: TransporterMe
     } else {
         var takeAppeal = resetContainerEnergy(maxSourceEnergy.get, .0000001) * (1 - creep.carry.energy / creep.carryCapacity);
         var giveAppeal = resetContainerEnergy(minDestinationEnergy.get, .9999999) * creep.carry.energy / creep.carryCapacity;
-        log.debug(() =>`creep ${creep.name} has appeals ${takeAppeal} ${giveAppeal}`);
+        log.debug(() => `creep ${creep.name} has appeals ${takeAppeal} ${giveAppeal}`);
         if (takeAppeal > giveAppeal || (giveAppeal == takeAppeal && creep.carry.energy < creep.carryCapacity / 2)) {
             return take(creep, maxSourceEnergy.get.target);
         } else {
@@ -280,21 +280,32 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
             }
             return;
         }
-        var structures = creep.room.find<Structure>(FIND_STRUCTURES).filter(
-            function (s) { return s.structureType != STRUCTURE_CONTROLLER; }
-        );
-        var weakestStructure = fun.maxBy(structures, function (s) {
-            var dx = s.pos.x - creep.pos.x;
-            var dy = s.pos.y - creep.pos.y;
-            var res = (Math.min(s.hitsMax, 100000) / s.hits) / (Math.pow(2, Math.sqrt(dx * dx + dy * dy) / 20));
-            return res;
-        });
-        if (weakestStructure.isPresent) {
-            var structure = weakestStructure.get;
-            log.debug(() => `repairing structure ${structure.structureType}`);
-            if (creep.repair(structure) == ERR_NOT_IN_RANGE)
-                creep.moveTo(structure);
-        };
+        var noTowers: boolean =
+            creep.room.find<Structure>(
+                FIND_MY_STRUCTURES
+            ).filter(
+                (struct: Structure) => { return struct.structureType == STRUCTURE_TOWER; }
+                ).length == 0;
+        if (noTowers) {
+            // if the room does not have any towers, then repair structures
+            var weakestStructure =
+                fun.maxBy<Structure>(
+                    creep.room.find<Structure>(FIND_STRUCTURES).filter(
+                        (s: Structure) => {
+                            return s.structureType != STRUCTURE_CONTROLLER
+                                && (
+                                    (<OwnedStructure>s).my === undefined
+                                    || (<OwnedStructure>s).my == true
+                                );
+                        }),
+                    (s: Structure) => { return s.hits * -1; }
+                );
+            if (weakestStructure.isPresent) {
+                if (creep.repair(weakestStructure.get) == ERR_NOT_IN_RANGE)
+                    creep.moveTo(weakestStructure.get);
+                return;
+            }
+        }
         return;
     } else {
         return log.error(() => `creep/processWorker: unexpected action ${memory.action.action}.`);
@@ -451,13 +462,17 @@ function createBodyPartsImpl(partsToInclude: string[], energy: number): string[]
 }
 
 export function createBodyParts(creepType: ECreepType, energy: number): string[] {
+    if (energy < 300) {
+            log.error(() => `creep/createBodyParts: expected at least 300 energy, got: ${energy}`);
+            return createBodyPartsImpl(BODYPARTS_ALL, energy);        
+    }
     switch (creepType.creepType) {
         case eHarvester.creepType:
         case eUpdater.creepType:
         case eBuilder.creepType:
-            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, MOVE, MOVE], energy);
+            return[MOVE, CARRY, WORK, WORK];
         case eTransporter.creepType:
-            return createBodyPartsImpl([MOVE, CARRY], energy);
+            return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
         default:
             log.error(() => `creep/createBodyParts: Creep type ${creepType.creepType} not yet supported.`);
             return createBodyPartsImpl(BODYPARTS_ALL, energy);

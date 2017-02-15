@@ -22,6 +22,9 @@ interface EnrichedMemory extends Memory {
     lastCommandNumber: number;
     messageLog: string[]; // store messages for a while
     maxMessageLogSize: number; // how many messages
+    roads: { x: number, y: number, roomName: string }[];
+    walls: { x: number, y: number, roomName: string }[];
+    neutralStructures: { x: number, y: number, roomName: string, structureType: string }[];
 }
 
 interface CreepGroup {

@@ -141,12 +141,12 @@ function transposeXY(c) {
 function transposePath(p) {
     return p.map(function (xy) { return transposeXY(xy); });
 }
-function findLinearPath(x1, y1, x2, y2) {
+function findLinearPath(x1, y1, x2, y2, removeKinks) {
     if (x1 == x2 && y1 == y2) {
         return [{ x: x1, y: y1 }];
     }
     else if (x1 == x2) {
-        return transposePath(findLinearPath(y1, x1, y2, x2));
+        return transposePath(findLinearPath(y1, x1, y2, x2, removeKinks));
     }
     else if (y1 == y2) {
         if (x1 <= x2) {
@@ -194,16 +194,16 @@ function findLinearPath(x1, y1, x2, y2) {
             // //    X                     X
             // //    X                     X
             // //    X                     X
-            // if (result.length >= 3) {
-            //     var last_dx = result[result.length - 1].x - result[result.length - 2].x;
-            //     var last_to_last_dx = result[result.length - 2].x - result[result.length - 3].x;
-            //     var last_dy = result[result.length - 1].y - result[result.length - 2].y;
-            //     var last_to_last_dy = result[result.length - 2].y - result[result.length - 3].y;
-            //     if (last_dx != last_to_last_dx && last_dy != last_to_last_dy) { // change in direction
-            //         //remove second-last point
-            //         result.splice(result.length - 2, 1);
-            //     }
-            // }
+            if (removeKinks && result.length >= 3) {
+                var last_dx = result[result.length - 1].x - result[result.length - 2].x;
+                var last_to_last_dx = result[result.length - 2].x - result[result.length - 3].x;
+                var last_dy = result[result.length - 1].y - result[result.length - 2].y;
+                var last_to_last_dy = result[result.length - 2].y - result[result.length - 3].y;
+                if (last_dx != last_to_last_dx && last_dy != last_to_last_dy) {
+                    //remove second-last point
+                    result.splice(result.length - 2, 1);
+                }
+            }
             lastxy = result[result.length - 1];
         }
         return result;
@@ -211,9 +211,14 @@ function findLinearPath(x1, y1, x2, y2) {
 }
 exports.findLinearPath = findLinearPath;
 function makeStructures(x1, y1, x2, y2, roomName, structure) {
-    var path = findLinearPath(x1, y1, x2, y2);
+    var path = findLinearPath(x1, y1, x2, y2, structure == STRUCTURE_ROAD);
     for (var ci = 0; ci < path.length; ++ci) {
-        (new RoomPosition(path[ci].x, path[ci].y, roomName)).createConstructionSite(structure);
+        memoryUtils.enrichedMemory().neutralStructures.push({
+            x: path[ci].x,
+            y: path[ci].y,
+            roomName: roomName,
+            structureType: structure
+        });
     }
 }
 exports.makeStructures = makeStructures;

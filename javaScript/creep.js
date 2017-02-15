@@ -229,20 +229,20 @@ function processWorker(creep, memory) {
             }
             return;
         }
-        var structures = creep.room.find(FIND_STRUCTURES).filter(function (s) { return s.structureType != STRUCTURE_CONTROLLER; });
-        var weakestStructure = fun.maxBy(structures, function (s) {
-            var dx = s.pos.x - creep.pos.x;
-            var dy = s.pos.y - creep.pos.y;
-            var res = (Math.min(s.hitsMax, 100000) / s.hits) / (Math.pow(2, Math.sqrt(dx * dx + dy * dy) / 20));
-            return res;
-        });
-        if (weakestStructure.isPresent) {
-            var structure = weakestStructure.get;
-            log.debug(function () { return "repairing structure " + structure.structureType; });
-            if (creep.repair(structure) == ERR_NOT_IN_RANGE)
-                creep.moveTo(structure);
+        var noTowers = creep.room.find(FIND_MY_STRUCTURES).filter(function (struct) { return struct.structureType == STRUCTURE_TOWER; }).length == 0;
+        if (noTowers) {
+            // if the room does not have any towers, then repair structures
+            var weakestStructure = fun.maxBy(creep.room.find(FIND_STRUCTURES).filter(function (s) {
+                return s.structureType != STRUCTURE_CONTROLLER
+                    && (s.my === undefined
+                        || s.my == true);
+            }), function (s) { return s.hits * -1; });
+            if (weakestStructure.isPresent) {
+                if (creep.repair(weakestStructure.get) == ERR_NOT_IN_RANGE)
+                    creep.moveTo(weakestStructure.get);
+                return;
+            }
         }
-        ;
         return;
     }
     else {
@@ -381,13 +381,17 @@ function createBodyPartsImpl(partsToInclude, energy) {
     return body;
 }
 function createBodyParts(creepType, energy) {
+    if (energy < 300) {
+        log.error(function () { return "creep/createBodyParts: expected at least 300 energy, got: " + energy; });
+        return createBodyPartsImpl(BODYPARTS_ALL, energy);
+    }
     switch (creepType.creepType) {
         case exports.eHarvester.creepType:
         case exports.eUpdater.creepType:
         case exports.eBuilder.creepType:
-            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, MOVE, MOVE], energy);
+            return [MOVE, CARRY, WORK, WORK];
         case exports.eTransporter.creepType:
-            return createBodyPartsImpl([MOVE, CARRY], energy);
+            return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
         default:
             log.error(function () { return "creep/createBodyParts: Creep type " + creepType.creepType + " not yet supported."; });
             return createBodyPartsImpl(BODYPARTS_ALL, energy);
