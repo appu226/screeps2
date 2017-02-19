@@ -381,24 +381,43 @@ function createChain(sourceId, sourceType, targetId, targetType, spawnId, source
     return chain;
 }
 exports.createChain = createChain;
-function addNonCreep(chain, target, isSource, isDestination) {
-    var newLinkName = "Link" + target.targetType.targetType + memoryUtils.getUid();
+function structureTypeToLinkType(structureType) {
+    switch (structureType) {
+        case STRUCTURE_EXTENSION: return eExtension;
+        case STRUCTURE_SPAWN: return eSpawn;
+        case STRUCTURE_TOWER: return eTower;
+        case STRUCTURE_CONTAINER: return eContainer;
+        default:
+            log.error(function () { return "chain/structureTypeToLinkType: structure type " + structureType + " not implemented."; });
+            return eExtension;
+    }
+}
+function scheduleStructure(chain, structureType, pos, sources, destinations) {
+    if (!verifyLinkNames(chain, sources))
+        throw "Invalid source link name, please verify.";
+    if (!verifyLinkNames(chain, destinations))
+        throw "Invalid destination link name, please verify.";
+    var targetType = structureTypeToLinkType(structureType);
+    var newLinkName = "Link" + targetType.name + memoryUtils.getUid();
     var newLink = {
-        linkType: creepTargetTypeToLinkType(target.targetType),
+        linkType: targetType,
         linkName: newLinkName,
-        objectId: fun.Some(target.targetId),
-        sources: [],
-        destinations: []
+        objectId: fun.None(),
+        sources: sources,
+        destinations: destinations,
+        x: pos.x,
+        y: pos.y,
+        roomName: pos.roomName
     };
-    if (isSource)
-        chain.sources.push(newLinkName);
-    if (isDestination)
-        chain.destinations.push(newLinkName);
     chain.links.push(newLink);
     refreshGroup(chain, true);
     return newLinkName;
 }
-exports.addNonCreep = addNonCreep;
+exports.scheduleStructure = scheduleStructure;
+function addStructure(chain, structure, sources, destinations) {
+    return scheduleStructure(chain, structure.structureType, structure.pos, sources, destinations);
+}
+exports.addStructure = addStructure;
 function printChain(chain) {
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
         var link = chain.links[linkIdx];

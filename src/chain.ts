@@ -462,20 +462,44 @@ export function createChain(
     return chain;
 }
 
-export function addNonCreep(chain: Chain, target: cu.Target, isSource: Boolean, isDestination: Boolean): string {
-    var newLinkName = `Link${target.targetType.targetType}${memoryUtils.getUid()}`;
-    var newLink: Link = {
-        linkType: creepTargetTypeToLinkType(target.targetType),
+function structureTypeToLinkType(structureType: string): ELinkType {
+    switch (structureType) {
+        case STRUCTURE_EXTENSION: return eExtension;
+        case STRUCTURE_SPAWN: return eSpawn;
+        case STRUCTURE_TOWER: return eTower;
+        case STRUCTURE_CONTAINER: return eContainer;
+        default:
+            log.error(() => `chain/structureTypeToLinkType: structure type ${structureType} not implemented.`);
+            return eExtension;
+    }
+}
+
+
+export function scheduleStructure(chain: Chain, structureType: string, pos: RoomPosition, sources: string[], destinations: string[]): string {
+    if(!verifyLinkNames(chain, sources))
+        throw "Invalid source link name, please verify.";
+    if(!verifyLinkNames(chain, destinations))
+        throw "Invalid destination link name, please verify.";
+
+    var targetType = structureTypeToLinkType(structureType);
+    var newLinkName = `Link${targetType.name}${memoryUtils.getUid()}`;
+    var newLink: StructLink = {
+        linkType: targetType,
         linkName: newLinkName,
-        objectId: fun.Some<string>(target.targetId),
-        sources: [],
-        destinations: []
+        objectId: fun.None<string>(),
+        sources: sources,
+        destinations: destinations,
+        x: pos.x,
+        y: pos.y,
+        roomName: pos.roomName
     };
-    if (isSource) chain.sources.push(newLinkName);
-    if (isDestination) chain.destinations.push(newLinkName);
     chain.links.push(newLink);
     refreshGroup(chain, true);
     return newLinkName;
+}
+
+export function addStructure(chain: Chain, structure: Structure, sources: string[], destinations: string[]): string {
+    return scheduleStructure(chain, structure.structureType, structure.pos, sources, destinations);
 }
 
 export function printChain(chain: Chain) {
