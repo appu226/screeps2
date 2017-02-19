@@ -331,7 +331,7 @@ function take(creep: Creep, maxTarget: Target) {
             return;
         }
         default:
-            return log.error(() => `creep/take: targetType ${maxTarget.targetType.targetType} not supported.`);
+            return log.error(() => `creep/take: targetType ${maxTarget.targetType.targetType} not supported for creep ${creep.name}.`);
     }
 }
 
@@ -463,14 +463,15 @@ function createBodyPartsImpl(partsToInclude: string[], energy: number): string[]
 
 export function createBodyParts(creepType: ECreepType, energy: number): string[] {
     if (energy < 300) {
-            log.error(() => `creep/createBodyParts: expected at least 300 energy, got: ${energy}`);
-            return createBodyPartsImpl(BODYPARTS_ALL, energy);        
+        log.error(() => `creep/createBodyParts: expected at least 300 energy, got: ${energy}`);
+        return createBodyPartsImpl(BODYPARTS_ALL, energy);
     }
     switch (creepType.creepType) {
         case eHarvester.creepType:
-        case eUpdater.creepType:
         case eBuilder.creepType:
-            return[MOVE, CARRY, WORK, WORK];
+            return [MOVE, CARRY, WORK, WORK];
+        case eUpdater.creepType:
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, WORK], Math.min(energy, 500));
         case eTransporter.creepType:
             return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
         default:

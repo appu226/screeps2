@@ -12,6 +12,8 @@ function processTower(tower) {
     if (patient.isPresent) {
         return tower.heal(patient.get);
     }
+    if (tower.energy * 2 < tower.energyCapacity)
+        return;
     var repairs = fun.maxBy(tower.room.find(FIND_STRUCTURES).filter(function (structure) {
         return structure.hits < structure.hitsMax
             && structure.structureType != STRUCTURE_CONTROLLER
@@ -26,7 +28,7 @@ function processTower(tower) {
 function processStructure(structure) {
     switch (structure.structureType) {
         case STRUCTURE_TOWER: {
-            processTower(structure);
+            return processTower(structure);
         }
         default:
             return;

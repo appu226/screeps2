@@ -24,6 +24,9 @@ function processTower(tower: StructureTower) {
         return tower.heal(patient.get);
     }
 
+    if (tower.energy * 2 < tower.energyCapacity)
+        return;
+
     var repairs =
         fun.maxBy<Structure>(
             tower.room.find<Structure>(FIND_STRUCTURES).filter(
@@ -47,7 +50,7 @@ function processTower(tower: StructureTower) {
 export function processStructure(structure: Structure) {
     switch (structure.structureType) {
         case STRUCTURE_TOWER: {
-            processTower(<StructureTower>structure);
+            return processTower(<StructureTower>structure);
         }
         default:
             return;

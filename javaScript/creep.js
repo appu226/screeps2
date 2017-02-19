@@ -268,7 +268,7 @@ function take(creep, maxTarget) {
             return;
         }
         default:
-            return log.error(function () { return "creep/take: targetType " + maxTarget.targetType.targetType + " not supported."; });
+            return log.error(function () { return "creep/take: targetType " + maxTarget.targetType.targetType + " not supported for creep " + creep.name + "."; });
     }
 }
 function processTaker(creep, memory) {
@@ -387,9 +387,10 @@ function createBodyParts(creepType, energy) {
     }
     switch (creepType.creepType) {
         case exports.eHarvester.creepType:
-        case exports.eUpdater.creepType:
         case exports.eBuilder.creepType:
             return [MOVE, CARRY, WORK, WORK];
+        case exports.eUpdater.creepType:
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, WORK], Math.min(energy, 500));
         case exports.eTransporter.creepType:
             return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
         default:
