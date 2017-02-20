@@ -197,10 +197,14 @@ function bfs(
     return fun.flatten<string>(current.map(
         (linkName: string) => {
             var link = linkMap[linkName];
-            if (link.linkType.name != eCreep.name)
-                return [linkName];
+            if (link.linkType.name != eCreep.name) {
+                if (link.objectId.isPresent)
+                    return [linkName];
+                else
+                    return bfs(expand(linkName), linkMap, expand);
+            }
             var creepLink = <CreepLink>link;
-            if (creepLink.status.status == eActive.status)
+            if (creepLink.status.status == eActive.status && link.objectId.isPresent)
                 return [linkName];
             return bfs(expand(linkName), linkMap, expand);
         }
@@ -440,23 +444,13 @@ function createLink(
 }
 
 export function createChain(
-    sourceId: string, sourceType: cu.ETargetType,
-    targetId: string, targetType: cu.ETargetType,
-    spawnId: string,
-    sourceCreepType: fun.Option<cu.ECreepType> = fun.None<cu.ECreepType>(),
-    targetCreepType: fun.Option<cu.ECreepType> = fun.None<cu.ECreepType>()): CreepGroup {
-    var source: Link = createLink(sourceId, sourceType, sourceCreepType);
-    if (source == null) return null;
-    var destination: Link = createLink(targetId, targetType, targetCreepType);
-    if (destination == null) return null;
-    source.destinations = [destination.linkName];
-    destination.sources = [source.linkName];
+    spawnId: string): CreepGroup {
     var chain: Chain = {
         creepGroupType: enums.eChain,
         creepGroupName: `Chain${memoryUtils.getUid()}`,
-        sources: [source.linkName],
-        destinations: [destination.linkName],
-        links: [source, destination],
+        sources: [],
+        destinations: [],
+        links: [],
         spawnId: spawnId
     };
     return chain;
@@ -468,6 +462,7 @@ function structureTypeToLinkType(structureType: string): ELinkType {
         case STRUCTURE_SPAWN: return eSpawn;
         case STRUCTURE_TOWER: return eTower;
         case STRUCTURE_CONTAINER: return eContainer;
+        case STRUCTURE_CONTROLLER: return eController;
         default:
             log.error(() => `chain/structureTypeToLinkType: structure type ${structureType} not implemented.`);
             return eExtension;
@@ -476,9 +471,9 @@ function structureTypeToLinkType(structureType: string): ELinkType {
 
 
 export function scheduleStructure(chain: Chain, structureType: string, pos: RoomPosition, sources: string[], destinations: string[]): string {
-    if(!verifyLinkNames(chain, sources))
+    if (!verifyLinkNames(chain, sources))
         throw "Invalid source link name, please verify.";
-    if(!verifyLinkNames(chain, destinations))
+    if (!verifyLinkNames(chain, destinations))
         throw "Invalid destination link name, please verify.";
 
     var targetType = structureTypeToLinkType(structureType);
@@ -487,19 +482,40 @@ export function scheduleStructure(chain: Chain, structureType: string, pos: Room
         linkType: targetType,
         linkName: newLinkName,
         objectId: fun.None<string>(),
-        sources: sources,
-        destinations: destinations,
+        sources: [],
+        destinations: [],
         x: pos.x,
         y: pos.y,
         roomName: pos.roomName
     };
     chain.links.push(newLink);
+    sources.forEach(s => connectLinks(chain, s, newLinkName));
+    destinations.forEach(d => connectLinks(chain, newLinkName, d));
     refreshGroup(chain, true);
     return newLinkName;
 }
 
 export function addStructure(chain: Chain, structure: Structure, sources: string[], destinations: string[]): string {
-    return scheduleStructure(chain, structure.structureType, structure.pos, sources, destinations);
+    var newLinkName = scheduleStructure(chain, structure.structureType, structure.pos, sources, destinations);
+    chain.links[chain.links.length - 1].objectId = fun.Some<string>(structure.id);
+    return newLinkName;
+}
+
+export function addSource(chain: Chain, source: Source): string {
+    var newLinkName = `LinkSource${memoryUtils.getUid()}`;
+    var newLink: StructLink = {
+        linkType: eSource,
+        linkName: newLinkName,
+        objectId: fun.Some<string>(source.id),
+        sources: [],
+        destinations: [],
+        x: source.pos.x,
+        y: source.pos.y,
+        roomName: source.pos.roomName
+    };
+    chain.links.push(newLink);
+    refreshGroup(chain, true);
+    return newLinkName;
 }
 
 export function printChain(chain: Chain) {

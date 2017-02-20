@@ -27,6 +27,7 @@ export const eHarvester: ECreepType = { creepType: "Harvester" };
 export const eUpdater: ECreepType = { creepType: "Updater" };
 export const eBuilder: ECreepType = { creepType: "Builder" };
 export const eTransporter: ECreepType = { creepType: "Transporter" };
+export const eClaimer: ECreepType = { creepType: "Claimer" };
 
 interface WorkerMemory extends CreepMemory {
     action: EWorkerAction
@@ -54,6 +55,10 @@ interface IfThenElseMemory extends CreepMemory {
 interface TransporterMemory extends CreepMemory {
     sources: Target[];
     destinations: Target[];
+}
+
+interface ClaimerMemory extends CreepMemory {
+    roomName: string;
 }
 
 interface ECreepCondition { name: string }
@@ -103,6 +108,13 @@ function makeTransporterMemory(sources: Target[], destinations: Target[]): Trans
         creepMemoryType: enums.eTransporterMemory,
         sources: sources,
         destinations: destinations
+    };
+}
+
+function makeClaimerMemory(roomName: string): ClaimerMemory {
+    return {
+        creepMemoryType: enums.eClaimerMemory,
+        roomName: roomName
     };
 }
 
@@ -192,8 +204,9 @@ function processTransporterMemory(creep: Creep, transporterMemory: TransporterMe
     var minDestinationEnergy = fun.maxBy<TargetEnergy>(
         transporterMemory.destinations.map<TargetEnergy>((destination: Target) => getEnergy(destination, .9999999)),
         (e: TargetEnergy) => {
-            return (1 - e.energy)
+            var ret = (1 - e.energy)
                 / distanceHeuristic(creep.pos, Game.getObjectById<RoomObject>(e.target.targetId).pos);
+            return ret;
         }).map<TargetEnergy>(
         (teIn: TargetEnergy) => {
             return { energy: (1 - teIn.energy), target: teIn.target };
@@ -221,6 +234,23 @@ function processTransporterMemory(creep: Creep, transporterMemory: TransporterMe
     }
 }
 
+function processClaimerMemory(creep: Creep, claimerMemory: ClaimerMemory) {
+    if (creep.room.name != claimerMemory.roomName) {
+        var exitDir = <number>Game.map.findExit(creep.room, claimerMemory.roomName);
+        if (exitDir == ERR_INVALID_ARGS)
+            return log.error(() => `creep/processClaimerMemory: findExit(${creep.room.name}, ${claimerMemory.roomName}) gave ERR_INVALID_ARGS.`);
+        else if (exitDir == ERR_NO_PATH)
+            return log.error(() => `creep/processClaimerMemory: findExit(${creep.room.name}, ${claimerMemory.roomName}) gave ERR_NO_PATH.`);
+        else {
+            var exit = creep.pos.findClosestByRange<RoomPosition>(exitDir);
+            return creep.moveTo(exit);
+        }
+    }
+    var controller = creep.room.controller;
+    if (creep.claimController(controller) == ERR_NOT_IN_RANGE)
+        creep.moveTo(controller);
+}
+
 function processCreepWithMemory(creep: Creep, creepMemory: CreepMemory) {
     switch (creepMemory.creepMemoryType.name) {
         case enums.eWorkerMemory.name:
@@ -238,6 +268,8 @@ function processCreepWithMemory(creep: Creep, creepMemory: CreepMemory) {
         case enums.eTransporterMemory.name:
             processTransporterMemory(creep, <TransporterMemory>creepMemory);
             break;
+        case enums.eClaimerMemory.name:
+            processClaimerMemory(creep, <ClaimerMemory>creepMemory);
         default:
             log.error(() => `Unexpected creepMemoryType ${creepMemory.creepMemoryType.name} for creep ${creep.name}.`);
             break;
@@ -364,7 +396,7 @@ function getEnergy(target: Target, containerEnergy: number): TargetEnergy {
         }
         case eContainer.targetType: {
             var container = Game.getObjectById<Container>(target.targetId);
-            return { energy: containerEnergy, target: target }; // fill containers after everything else is full
+            return { energy: containerEnergy, target: target }; // fill/deplete containers after everything else is full/empty
         }
         case eCreep.targetType: {
             var creep = Game.getObjectById<Creep>(target.targetId);
@@ -474,8 +506,20 @@ export function createBodyParts(creepType: ECreepType, energy: number): string[]
             return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, WORK], Math.min(energy, 500));
         case eTransporter.creepType:
             return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
+        case eClaimer.creepType: {
+            if (energy < 650)
+                log.error(() => `creep/createBodyParts: cannot create claimer without at least 650 energy, got : ${energy}`);
+            return createBodyPartsImpl([MOVE, CLAIM, CLAIM], Math.min(energy, BODYPART_COST[MOVE] + 2 * BODYPART_COST[CLAIM]));
+        }
         default:
             log.error(() => `creep/createBodyParts: Creep type ${creepType.creepType} not yet supported.`);
             return createBodyPartsImpl(BODYPARTS_ALL, energy);
     }
+}
+
+export function spawnClaimer(spawn: Spawn, roomName: string) {
+    var memory = makeClaimerMemory(roomName);
+    var body = createBodyParts(eClaimer, spawn.energy);
+    var name = "Claimer" + memoryUtils.getUid();
+    return spawn.createCreep(body, name, memory);
 }

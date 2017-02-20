@@ -16,6 +16,7 @@ exports.eHarvester = { creepType: "Harvester" };
 exports.eUpdater = { creepType: "Updater" };
 exports.eBuilder = { creepType: "Builder" };
 exports.eTransporter = { creepType: "Transporter" };
+exports.eClaimer = { creepType: "Claimer" };
 var eBuild = { action: "Build" };
 var eHarvest = { action: "Harvest" };
 var eUpdate = { action: "Update" };
@@ -60,6 +61,12 @@ function makeTransporterMemory(sources, destinations) {
         creepMemoryType: enums.eTransporterMemory,
         sources: sources,
         destinations: destinations
+    };
+}
+function makeClaimerMemory(roomName) {
+    return {
+        creepMemoryType: enums.eClaimerMemory,
+        roomName: roomName
     };
 }
 function makeUpdaterMemory(sources, destinations) {
@@ -139,8 +146,9 @@ function processTransporterMemory(creep, transporterMemory) {
             / distanceHeuristic(creep.pos, Game.getObjectById(e.target.targetId).pos);
     });
     var minDestinationEnergy = fun.maxBy(transporterMemory.destinations.map(function (destination) { return getEnergy(destination, .9999999); }), function (e) {
-        return (1 - e.energy)
+        var ret = (1 - e.energy)
             / distanceHeuristic(creep.pos, Game.getObjectById(e.target.targetId).pos);
+        return ret;
     }).map(function (teIn) {
         return { energy: (1 - teIn.energy), target: teIn.target };
     });
@@ -169,6 +177,22 @@ function processTransporterMemory(creep, transporterMemory) {
         }
     }
 }
+function processClaimerMemory(creep, claimerMemory) {
+    if (creep.room.name != claimerMemory.roomName) {
+        var exitDir = Game.map.findExit(creep.room, claimerMemory.roomName);
+        if (exitDir == ERR_INVALID_ARGS)
+            return log.error(function () { return "creep/processClaimerMemory: findExit(" + creep.room.name + ", " + claimerMemory.roomName + ") gave ERR_INVALID_ARGS."; });
+        else if (exitDir == ERR_NO_PATH)
+            return log.error(function () { return "creep/processClaimerMemory: findExit(" + creep.room.name + ", " + claimerMemory.roomName + ") gave ERR_NO_PATH."; });
+        else {
+            var exit = creep.pos.findClosestByRange(exitDir);
+            return creep.moveTo(exit);
+        }
+    }
+    var controller = creep.room.controller;
+    if (creep.claimController(controller) == ERR_NOT_IN_RANGE)
+        creep.moveTo(controller);
+}
 function processCreepWithMemory(creep, creepMemory) {
     switch (creepMemory.creepMemoryType.name) {
         case enums.eWorkerMemory.name:
@@ -186,6 +210,8 @@ function processCreepWithMemory(creep, creepMemory) {
         case enums.eTransporterMemory.name:
             processTransporterMemory(creep, creepMemory);
             break;
+        case enums.eClaimerMemory.name:
+            processClaimerMemory(creep, creepMemory);
         default:
             log.error(function () { return "Unexpected creepMemoryType " + creepMemory.creepMemoryType.name + " for creep " + creep.name + "."; });
             break;
@@ -291,7 +317,7 @@ function getEnergy(target, containerEnergy) {
         }
         case exports.eContainer.targetType: {
             var container = Game.getObjectById(target.targetId);
-            return { energy: containerEnergy, target: target }; // fill containers after everything else is full
+            return { energy: containerEnergy, target: target }; // fill/deplete containers after everything else is full/empty
         }
         case exports.eCreep.targetType: {
             var creep = Game.getObjectById(target.targetId);
@@ -393,9 +419,21 @@ function createBodyParts(creepType, energy) {
             return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, WORK], Math.min(energy, 500));
         case exports.eTransporter.creepType:
             return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
+        case exports.eClaimer.creepType: {
+            if (energy < 650)
+                log.error(function () { return "creep/createBodyParts: cannot create claimer without at least 650 energy, got : " + energy; });
+            return createBodyPartsImpl([MOVE, CLAIM, CLAIM], Math.min(energy, BODYPART_COST[MOVE] + 2 * BODYPART_COST[CLAIM]));
+        }
         default:
             log.error(function () { return "creep/createBodyParts: Creep type " + creepType.creepType + " not yet supported."; });
             return createBodyPartsImpl(BODYPARTS_ALL, energy);
     }
 }
 exports.createBodyParts = createBodyParts;
+function spawnClaimer(spawn, roomName) {
+    var memory = makeClaimerMemory(roomName);
+    var body = createBodyParts(exports.eClaimer, spawn.energy);
+    var name = "Claimer" + memoryUtils.getUid();
+    return spawn.createCreep(body, name, memory);
+}
+exports.spawnClaimer = spawnClaimer;

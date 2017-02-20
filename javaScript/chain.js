@@ -154,10 +154,14 @@ function mustRefreshStructLink(slink) {
 function bfs(current, linkMap, expand) {
     return fun.flatten(current.map(function (linkName) {
         var link = linkMap[linkName];
-        if (link.linkType.name != eCreep.name)
-            return [linkName];
+        if (link.linkType.name != eCreep.name) {
+            if (link.objectId.isPresent)
+                return [linkName];
+            else
+                return bfs(expand(linkName), linkMap, expand);
+        }
         var creepLink = link;
-        if (creepLink.status.status == eActive.status)
+        if (creepLink.status.status == eActive.status && link.objectId.isPresent)
             return [linkName];
         return bfs(expand(linkName), linkMap, expand);
     }));
@@ -359,23 +363,13 @@ function createLink(objId, objType, creepType) {
         }
     }
 }
-function createChain(sourceId, sourceType, targetId, targetType, spawnId, sourceCreepType, targetCreepType) {
-    if (sourceCreepType === void 0) { sourceCreepType = fun.None(); }
-    if (targetCreepType === void 0) { targetCreepType = fun.None(); }
-    var source = createLink(sourceId, sourceType, sourceCreepType);
-    if (source == null)
-        return null;
-    var destination = createLink(targetId, targetType, targetCreepType);
-    if (destination == null)
-        return null;
-    source.destinations = [destination.linkName];
-    destination.sources = [source.linkName];
+function createChain(spawnId) {
     var chain = {
         creepGroupType: enums.eChain,
         creepGroupName: "Chain" + memoryUtils.getUid(),
-        sources: [source.linkName],
-        destinations: [destination.linkName],
-        links: [source, destination],
+        sources: [],
+        destinations: [],
+        links: [],
         spawnId: spawnId
     };
     return chain;
@@ -387,6 +381,7 @@ function structureTypeToLinkType(structureType) {
         case STRUCTURE_SPAWN: return eSpawn;
         case STRUCTURE_TOWER: return eTower;
         case STRUCTURE_CONTAINER: return eContainer;
+        case STRUCTURE_CONTROLLER: return eController;
         default:
             log.error(function () { return "chain/structureTypeToLinkType: structure type " + structureType + " not implemented."; });
             return eExtension;
@@ -403,21 +398,42 @@ function scheduleStructure(chain, structureType, pos, sources, destinations) {
         linkType: targetType,
         linkName: newLinkName,
         objectId: fun.None(),
-        sources: sources,
-        destinations: destinations,
+        sources: [],
+        destinations: [],
         x: pos.x,
         y: pos.y,
         roomName: pos.roomName
     };
     chain.links.push(newLink);
+    sources.forEach(function (s) { return connectLinks(chain, s, newLinkName); });
+    destinations.forEach(function (d) { return connectLinks(chain, newLinkName, d); });
     refreshGroup(chain, true);
     return newLinkName;
 }
 exports.scheduleStructure = scheduleStructure;
 function addStructure(chain, structure, sources, destinations) {
-    return scheduleStructure(chain, structure.structureType, structure.pos, sources, destinations);
+    var newLinkName = scheduleStructure(chain, structure.structureType, structure.pos, sources, destinations);
+    chain.links[chain.links.length - 1].objectId = fun.Some(structure.id);
+    return newLinkName;
 }
 exports.addStructure = addStructure;
+function addSource(chain, source) {
+    var newLinkName = "LinkSource" + memoryUtils.getUid();
+    var newLink = {
+        linkType: eSource,
+        linkName: newLinkName,
+        objectId: fun.Some(source.id),
+        sources: [],
+        destinations: [],
+        x: source.pos.x,
+        y: source.pos.y,
+        roomName: source.pos.roomName
+    };
+    chain.links.push(newLink);
+    refreshGroup(chain, true);
+    return newLinkName;
+}
+exports.addSource = addSource;
 function printChain(chain) {
     for (var linkIdx = 0; linkIdx < chain.links.length; ++linkIdx) {
         var link = chain.links[linkIdx];
