@@ -28,6 +28,7 @@ export const eUpdater: ECreepType = { creepType: "Updater" };
 export const eBuilder: ECreepType = { creepType: "Builder" };
 export const eTransporter: ECreepType = { creepType: "Transporter" };
 export const eClaimer: ECreepType = { creepType: "Claimer" };
+export const eSpawnBuilder: ECreepType = { creepType: "SpawnBuilder" };
 
 interface WorkerMemory extends CreepMemory {
     action: EWorkerAction
@@ -59,6 +60,10 @@ interface TransporterMemory extends CreepMemory {
 
 interface ClaimerMemory extends CreepMemory {
     roomName: string;
+}
+
+interface SpawnBuilderMemory extends CreepMemory {
+    constructionSiteId: string;
 }
 
 interface ECreepCondition { name: string }
@@ -108,6 +113,13 @@ function makeTransporterMemory(sources: Target[], destinations: Target[]): Trans
         creepMemoryType: enums.eTransporterMemory,
         sources: sources,
         destinations: destinations
+    };
+}
+
+function makeSpawnBuilderMemory(constructionSite: ConstructionSite): SpawnBuilderMemory {
+    return {
+        creepMemoryType: enums.eSpawnBuilderMemory,
+        constructionSiteId: constructionSite.id
     };
 }
 
@@ -234,21 +246,52 @@ function processTransporterMemory(creep: Creep, transporterMemory: TransporterMe
     }
 }
 
+function moveToRoom(creep: Creep, roomName: string) {
+    var exitDir = <number>Game.map.findExit(creep.room, roomName);
+    if (exitDir == ERR_INVALID_ARGS)
+        return log.error(() => `creep/moveToRoom: findExit(${creep.room.name}, ${roomName}) gave ERR_INVALID_ARGS for creep ${creep.name}.`);
+    else if (exitDir == ERR_NO_PATH)
+        return log.error(() => `creep/moveToRoom: findExit(${creep.room.name}, ${roomName}) gave ERR_NO_PATH for creep ${creep.name}.`);
+    else {
+        var exit = creep.pos.findClosestByRange<RoomPosition>(exitDir);
+        return creep.moveTo(exit);
+    }
+}
+
 function processClaimerMemory(creep: Creep, claimerMemory: ClaimerMemory) {
     if (creep.room.name != claimerMemory.roomName) {
-        var exitDir = <number>Game.map.findExit(creep.room, claimerMemory.roomName);
-        if (exitDir == ERR_INVALID_ARGS)
-            return log.error(() => `creep/processClaimerMemory: findExit(${creep.room.name}, ${claimerMemory.roomName}) gave ERR_INVALID_ARGS.`);
-        else if (exitDir == ERR_NO_PATH)
-            return log.error(() => `creep/processClaimerMemory: findExit(${creep.room.name}, ${claimerMemory.roomName}) gave ERR_NO_PATH.`);
-        else {
-            var exit = creep.pos.findClosestByRange<RoomPosition>(exitDir);
-            return creep.moveTo(exit);
-        }
+        return moveToRoom(creep, claimerMemory.roomName);
     }
     var controller = creep.room.controller;
     if (creep.claimController(controller) == ERR_NOT_IN_RANGE)
         creep.moveTo(controller);
+}
+
+function processSpawnBuilderMemory(creep: Creep, spawnBuilderMemory: SpawnBuilderMemory) {
+    var constructionSite = Game.getObjectById<ConstructionSite>(spawnBuilderMemory.constructionSiteId);
+    if (constructionSite == null || constructionSite === undefined) {
+        return log.error(() => `creep/processSpawnBuilderMemory: ${creep.name} could not find construction site with id ${spawnBuilderMemory.constructionSiteId}`);
+    } else if (creep.room.name !== constructionSite.room.name) {
+        return moveToRoom(creep, constructionSite.room.name);
+    } else {
+        var buildAppeal = creep.carry.energy / creep.carryCapacity * distanceHeuristic(creep.pos, constructionSite.pos);
+        var closestSource = creep.pos.findClosestByPath<Source>(FIND_SOURCES);
+        if (closestSource == null || closestSource === undefined) {
+            return log.error(() => `creep/processSpawnBuilderMemory: creep ${creep.name} could not find a source to harvest.`)
+        }
+        var refillAppeal = (1 - creep.carry.energy / creep.carryCapacity) * distanceHeuristic(creep.pos, closestSource.pos);
+        if (buildAppeal > refillAppeal) {
+            if (creep.build(constructionSite) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(constructionSite);
+            }
+            return;
+        } else {
+            if (creep.harvest(closestSource) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(closestSource);
+            }
+            return;
+        }
+    }
 }
 
 function processCreepWithMemory(creep: Creep, creepMemory: CreepMemory) {
@@ -270,6 +313,10 @@ function processCreepWithMemory(creep: Creep, creepMemory: CreepMemory) {
             break;
         case enums.eClaimerMemory.name:
             processClaimerMemory(creep, <ClaimerMemory>creepMemory);
+            break;
+        case enums.eSpawnBuilderMemory.name:
+            processSpawnBuilderMemory(creep, <SpawnBuilderMemory>creepMemory);
+            break;
         default:
             log.error(() => `Unexpected creepMemoryType ${creepMemory.creepMemoryType.name} for creep ${creep.name}.`);
             break;
@@ -511,6 +558,9 @@ export function createBodyParts(creepType: ECreepType, energy: number): string[]
                 log.error(() => `creep/createBodyParts: cannot create claimer without at least 650 energy, got : ${energy}`);
             return createBodyPartsImpl([MOVE, CLAIM, CLAIM], Math.min(energy, BODYPART_COST[MOVE] + 2 * BODYPART_COST[CLAIM]));
         }
+        case eSpawnBuilder.creepType: {
+            return createBodyPartsImpl([MOVE, CARRY, MOVE, WORK], energy);
+        }
         default:
             log.error(() => `creep/createBodyParts: Creep type ${creepType.creepType} not yet supported.`);
             return createBodyPartsImpl(BODYPARTS_ALL, energy);
@@ -522,4 +572,12 @@ export function spawnClaimer(spawn: Spawn, roomName: string) {
     var body = createBodyParts(eClaimer, spawn.energy);
     var name = "Claimer" + memoryUtils.getUid();
     return spawn.createCreep(body, name, memory);
+}
+
+export function spawnSpawnBuilder(spawn: Spawn, constructionSite: ConstructionSite) {
+    var memory = makeSpawnBuilderMemory(constructionSite);
+    var body = createBodyParts(eSpawnBuilder, spawn.energy);
+    var name = "SpawnBuilder" + memoryUtils.getUid();
+    return spawn.createCreep(body, name, memory);
+
 }

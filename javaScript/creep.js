@@ -17,6 +17,7 @@ exports.eUpdater = { creepType: "Updater" };
 exports.eBuilder = { creepType: "Builder" };
 exports.eTransporter = { creepType: "Transporter" };
 exports.eClaimer = { creepType: "Claimer" };
+exports.eSpawnBuilder = { creepType: "SpawnBuilder" };
 var eBuild = { action: "Build" };
 var eHarvest = { action: "Harvest" };
 var eUpdate = { action: "Update" };
@@ -61,6 +62,12 @@ function makeTransporterMemory(sources, destinations) {
         creepMemoryType: enums.eTransporterMemory,
         sources: sources,
         destinations: destinations
+    };
+}
+function makeSpawnBuilderMemory(constructionSite) {
+    return {
+        creepMemoryType: enums.eSpawnBuilderMemory,
+        constructionSiteId: constructionSite.id
     };
 }
 function makeClaimerMemory(roomName) {
@@ -177,21 +184,53 @@ function processTransporterMemory(creep, transporterMemory) {
         }
     }
 }
+function moveToRoom(creep, roomName) {
+    var exitDir = Game.map.findExit(creep.room, roomName);
+    if (exitDir == ERR_INVALID_ARGS)
+        return log.error(function () { return "creep/moveToRoom: findExit(" + creep.room.name + ", " + roomName + ") gave ERR_INVALID_ARGS for creep " + creep.name + "."; });
+    else if (exitDir == ERR_NO_PATH)
+        return log.error(function () { return "creep/moveToRoom: findExit(" + creep.room.name + ", " + roomName + ") gave ERR_NO_PATH for creep " + creep.name + "."; });
+    else {
+        var exit = creep.pos.findClosestByRange(exitDir);
+        return creep.moveTo(exit);
+    }
+}
 function processClaimerMemory(creep, claimerMemory) {
     if (creep.room.name != claimerMemory.roomName) {
-        var exitDir = Game.map.findExit(creep.room, claimerMemory.roomName);
-        if (exitDir == ERR_INVALID_ARGS)
-            return log.error(function () { return "creep/processClaimerMemory: findExit(" + creep.room.name + ", " + claimerMemory.roomName + ") gave ERR_INVALID_ARGS."; });
-        else if (exitDir == ERR_NO_PATH)
-            return log.error(function () { return "creep/processClaimerMemory: findExit(" + creep.room.name + ", " + claimerMemory.roomName + ") gave ERR_NO_PATH."; });
-        else {
-            var exit = creep.pos.findClosestByRange(exitDir);
-            return creep.moveTo(exit);
-        }
+        return moveToRoom(creep, claimerMemory.roomName);
     }
     var controller = creep.room.controller;
     if (creep.claimController(controller) == ERR_NOT_IN_RANGE)
         creep.moveTo(controller);
+}
+function processSpawnBuilderMemory(creep, spawnBuilderMemory) {
+    var constructionSite = Game.getObjectById(spawnBuilderMemory.constructionSiteId);
+    if (constructionSite == null || constructionSite === undefined) {
+        return log.error(function () { return "creep/processSpawnBuilderMemory: " + creep.name + " could not find construction site with id " + spawnBuilderMemory.constructionSiteId; });
+    }
+    else if (creep.room.name !== constructionSite.room.name) {
+        return moveToRoom(creep, constructionSite.room.name);
+    }
+    else {
+        var buildAppeal = creep.carry.energy / creep.carryCapacity * distanceHeuristic(creep.pos, constructionSite.pos);
+        var closestSource = creep.pos.findClosestByPath(FIND_SOURCES);
+        if (closestSource == null || closestSource === undefined) {
+            return log.error(function () { return "creep/processSpawnBuilderMemory: creep " + creep.name + " could not find a source to harvest."; });
+        }
+        var refillAppeal = (1 - creep.carry.energy / creep.carryCapacity) * distanceHeuristic(creep.pos, closestSource.pos);
+        if (buildAppeal > refillAppeal) {
+            if (creep.build(constructionSite) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(constructionSite);
+            }
+            return;
+        }
+        else {
+            if (creep.harvest(closestSource) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(closestSource);
+            }
+            return;
+        }
+    }
 }
 function processCreepWithMemory(creep, creepMemory) {
     switch (creepMemory.creepMemoryType.name) {
@@ -212,6 +251,10 @@ function processCreepWithMemory(creep, creepMemory) {
             break;
         case enums.eClaimerMemory.name:
             processClaimerMemory(creep, creepMemory);
+            break;
+        case enums.eSpawnBuilderMemory.name:
+            processSpawnBuilderMemory(creep, creepMemory);
+            break;
         default:
             log.error(function () { return "Unexpected creepMemoryType " + creepMemory.creepMemoryType.name + " for creep " + creep.name + "."; });
             break;
@@ -424,6 +467,9 @@ function createBodyParts(creepType, energy) {
                 log.error(function () { return "creep/createBodyParts: cannot create claimer without at least 650 energy, got : " + energy; });
             return createBodyPartsImpl([MOVE, CLAIM, CLAIM], Math.min(energy, BODYPART_COST[MOVE] + 2 * BODYPART_COST[CLAIM]));
         }
+        case exports.eSpawnBuilder.creepType: {
+            return createBodyPartsImpl([MOVE, CARRY, MOVE, WORK], energy);
+        }
         default:
             log.error(function () { return "creep/createBodyParts: Creep type " + creepType.creepType + " not yet supported."; });
             return createBodyPartsImpl(BODYPARTS_ALL, energy);
@@ -437,3 +483,10 @@ function spawnClaimer(spawn, roomName) {
     return spawn.createCreep(body, name, memory);
 }
 exports.spawnClaimer = spawnClaimer;
+function spawnSpawnBuilder(spawn, constructionSite) {
+    var memory = makeSpawnBuilderMemory(constructionSite);
+    var body = createBodyParts(exports.eSpawnBuilder, spawn.energy);
+    var name = "SpawnBuilder" + memoryUtils.getUid();
+    return spawn.createCreep(body, name, memory);
+}
+exports.spawnSpawnBuilder = spawnSpawnBuilder;
