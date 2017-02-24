@@ -212,12 +212,12 @@ function processSpawnBuilderMemory(creep, spawnBuilderMemory) {
         return moveToRoom(creep, constructionSite.room.name);
     }
     else {
-        var buildAppeal = creep.carry.energy / creep.carryCapacity * distanceHeuristic(creep.pos, constructionSite.pos);
+        var buildAppeal = creep.carry.energy / creep.carryCapacity / distanceHeuristic(creep.pos, constructionSite.pos);
         var closestSource = creep.pos.findClosestByPath(FIND_SOURCES);
         if (closestSource == null || closestSource === undefined) {
             return log.error(function () { return "creep/processSpawnBuilderMemory: creep " + creep.name + " could not find a source to harvest."; });
         }
-        var refillAppeal = (1 - creep.carry.energy / creep.carryCapacity) * distanceHeuristic(creep.pos, closestSource.pos);
+        var refillAppeal = (1 - creep.carry.energy / creep.carryCapacity) / distanceHeuristic(creep.pos, closestSource.pos);
         if (buildAppeal > refillAppeal) {
             if (creep.build(constructionSite) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(constructionSite);
@@ -478,14 +478,14 @@ function createBodyParts(creepType, energy) {
 exports.createBodyParts = createBodyParts;
 function spawnClaimer(spawn, roomName) {
     var memory = makeClaimerMemory(roomName);
-    var body = createBodyParts(exports.eClaimer, spawn.energy);
+    var body = createBodyParts(exports.eClaimer, spawn.room.energyAvailable);
     var name = "Claimer" + memoryUtils.getUid();
     return spawn.createCreep(body, name, memory);
 }
 exports.spawnClaimer = spawnClaimer;
 function spawnSpawnBuilder(spawn, constructionSite) {
     var memory = makeSpawnBuilderMemory(constructionSite);
-    var body = createBodyParts(exports.eSpawnBuilder, spawn.energy);
+    var body = createBodyParts(exports.eSpawnBuilder, spawn.room.energyAvailable);
     var name = "SpawnBuilder" + memoryUtils.getUid();
     return spawn.createCreep(body, name, memory);
 }
