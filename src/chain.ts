@@ -132,7 +132,7 @@ function mustRefreshChain(chain: Chain): boolean {
             }
         } else if (link.linkType.name != eController.name
             && link.linkType.name != eSource.name) {
-            mustRefresh = mustRefresh || mustRefreshStructLink(<StructLink>link);
+            mustRefresh = mustRefreshStructLink(<StructLink>link) || mustRefresh;
         }
     }
     return mustRefresh;

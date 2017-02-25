@@ -103,7 +103,7 @@ function mustRefreshChain(chain) {
         }
         else if (link.linkType.name != eController.name
             && link.linkType.name != eSource.name) {
-            mustRefresh = mustRefresh || mustRefreshStructLink(link);
+            mustRefresh = mustRefreshStructLink(link) || mustRefresh;
         }
     }
     return mustRefresh;
