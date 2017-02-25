@@ -1,5 +1,6 @@
 import fun = require('./functional');
 import memoryUtils = require('./memory');
+import log = require('./log');
 
 export function enrichMovementFactor(pathIn: PathStep[], room: Room): EnrichedPathStep[] {
     var path = <EnrichedPathStep[]>pathIn;
@@ -233,4 +234,20 @@ export function makeStructures(x1: number, y1: number, x2: number, y2: number, r
             structureType: structure
         });
     }
+}
+
+export function distance(x1: number, y1: number, x2: number, y2: number): number {
+    return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+}
+
+export function removeStructures(pos: RoomPosition, radius: number, structureType: string) {
+    var neutralStructures = memoryUtils.enrichedMemory().neutralStructures;
+    var initLen = neutralStructures.length;
+    neutralStructures = neutralStructures.filter(value => {
+        return pos.roomName == value.roomName
+            && (value.structureType == structureType || structureType.length == 0)
+            && distance(pos.x, pos.y, value.x, value.y) <= radius;
+
+    });
+    log.info(() => `Deleted  ${initLen - neutralStructures.length} sites of type ${structureType}.`)
 }

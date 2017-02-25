@@ -1,6 +1,7 @@
 "use strict";
 var fun = require("./functional");
 var memoryUtils = require("./memory");
+var log = require("./log");
 function enrichMovementFactor(pathIn, room) {
     var path = pathIn;
     for (var posNum = 0; posNum < path.length; ++posNum) {
@@ -222,3 +223,18 @@ function makeStructures(x1, y1, x2, y2, roomName, structure) {
     }
 }
 exports.makeStructures = makeStructures;
+function distance(x1, y1, x2, y2) {
+    return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+}
+exports.distance = distance;
+function removeStructures(pos, radius, structureType) {
+    var neutralStructures = memoryUtils.enrichedMemory().neutralStructures;
+    var initLen = neutralStructures.length;
+    neutralStructures = neutralStructures.filter(function (value) {
+        return pos.roomName == value.roomName
+            && (value.structureType == structureType || structureType.length == 0)
+            && distance(pos.x, pos.y, value.x, value.y) <= radius;
+    });
+    log.info(function () { return "Deleted  " + (initLen - neutralStructures.length) + " sites of type " + structureType + "."; });
+}
+exports.removeStructures = removeStructures;

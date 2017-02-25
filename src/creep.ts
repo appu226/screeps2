@@ -4,6 +4,15 @@ import log = require('./log');
 import fun = require('./functional');
 import enums = require('./enums');
 
+const eGiverMemory: ECreepMemoryType = { name: "GiverMemory" };
+const eWorkerMemory: ECreepMemoryType = { name: "WorkerMemory" };
+const eIfThenElseMemory: ECreepMemoryType = { name: "IfThenElseMemory" };
+const eTakerMemory: ECreepMemoryType = { name: "TakerMemory" };
+const eTransporterMemory: ECreepMemoryType = { name: "TransporterMemory" };
+const eClaimerMemory: ECreepGroupType = { name: "ClaimerMemory" };
+const eSpawnBuilderMemory: ECreepGroupType = { name: "SpawnBuilderMemory" };
+const eNinjaMemory: ECreepGroupType = { name: "NinjaMemory" };
+
 export interface CreepToBeSpawned {
     creepName: string;
     bodyParts: string[];
@@ -88,7 +97,7 @@ export function process(creep: Creep) {
 
 function makeHarvestorMemory(sources: Target[], destinations: Target[]): IfThenElseMemory {
     var thenPart: GiverMemory = {
-        creepMemoryType: enums.eGiverMemory,
+        creepMemoryType: eGiverMemory,
         destinations: destinations
     };
     if (sources.length != 1) {
@@ -96,12 +105,12 @@ function makeHarvestorMemory(sources: Target[], destinations: Target[]): IfThenE
         return null;
     }
     var elsePart: WorkerMemory = {
-        creepMemoryType: enums.eWorkerMemory,
+        creepMemoryType: eWorkerMemory,
         action: eHarvest,
         target: sources[0]
     };
     return {
-        creepMemoryType: enums.eIfThenElseMemory,
+        creepMemoryType: eIfThenElseMemory,
         condition: eIsFull,
         thenPart: thenPart,
         elsePart: elsePart
@@ -110,7 +119,7 @@ function makeHarvestorMemory(sources: Target[], destinations: Target[]): IfThenE
 
 function makeTransporterMemory(sources: Target[], destinations: Target[]): TransporterMemory {
     return {
-        creepMemoryType: enums.eTransporterMemory,
+        creepMemoryType: eTransporterMemory,
         sources: sources,
         destinations: destinations
     };
@@ -118,21 +127,21 @@ function makeTransporterMemory(sources: Target[], destinations: Target[]): Trans
 
 function makeSpawnBuilderMemory(constructionSite: ConstructionSite): SpawnBuilderMemory {
     return {
-        creepMemoryType: enums.eSpawnBuilderMemory,
+        creepMemoryType: eSpawnBuilderMemory,
         constructionSiteId: constructionSite.id
     };
 }
 
 function makeClaimerMemory(roomName: string): ClaimerMemory {
     return {
-        creepMemoryType: enums.eClaimerMemory,
+        creepMemoryType: eClaimerMemory,
         roomName: roomName
     };
 }
 
 function makeUpdaterMemory(sources: Target[], destinations: Target[]): IfThenElseMemory {
     var takerMemory: TakerMemory = {
-        creepMemoryType: enums.eTakerMemory,
+        creepMemoryType: eTakerMemory,
         sources: sources
     };
     if (destinations.length != 1) {
@@ -140,12 +149,12 @@ function makeUpdaterMemory(sources: Target[], destinations: Target[]): IfThenEls
         return null;
     }
     var updaterMemory: WorkerMemory = {
-        creepMemoryType: enums.eWorkerMemory,
+        creepMemoryType: eWorkerMemory,
         action: eUpdate,
         target: destinations[0]
     };
     return {
-        creepMemoryType: enums.eIfThenElseMemory,
+        creepMemoryType: eIfThenElseMemory,
         condition: eIsEmpty,
         thenPart: takerMemory,
         elsePart: updaterMemory
@@ -154,7 +163,7 @@ function makeUpdaterMemory(sources: Target[], destinations: Target[]): IfThenEls
 
 function makeBuilderMemory(sources: Target[], destinations: Target[]): IfThenElseMemory {
     var takerMemory: TakerMemory = {
-        creepMemoryType: enums.eTakerMemory,
+        creepMemoryType: eTakerMemory,
         sources: sources
     };
     if (destinations.length != 1) {
@@ -162,12 +171,12 @@ function makeBuilderMemory(sources: Target[], destinations: Target[]): IfThenEls
         return null;
     }
     var builderMemory: WorkerMemory = {
-        creepMemoryType: enums.eWorkerMemory,
+        creepMemoryType: eWorkerMemory,
         action: eBuild,
         target: destinations[0]
     };
     return {
-        creepMemoryType: enums.eIfThenElseMemory,
+        creepMemoryType: eIfThenElseMemory,
         condition: eIsEmpty,
         thenPart: takerMemory,
         elsePart: builderMemory
@@ -296,25 +305,25 @@ function processSpawnBuilderMemory(creep: Creep, spawnBuilderMemory: SpawnBuilde
 
 function processCreepWithMemory(creep: Creep, creepMemory: CreepMemory) {
     switch (creepMemory.creepMemoryType.name) {
-        case enums.eWorkerMemory.name:
+        case eWorkerMemory.name:
             processWorker(creep, <WorkerMemory>creepMemory);
             break;
-        case enums.eGiverMemory.name:
+        case eGiverMemory.name:
             processGiver(creep, <GiverMemory>creepMemory);
             break;
-        case enums.eTakerMemory.name:
+        case eTakerMemory.name:
             processTaker(creep, <TakerMemory>creepMemory);
             break;
-        case enums.eIfThenElseMemory.name:
+        case eIfThenElseMemory.name:
             processIfThenElse(creep, <IfThenElseMemory>creepMemory);
             break;
-        case enums.eTransporterMemory.name:
+        case eTransporterMemory.name:
             processTransporterMemory(creep, <TransporterMemory>creepMemory);
             break;
-        case enums.eClaimerMemory.name:
+        case eClaimerMemory.name:
             processClaimerMemory(creep, <ClaimerMemory>creepMemory);
             break;
-        case enums.eSpawnBuilderMemory.name:
+        case eSpawnBuilderMemory.name:
             processSpawnBuilderMemory(creep, <SpawnBuilderMemory>creepMemory);
             break;
         default:
