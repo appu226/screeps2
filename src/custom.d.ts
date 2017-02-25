@@ -25,6 +25,7 @@ interface EnrichedMemory extends Memory {
     roads: { x: number, y: number, roomName: string }[];
     walls: { x: number, y: number, roomName: string }[];
     neutralStructures: { x: number, y: number, roomName: string, structureType: string }[];
+    creepGroupBackup: string[];
 }
 
 interface CreepGroup {

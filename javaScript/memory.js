@@ -35,6 +35,7 @@ function enrichedMemory() {
         em.messageLog = [];
         em.maxMessageLogSize = 100;
         em.neutralStructures = [];
+        em.creepGroupBackup = [];
     }
     while (em.messageLog.length > em.maxMessageLogSize)
         em.messageLog.shift();
