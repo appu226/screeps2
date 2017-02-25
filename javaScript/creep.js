@@ -9,7 +9,8 @@ var eTakerMemory = { name: "TakerMemory" };
 var eTransporterMemory = { name: "TransporterMemory" };
 var eClaimerMemory = { name: "ClaimerMemory" };
 var eSpawnBuilderMemory = { name: "SpawnBuilderMemory" };
-var eNinjaMemory = { name: "NinjaMemory" };
+var eActiveNinjaMemory = { name: "ActiveNinjaMemory" };
+var eRegroupingNinjaMemory = { name: "RegroupingNinjaMemory" };
 ;
 exports.eSpawn = { targetType: "Spawn" };
 exports.eSource = { targetType: "Source" };
@@ -125,6 +126,20 @@ function makeBuilderMemory(sources, destinations) {
         elsePart: builderMemory
     };
 }
+function makeActiveNinjaMemory(roomName) {
+    return {
+        creepMemoryType: eActiveNinjaMemory,
+        roomName: roomName
+    };
+}
+exports.makeActiveNinjaMemory = makeActiveNinjaMemory;
+function makeRegroupingNinjaMemory(regroupingPos) {
+    return {
+        creepMemoryType: eRegroupingNinjaMemory,
+        regroupingPos: regroupingPos
+    };
+}
+exports.makeRegroupingNinjaMemory = makeRegroupingNinjaMemory;
 function makeCreepMemory(creepType, sources, destinations) {
     switch (creepType.creepType) {
         case exports.eHarvester.creepType:
@@ -456,6 +471,7 @@ function createBodyPartsImpl(partsToInclude, energy) {
     }
     return body;
 }
+exports.createBodyPartsImpl = createBodyPartsImpl;
 function createBodyParts(creepType, energy) {
     if (energy < 300) {
         log.error(function () { return "creep/createBodyParts: expected at least 300 energy, got: " + energy; });

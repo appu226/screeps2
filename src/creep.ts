@@ -9,9 +9,10 @@ const eWorkerMemory: ECreepMemoryType = { name: "WorkerMemory" };
 const eIfThenElseMemory: ECreepMemoryType = { name: "IfThenElseMemory" };
 const eTakerMemory: ECreepMemoryType = { name: "TakerMemory" };
 const eTransporterMemory: ECreepMemoryType = { name: "TransporterMemory" };
-const eClaimerMemory: ECreepGroupType = { name: "ClaimerMemory" };
-const eSpawnBuilderMemory: ECreepGroupType = { name: "SpawnBuilderMemory" };
-const eNinjaMemory: ECreepGroupType = { name: "NinjaMemory" };
+const eClaimerMemory: ECreepMemoryType = { name: "ClaimerMemory" };
+const eSpawnBuilderMemory: ECreepMemoryType = { name: "SpawnBuilderMemory" };
+const eActiveNinjaMemory: ECreepGroupType = { name: "ActiveNinjaMemory" };
+const eRegroupingNinjaMemory: ECreepGroupType = { name: "RegroupingNinjaMemory" };
 
 export interface CreepToBeSpawned {
     creepName: string;
@@ -73,6 +74,14 @@ interface ClaimerMemory extends CreepMemory {
 
 interface SpawnBuilderMemory extends CreepMemory {
     constructionSiteId: string;
+}
+
+interface ActiveNinjaMemory extends CreepMemory {
+    roomName: string;
+}
+
+interface RegroupingNinjaMemory extends CreepMemory {
+    regroupingPos: mapUtils.XY;
 }
 
 interface ECreepCondition { name: string }
@@ -181,6 +190,20 @@ function makeBuilderMemory(sources: Target[], destinations: Target[]): IfThenEls
         thenPart: takerMemory,
         elsePart: builderMemory
     }
+}
+
+export function makeActiveNinjaMemory(roomName: string): ActiveNinjaMemory {
+    return {
+        creepMemoryType: eActiveNinjaMemory,
+        roomName: roomName
+    };
+}
+
+export function makeRegroupingNinjaMemory(regroupingPos: mapUtils.XY): RegroupingNinjaMemory {
+    return {
+        creepMemoryType: eRegroupingNinjaMemory,
+        regroupingPos: regroupingPos
+    };
 }
 
 export function makeCreepMemory(creepType: ECreepType, sources: Target[], destinations: Target[]): CreepMemory {
@@ -540,7 +563,7 @@ function processIfThenElse(creep: Creep, memory: IfThenElseMemory) {
     }
 }
 
-function createBodyPartsImpl(partsToInclude: string[], energy: number): string[] {
+export function createBodyPartsImpl(partsToInclude: string[], energy: number): string[] {
     var body: string[] = [];
     for (var idx = 0; BODYPART_COST[partsToInclude[idx]] <= energy; idx = (idx + 1) % partsToInclude.length) {
         energy = energy - BODYPART_COST[partsToInclude[idx]];

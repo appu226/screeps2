@@ -251,3 +251,11 @@ export function removeStructures(pos: RoomPosition, radius: number, structureTyp
     });
     log.info(() => `Deleted  ${initLen - neutralStructures.length} sites of type ${structureType}.`)
 }
+
+export function foreignAttackers(roomName: string): Creep[] {
+    var room = Game.rooms[roomName];
+    if (room == null || room === undefined) return [];
+    return room.find<Creep>(FIND_HOSTILE_CREEPS).filter(
+        creep => !fun.contains<string>(memoryUtils.enrichedMemory().allies, creep.owner.username)
+    );
+}

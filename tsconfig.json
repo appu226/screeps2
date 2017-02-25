@@ -22,6 +22,7 @@
         "src/memory.ts",
         "src/screeps.d.ts",
         "src/spawn.ts",
-        "src/struct.ts"
+        "src/struct.ts",
+        "src/squadron.ts"
     ]
 }

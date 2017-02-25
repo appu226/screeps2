@@ -238,3 +238,10 @@ function removeStructures(pos, radius, structureType) {
     log.info(function () { return "Deleted  " + (initLen - neutralStructures.length) + " sites of type " + structureType + "."; });
 }
 exports.removeStructures = removeStructures;
+function foreignAttackers(roomName) {
+    var room = Game.rooms[roomName];
+    if (room == null || room === undefined)
+        return [];
+    return room.find(FIND_HOSTILE_CREEPS).filter(function (creep) { return !fun.contains(memoryUtils.enrichedMemory().allies, creep.owner.username); });
+}
+exports.foreignAttackers = foreignAttackers;
