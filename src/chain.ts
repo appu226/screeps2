@@ -41,7 +41,6 @@ export interface Chain extends CreepGroup {
     sources: string[];
     destinations: string[];
     links: Link[];
-    spawnId: string;
 }
 
 export function createSourceToSpawnChain(sourceId: string, spawnId: string): Chain {

@@ -4,6 +4,7 @@ import chainUtils = require('./chain');
 import functional = require('./functional');
 import log = require('./log');
 import enums = require('./enums');
+import sqdrn = require('./squadron');
 
 export function processSpawn(spawn: Spawn) {
     if (spawn.room.energyAvailable < 300 || spawn.spawning != null)
@@ -24,12 +25,23 @@ export function processSpawn(spawn: Spawn) {
     var creepToBeSpawned: functional.Option<creepUtils.CreepToBeSpawned> = functional.None<creepUtils.CreepToBeSpawned>();
     for (var groupNum = 0; groupNum < groups.length && !creepToBeSpawned.isPresent; ++groupNum) {
         var group = groups[groupNum];
-        if (group.creepGroupType.name != enums.eChain.name)
+        if (group.spawnId != spawn.id)
             continue;
-        var chain = <chainUtils.Chain>group;
-        if (chain.spawnId != spawn.id)
-            continue;
-        creepToBeSpawned = chainUtils.creepToBeSpawned(chain, spawn.room.energyAvailable);
+        switch (group.creepGroupType.name) {
+            case enums.eChain.name: {
+                var chain = <chainUtils.Chain>group;
+                creepToBeSpawned = chainUtils.creepToBeSpawned(chain, spawn.room.energyAvailable);
+                break;
+            }
+            case enums.eSquadron.name: {
+                var squadron = <sqdrn.Squadron>group;
+                creepToBeSpawned = sqdrn.creepToBeSpawned(squadron, spawn.room.energyAvailable);
+                break;
+            }
+            default: {
+                log.error(() => `spawn/processSpawn: group ${group.creepGroupName} of type ${group.creepGroupType.name} not supported.`);
+            }
+        }
     }
     if (creepToBeSpawned.isPresent) {
         spawn.createCreep(

@@ -227,6 +227,10 @@ function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 exports.distance = distance;
+function manhattan(x1, y1, x2, y2) {
+    return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
+}
+exports.manhattan = manhattan;
 function removeStructures(pos, radius, structureType) {
     var neutralStructures = memoryUtils.enrichedMemory().neutralStructures;
     var initLen = neutralStructures.length;
@@ -245,3 +249,10 @@ function foreignAttackers(roomName) {
     return room.find(FIND_HOSTILE_CREEPS).filter(function (creep) { return !fun.contains(memoryUtils.enrichedMemory().allies, creep.owner.username); });
 }
 exports.foreignAttackers = foreignAttackers;
+function patients(roomName) {
+    var room = Game.rooms[roomName];
+    if (room == null || room === undefined)
+        return [];
+    return room.find(FIND_CREEPS).filter(function (creep) { return (creep.my || fun.contains(memoryUtils.enrichedMemory().allies, creep.owner.username)); });
+}
+exports.patients = patients;

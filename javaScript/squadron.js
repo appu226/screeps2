@@ -3,6 +3,7 @@ var map = require("./map");
 var fun = require("./functional");
 var cu = require("./creep");
 var mu = require("./memory");
+var enums = require("./enums");
 var forgetfulnessOfWar = Math.pow(.5, .025); // become half in 40 ticks
 var dominationFactor = 1.2; // by what factor do you dominate foreign attackers
 var ninjaBody = [MOVE, HEAL, MOVE, ATTACK, MOVE, RANGED_ATTACK, MOVE, TOUGH];
@@ -49,3 +50,19 @@ function creepToBeSpawned(squadron, energy) {
     return res;
 }
 exports.creepToBeSpawned = creepToBeSpawned;
+function makeSquadron(roomName, regroupX, regroupY, spawnId) {
+    var name = "Squadron" + mu.getUid();
+    var squadron = {
+        creepGroupType: enums.eSquadron,
+        creepGroupName: name,
+        spawnId: spawnId,
+        roomName: roomName,
+        regroupPos: { x: regroupX, y: regroupY },
+        maxAttackStrength: 0,
+        activeCreepNames: [],
+        regroupingCreepNames: []
+    };
+    mu.enrichedMemory().creepGroups.push(squadron);
+    return name;
+}
+exports.makeSquadron = makeSquadron;

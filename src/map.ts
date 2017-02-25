@@ -240,6 +240,10 @@ export function distance(x1: number, y1: number, x2: number, y2: number): number
     return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
+export function manhattan(x1: number, y1: number, x2: number, y2: number): number {
+    return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
+}
+
 export function removeStructures(pos: RoomPosition, radius: number, structureType: string) {
     var neutralStructures = memoryUtils.enrichedMemory().neutralStructures;
     var initLen = neutralStructures.length;
@@ -257,5 +261,13 @@ export function foreignAttackers(roomName: string): Creep[] {
     if (room == null || room === undefined) return [];
     return room.find<Creep>(FIND_HOSTILE_CREEPS).filter(
         creep => !fun.contains<string>(memoryUtils.enrichedMemory().allies, creep.owner.username)
+    );
+}
+
+export function patients(roomName: string): Creep[] {
+    var room = Game.rooms[roomName];
+    if (room == null || room === undefined) return [];
+    return room.find<Creep>(FIND_CREEPS).filter(
+        creep=> (creep.my || fun.contains<string>(memoryUtils.enrichedMemory().allies, creep.owner.username))
     );
 }

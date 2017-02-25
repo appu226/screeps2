@@ -2,6 +2,7 @@ import map = require('./map');
 import fun = require('./functional');
 import cu = require('./creep');
 import mu = require('./memory');
+import enums = require('./enums');
 
 const forgetfulnessOfWar = Math.pow(.5, .025); // become half in 40 ticks
 const dominationFactor = 1.2; // by what factor do you dominate foreign attackers
@@ -44,7 +45,7 @@ export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option
             squadron.maxAttackStrength * forgetfulnessOfWar,
             fun.sum(map.foreignAttackers(squadron.roomName).map(attackStrength)) * dominationFactor
         );
-    
+
     var res: fun.Option<cu.CreepToBeSpawned> = fun.None<cu.CreepToBeSpawned>();
     if (activeAttackStrength + regroupingAttackStrength >= squadron.maxAttackStrength) {
         squadron.activeCreepNames = squadron.activeCreepNames.concat(squadron.regroupingCreepNames);
@@ -67,4 +68,20 @@ export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option
         Game.creeps[creepName].memory = regroupingNinjaMemory;
     })
     return res;
+}
+
+export function makeSquadron(roomName: string, regroupX: number, regroupY: number, spawnId: string): string {
+    var name = `Squadron${mu.getUid()}`;
+    var squadron: Squadron = {
+        creepGroupType: enums.eSquadron,
+        creepGroupName: name,
+        spawnId: spawnId,
+        roomName: roomName,
+        regroupPos: { x: regroupX, y: regroupY },
+        maxAttackStrength: 0,
+        activeCreepNames: [],
+        regroupingCreepNames: []
+    }
+    mu.enrichedMemory().creepGroups.push(squadron);
+    return name;
 }

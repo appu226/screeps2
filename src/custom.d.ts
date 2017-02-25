@@ -32,6 +32,7 @@ interface EnrichedMemory extends Memory {
 interface CreepGroup {
     creepGroupType: ECreepGroupType;
     creepGroupName: string;
+    spawnId: string;
 }
 interface ECreepGroupType { name: string }
 

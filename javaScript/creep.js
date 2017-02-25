@@ -1,5 +1,6 @@
 "use strict";
 var memoryUtils = require("./memory");
+var mapUtils = require("./map");
 var log = require("./log");
 var fun = require("./functional");
 var eGiverMemory = { name: "GiverMemory" };
@@ -254,6 +255,64 @@ function processSpawnBuilderMemory(creep, spawnBuilderMemory) {
         }
     }
 }
+function ninjaHeal(creep, anm, canHeal, canRangeHeal, canMove) {
+    var patients = mapUtils.patients(anm.roomName).filter(function (creep) { return creep.hits < creep.hitsMax; });
+    var closestOpt = fun.maxBy(patients, function (patient) { return mapUtils.manhattan(creep.pos.x, creep.pos.y, patient.pos.x, patient.pos.y); });
+    if (closestOpt.isPresent) {
+        var closest = closestOpt.get;
+        var distance = mapUtils.manhattan(creep.pos.x, creep.pos.y, closest.pos.x, closest.pos.y);
+        if (distance > 4) {
+            if (canMove)
+                creep.moveTo(closest);
+            return;
+        }
+        else if (distance > 1) {
+            if (canMove)
+                creep.moveTo(closest);
+            if (canRangeHeal)
+                creep.rangedHeal(closest);
+            return;
+        }
+        else {
+            if (canHeal)
+                creep.heal(closest);
+            else if (canRangeHeal)
+                creep.rangedHeal(closest);
+            return;
+        }
+    }
+    else {
+        return;
+    }
+}
+function processActiveNinjaMemory(creep, anm) {
+    var attackers = mapUtils.foreignAttackers(anm.roomName);
+    var closestOpt = fun.maxBy(attackers, function (attacker) { return mapUtils.manhattan(creep.pos.x, creep.pos.y, attacker.pos.x, attacker.pos.y) * -1; });
+    if (!closestOpt.isPresent) {
+        return ninjaHeal(creep, anm, true, true, true);
+    }
+    else {
+        var closest = closestOpt.get;
+        var distance = mapUtils.manhattan(creep.pos.x, creep.pos.y, closest.pos.x, closest.pos.y);
+        if (distance > 4) {
+            creep.moveTo(closest);
+            return ninjaHeal(creep, anm, true, true, false);
+        }
+        else if (distance > 1) {
+            creep.rangedAttack(closest);
+            creep.moveTo(closest);
+            return ninjaHeal(creep, anm, true, false, false);
+        }
+        else {
+            creep.attack(closest);
+            return ninjaHeal(creep, anm, false, true, false);
+        }
+    }
+}
+function processRegroupingNinjaMemory(creep, rnm) {
+    if (mapUtils.manhattan(creep.pos.x, creep.pos.y, rnm.regroupingPos.x, rnm.regroupingPos.y) > 5)
+        creep.moveTo(rnm.regroupingPos.x, rnm.regroupingPos.y);
+}
 function processCreepWithMemory(creep, creepMemory) {
     switch (creepMemory.creepMemoryType.name) {
         case eWorkerMemory.name:
@@ -276,6 +335,12 @@ function processCreepWithMemory(creep, creepMemory) {
             break;
         case eSpawnBuilderMemory.name:
             processSpawnBuilderMemory(creep, creepMemory);
+            break;
+        case eActiveNinjaMemory.name:
+            processActiveNinjaMemory(creep, creepMemory);
+            break;
+        case eRegroupingNinjaMemory.name:
+            processRegroupingNinjaMemory(creep, creepMemory);
             break;
         default:
             log.error(function () { return "Unexpected creepMemoryType " + creepMemory.creepMemoryType.name + " for creep " + creep.name + "."; });
