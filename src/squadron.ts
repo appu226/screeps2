@@ -4,7 +4,7 @@ import cu = require('./creep');
 import mu = require('./memory');
 import enums = require('./enums');
 
-const forgetfulnessOfWar = Math.pow(.5, .025); // become half in 40 ticks
+const forgetfulnessOfWar = Math.pow(.5, .01); // become half in 100 ticks
 const dominationFactor = 1.2; // by what factor do you dominate foreign attackers
 const ninjaBody = [MOVE, HEAL, MOVE, ATTACK, MOVE, RANGED_ATTACK, MOVE, TOUGH];
 const ninjaCost = fun.sum(ninjaBody.map<number>(bodyPart => BODYPART_COST[bodyPart]));
@@ -42,7 +42,11 @@ export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option
 
     squadron.maxAttackStrength =
         Math.max(
-            squadron.maxAttackStrength * forgetfulnessOfWar,
+            squadron.maxAttackStrength * (
+                Game.rooms[squadron.roomName] === undefined || Game.rooms[squadron.roomName] == null
+                    ? 1 // if you can't see the room, assume it's as militarized as you last observed
+                    : forgetfulnessOfWar // even if you can see the room, keep some memory of the previously observed militarization
+            ),
             fun.sum(map.foreignAttackers(squadron.roomName).map(attackStrength)) * dominationFactor
         );
 

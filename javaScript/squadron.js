@@ -4,7 +4,7 @@ var fun = require("./functional");
 var cu = require("./creep");
 var mu = require("./memory");
 var enums = require("./enums");
-var forgetfulnessOfWar = Math.pow(.5, .025); // become half in 40 ticks
+var forgetfulnessOfWar = Math.pow(.5, .01); // become half in 100 ticks
 var dominationFactor = 1.2; // by what factor do you dominate foreign attackers
 var ninjaBody = [MOVE, HEAL, MOVE, ATTACK, MOVE, RANGED_ATTACK, MOVE, TOUGH];
 var ninjaCost = fun.sum(ninjaBody.map(function (bodyPart) { return BODYPART_COST[bodyPart]; }));
@@ -24,7 +24,10 @@ function creepToBeSpawned(squadron, energy) {
     squadron.regroupingCreepNames = regroupingCreeps.map(function (creep) { return creep.name; });
     var regroupingAttackStrength = fun.sum(regroupingCreeps.map(attackStrength));
     squadron.maxAttackStrength =
-        Math.max(squadron.maxAttackStrength * forgetfulnessOfWar, fun.sum(map.foreignAttackers(squadron.roomName).map(attackStrength)) * dominationFactor);
+        Math.max(squadron.maxAttackStrength * (Game.rooms[squadron.roomName] === undefined || Game.rooms[squadron.roomName] == null
+            ? 1 // if you can't see the room, assume it's as militarized as you last observed
+            : forgetfulnessOfWar // even if you can see the room, keep some memory of the previously observed militarization
+        ), fun.sum(map.foreignAttackers(squadron.roomName).map(attackStrength)) * dominationFactor);
     var res = fun.None();
     if (activeAttackStrength + regroupingAttackStrength >= squadron.maxAttackStrength) {
         squadron.activeCreepNames = squadron.activeCreepNames.concat(squadron.regroupingCreepNames);
