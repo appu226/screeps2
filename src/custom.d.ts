@@ -27,7 +27,7 @@ interface EnrichedMemory extends Memory {
     neutralStructures: { x: number, y: number, roomName: string, structureType: string }[];
     creepGroupBackup: string[];
     allies: string[];
-    pathReuse: MoveToOpts;
+    pathReuse: MoveToOpts & FindPathOpts;
 }
 
 interface CreepGroup {
@@ -49,6 +49,12 @@ interface SourceMemoryEnergyCollection {
 
 interface CreepMemory {
     creepMemoryType: ECreepMemoryType;
+    prevPos: {
+        roomName: string;
+        x: number;
+        y: number;
+    };
+    stuck: number;
 }
 interface ECreepMemoryType { name: string }
 

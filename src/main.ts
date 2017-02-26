@@ -14,6 +14,7 @@ export function loop(): void {
     cl.executeCustomCommand();
     var mem = memoryUtils.enrichedMemory();
     // var startTime = performance.now();
+
     for (var spawnName in Game.spawns) {
         var spawn = Game.spawns[spawnName];
         spawnUtils.processSpawn(spawn);
