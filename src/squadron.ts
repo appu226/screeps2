@@ -53,10 +53,12 @@ export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option
     } else {
         var bp = cu.createBodyPartsImpl(ninjaBody, energy);
         var creepName = `Ninja${mu.getUid()}`;
-        squadron.regroupingCreepNames.push(creepName);
         res = fun.Some<cu.CreepToBeSpawned>({
             creepName: creepName,
-            bodyParts: bp
+            bodyParts: bp,
+            registerSuccess: () => {
+                squadron.regroupingCreepNames.push(creepName);
+            }
         });
     }
     var activeNinjaMemory = cu.makeActiveNinjaMemory(squadron.roomName);

@@ -21,3 +21,4 @@ function error(msg) {
     log(msg, memoryUtils.LogLevel.ERROR);
 }
 exports.error = error;
+exports.callBacks = [];

@@ -41,6 +41,9 @@ export function loop(): void {
         )).createConstructionSite(neutralStructure.structureType);
     }
 
+    log.callBacks.forEach(callBack => { try { callBack() } catch (e) { log.error(() => "Error in executing callback.") } });
+    log.callBacks = [];
+
     dataCollectAll.collect();
     // var endTime = performance.now();
     // console.log(`total time taken by main = ${endTime - startTime}ms`)

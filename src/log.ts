@@ -21,3 +21,5 @@ export function warn(msg: () => string) {
 export function error(msg: () => string) {
     log(msg, memoryUtils.LogLevel.ERROR)
 }
+
+export var callBacks: (() => void)[] = [];

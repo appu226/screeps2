@@ -314,11 +314,14 @@ export function creepToBeSpawned(chain: Chain, energy: number): fun.Option<cu.Cr
         return fun.None<cu.CreepToBeSpawned>();
     else {
         var bodyParts = cu.createBodyParts(deadLink.creepType, energy);
-        deadLink.creepName = fun.Some<string>(deadLink.creepType.creepType + memoryUtils.getUid());
-        deadLink.status = eSpawning;
+        var creepName = deadLink.creepType.creepType + memoryUtils.getUid();
         return fun.Some<cu.CreepToBeSpawned>({
-            creepName: deadLink.creepName.get,
-            bodyParts: bodyParts
+            creepName: creepName,
+            bodyParts: bodyParts,
+            registerSuccess: () => {
+                deadLink.creepName = fun.Some<string>(creepName);
+                deadLink.status = eSpawning;
+            }
         });
     }
 }

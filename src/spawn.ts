@@ -44,9 +44,12 @@ export function processSpawn(spawn: Spawn) {
         }
     }
     if (creepToBeSpawned.isPresent) {
-        spawn.createCreep(
-            creepToBeSpawned.get.bodyParts,
-            creepToBeSpawned.get.creepName);
+        if (
+            spawn.createCreep(
+                creepToBeSpawned.get.bodyParts,
+                creepToBeSpawned.get.creepName) == creepToBeSpawned.get.creepName) {
+            log.callBacks.push(creepToBeSpawned.get.registerSuccess);
+        }
         return;
     }
 }

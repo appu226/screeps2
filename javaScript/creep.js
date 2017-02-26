@@ -578,3 +578,10 @@ function spawnSpawnBuilder(spawn, constructionSite) {
     return spawn.createCreep(body, name, memory);
 }
 exports.spawnSpawnBuilder = spawnSpawnBuilder;
+function spawnActiveNinja(spawn, roomName) {
+    var memory = makeActiveNinjaMemory(roomName);
+    var body = createBodyPartsImpl([MOVE, HEAL, MOVE, ATTACK, MOVE, RANGED_ATTACK, MOVE, TOUGH], spawn.room.energyAvailable);
+    var name = "Ninja" + memoryUtils.getUid();
+    spawn.createCreep(body, name, memory);
+}
+exports.spawnActiveNinja = spawnActiveNinja;

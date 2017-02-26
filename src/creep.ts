@@ -17,6 +17,7 @@ const eRegroupingNinjaMemory: ECreepGroupType = { name: "RegroupingNinjaMemory" 
 export interface CreepToBeSpawned {
     creepName: string;
     bodyParts: string[];
+    registerSuccess: () => void;
 }
 
 export interface Target {
@@ -686,4 +687,11 @@ export function spawnSpawnBuilder(spawn: Spawn, constructionSite: ConstructionSi
     var name = "SpawnBuilder" + memoryUtils.getUid();
     return spawn.createCreep(body, name, memory);
 
+}
+
+export function spawnActiveNinja(spawn: Spawn, roomName: string) {
+    var memory = makeActiveNinjaMemory(roomName);
+    var body = createBodyPartsImpl([MOVE, HEAL, MOVE, ATTACK, MOVE, RANGED_ATTACK, MOVE, TOUGH], spawn.room.energyAvailable);
+    var name = "Ninja" + memoryUtils.getUid();
+    spawn.createCreep(body, name, memory);
 }

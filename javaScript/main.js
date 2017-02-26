@@ -31,6 +31,13 @@ function loop() {
         var neutralStructure = mem.neutralStructures[Game.time % mem.neutralStructures.length];
         (new RoomPosition(neutralStructure.x, neutralStructure.y, neutralStructure.roomName)).createConstructionSite(neutralStructure.structureType);
     }
+    log.callBacks.forEach(function (callBack) { try {
+        callBack();
+    }
+    catch (e) {
+        log.error(function () { return "Error in executing callback."; });
+    } });
+    log.callBacks = [];
     dataCollectAll.collect();
     // var endTime = performance.now();
     // console.log(`total time taken by main = ${endTime - startTime}ms`)
