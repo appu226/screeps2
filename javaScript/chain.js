@@ -76,7 +76,7 @@ function mustRefreshChain(chain) {
                         continue;
                     }
                     var creepName = creepLink.creepName.get;
-                    if (Game.creeps[creepName] !== undefined && Game.creeps[creepName].id !== undefined) {
+                    if (Game.creeps[creepName] !== undefined && Game.creeps[creepName].id !== undefined && !Game.creeps[creepName].spawning) {
                         creepLink.status = eActive;
                         creepLink.objectId = fun.Some(Game.creeps[creepName].id);
                         mustRefresh = true;

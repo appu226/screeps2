@@ -251,12 +251,12 @@ function randomDirection() {
 function move(creep, pos) {
     var mem = creep.memory;
     updateStuckCount(creep);
-    if (mem.stuck > 4) {
+    if (mem.stuck > 5) {
         var thePath = creep.pos.findPathTo(pos, { ignoreCreeps: true });
         if (thePath.length > 0) {
             var nextPos = thePath[0];
             creep.room.lookForAt(LOOK_CREEPS, nextPos.x, nextPos.y).forEach(function (obstacle) {
-                log.info(function () { return "Creep " + creep.name + " is trying to move obstacle " + obstacle.name; });
+                log.debug(function () { return "creep/move: Creep " + creep.name + " is trying to move obstacle " + obstacle.name; });
                 obstacle.move(randomDirection());
             });
         }
@@ -592,7 +592,10 @@ function processIfThenElse(creep, memory) {
             return log.error(function () { return "creep/processIfThenElse: condition " + memory.condition + " not yet supported."; });
     }
 }
-function createBodyPartsImpl(partsToInclude, energy) {
+function createBodyPartsImpl(partsToInclude, energy, repeat) {
+    if (repeat === void 0) { repeat = true; }
+    if (!repeat)
+        energy = Math.min(energy, fun.sum(partsToInclude.map(function (part) { return BODYPART_COST[part]; })));
     var body = [];
     for (var idx = 0; BODYPART_COST[partsToInclude[idx]] <= energy; idx = (idx + 1) % partsToInclude.length) {
         energy = energy - BODYPART_COST[partsToInclude[idx]];
@@ -608,12 +611,13 @@ function createBodyParts(creepType, energy) {
     }
     switch (creepType.creepType) {
         case exports.eHarvester.creepType:
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, CARRY, WORK, WORK, WORK, CARRY], energy, false);
         case exports.eBuilder.creepType:
-            return [MOVE, CARRY, WORK, WORK];
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, CARRY, CARRY, CARRY], energy, false);
         case exports.eUpdater.creepType:
-            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, WORK], Math.min(energy, 500));
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, CARRY, WORK, WORK, WORK, CARRY, WORK, WORK, WORK, WORK], energy, false);
         case exports.eTransporter.creepType:
-            return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
+            return createBodyPartsImpl([MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY], energy, false);
         case exports.eClaimer.creepType: {
             if (energy < 650)
                 log.error(function () { return "creep/createBodyParts: cannot create claimer without at least 650 energy, got : " + energy; });

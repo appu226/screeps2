@@ -26,7 +26,12 @@ function loop() {
     }
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
-        creepSwitch.process(creep);
+        try {
+            creepSwitch.process(creep);
+        }
+        catch (e) {
+            log.error(function () { return "main/loop: processing " + creepName + " failed with " + JSON.stringify(e); });
+        }
     }
     if (mem.neutralStructures.length > 0) {
         var neutralStructure = mem.neutralStructures[Game.time % mem.neutralStructures.length];

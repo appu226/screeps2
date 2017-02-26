@@ -326,17 +326,17 @@ function randomDirection(): number {
 function move(creep: Creep, pos: RoomPosition | { pos: RoomPosition }) {
     var mem = <CreepMemory>creep.memory;
     updateStuckCount(creep);
-    if (mem.stuck > 4) {
+    if (mem.stuck > 5) {
         var thePath = creep.pos.findPathTo(pos, { ignoreCreeps: true });
         if (thePath.length > 0) {
             var nextPos = thePath[0];
             creep.room.lookForAt<Creep>(
                 LOOK_CREEPS, nextPos.x, nextPos.y
-                ).forEach(
-                    obstacle => {
-                        log.info(() =>`Creep ${creep.name} is trying to move obstacle ${obstacle.name}`);
-                        obstacle.move(randomDirection())
-                    });
+            ).forEach(
+                obstacle => {
+                    log.debug(() => `creep/move: Creep ${creep.name} is trying to move obstacle ${obstacle.name}`);
+                    obstacle.move(randomDirection())
+                });
         }
     }
     return creep.moveTo(
@@ -712,7 +712,9 @@ function processIfThenElse(creep: Creep, memory: IfThenElseMemory) {
     }
 }
 
-export function createBodyPartsImpl(partsToInclude: string[], energy: number): string[] {
+export function createBodyPartsImpl(partsToInclude: string[], energy: number, repeat: boolean = true): string[] {
+    if (!repeat)
+        energy = Math.min(energy, fun.sum(partsToInclude.map<number>(part => BODYPART_COST[part])));
     var body: string[] = [];
     for (var idx = 0; BODYPART_COST[partsToInclude[idx]] <= energy; idx = (idx + 1) % partsToInclude.length) {
         energy = energy - BODYPART_COST[partsToInclude[idx]];
@@ -728,12 +730,13 @@ export function createBodyParts(creepType: ECreepType, energy: number): string[]
     }
     switch (creepType.creepType) {
         case eHarvester.creepType:
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, CARRY, WORK, WORK, WORK, CARRY], energy, false)
         case eBuilder.creepType:
-            return [MOVE, CARRY, WORK, WORK];
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, CARRY, CARRY, CARRY], energy, false);
         case eUpdater.creepType:
-            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, WORK], Math.min(energy, 500));
+            return createBodyPartsImpl([MOVE, CARRY, WORK, WORK, WORK, CARRY, WORK, WORK, WORK, CARRY, WORK, WORK, WORK, WORK], energy, false);
         case eTransporter.creepType:
-            return [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY];
+            return createBodyPartsImpl([MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY], energy, false);
         case eClaimer.creepType: {
             if (energy < 650)
                 log.error(() => `creep/createBodyParts: cannot create claimer without at least 650 energy, got : ${energy}`);

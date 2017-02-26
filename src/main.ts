@@ -31,7 +31,11 @@ export function loop(): void {
 
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
+        try {
         creepSwitch.process(creep);
+        } catch(e) {
+            log.error(() => `main/loop: processing ${creepName} failed with ${JSON.stringify(e)}`);
+        }
     }
 
     if (mem.neutralStructures.length > 0) {
