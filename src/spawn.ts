@@ -7,7 +7,12 @@ import enums = require('./enums');
 import sqdrn = require('./squadron');
 
 export function processSpawn(spawn: Spawn) {
-    if (spawn.room.energyAvailable < 300 || spawn.spawning != null)
+    var disabledCollection: boolean =
+        (functional.sum(spawn.room.find<Source>(FIND_SOURCES_ACTIVE).map(
+            source => memoryUtils.sourceMemory(source).energyCollection.total
+        )) < 60);
+    if (spawn.room.energyAvailable < (disabledCollection ? 300 : spawn.room.energyCapacityAvailable)
+        || spawn.spawning != null)
         return;
     var groups = memoryUtils.enrichedMemory().creepGroups;
     if (groups.length == 0) {
