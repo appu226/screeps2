@@ -37,6 +37,7 @@ export function enrichedMemory(): EnrichedMemory {
         em.neutralStructures = [];
         em.creepGroupBackup = [];
         em.allies = [];
+        em.pathReuse = {reusePath: 20};
     }
     while (em.messageLog.length > em.maxMessageLogSize)
         em.messageLog.shift();

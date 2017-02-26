@@ -287,7 +287,7 @@ function moveToRoom(creep: Creep, roomName: string) {
         return log.error(() => `creep/moveToRoom: findExit(${creep.room.name}, ${roomName}) gave ERR_NO_PATH for creep ${creep.name}.`);
     else {
         var exit = creep.pos.findClosestByRange<RoomPosition>(exitDir);
-        return creep.moveTo(exit);
+        return creep.moveTo(exit, memoryUtils.enrichedMemory().pathReuse);
     }
 }
 
@@ -297,7 +297,7 @@ function processClaimerMemory(creep: Creep, claimerMemory: ClaimerMemory) {
     }
     var controller = creep.room.controller;
     if (creep.claimController(controller) == ERR_NOT_IN_RANGE)
-        creep.moveTo(controller);
+        creep.moveTo(controller, memoryUtils.enrichedMemory().pathReuse);
 }
 
 function processSpawnBuilderMemory(creep: Creep, spawnBuilderMemory: SpawnBuilderMemory) {
@@ -315,12 +315,12 @@ function processSpawnBuilderMemory(creep: Creep, spawnBuilderMemory: SpawnBuilde
         var refillAppeal = (1 - creep.carry.energy / creep.carryCapacity) / distanceHeuristic(creep.pos, closestSource.pos);
         if (buildAppeal > refillAppeal) {
             if (creep.build(constructionSite) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(constructionSite);
+                creep.moveTo(constructionSite, memoryUtils.enrichedMemory().pathReuse);
             }
             return;
         } else {
             if (creep.harvest(closestSource) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(closestSource);
+                creep.moveTo(closestSource, memoryUtils.enrichedMemory().pathReuse);
             }
             return;
         }
@@ -347,10 +347,10 @@ function ninjaHeal(
             closest.pos.x, closest.pos.y
         );
         if (distance > 4) {
-            if (canMove) creep.moveTo(closest);
+            if (canMove) creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             return;
         } else if (distance > 1) {
-            if (canMove) creep.moveTo(closest);
+            if (canMove) creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             if (canRangeHeal) creep.rangedHeal(closest);
             return;
         } else {
@@ -364,6 +364,9 @@ function ninjaHeal(
 }
 
 function processActiveNinjaMemory(creep: Creep, anm: ActiveNinjaMemory) {
+    if (creep.room.name != anm.roomName) {
+        return moveToRoom(creep, anm.roomName);
+    }
     var attackers = mapUtils.foreignAttackers(anm.roomName);
     var closestOpt = fun.maxBy<Creep>(
         attackers,
@@ -377,11 +380,11 @@ function processActiveNinjaMemory(creep: Creep, anm: ActiveNinjaMemory) {
         var closest = closestOpt.get;
         var distance = mapUtils.manhattan(creep.pos.x, creep.pos.y, closest.pos.x, closest.pos.y);
         if (distance > 4) {
-            creep.moveTo(closest);
+            creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             return ninjaHeal(creep, anm, true, true, false);
         } else if (distance > 1) {
             creep.rangedAttack(closest);
-            creep.moveTo(closest);
+            creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             return ninjaHeal(creep, anm, true, false, false);
         } else {
             creep.attack(closest);
@@ -392,7 +395,7 @@ function processActiveNinjaMemory(creep: Creep, anm: ActiveNinjaMemory) {
 
 function processRegroupingNinjaMemory(creep: Creep, rnm: RegroupingNinjaMemory) {
     if (mapUtils.manhattan(creep.pos.x, creep.pos.y, rnm.regroupingPos.x, rnm.regroupingPos.y) > 5)
-        creep.moveTo(rnm.regroupingPos.x, rnm.regroupingPos.y);
+        creep.moveTo(rnm.regroupingPos.x, rnm.regroupingPos.y, memoryUtils.enrichedMemory().pathReuse);
 }
 
 function processCreepWithMemory(creep: Creep, creepMemory: CreepMemory) {
@@ -440,7 +443,7 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
             return log.error(() => `creep/processWorker: action HARVEST could not find source id ${memory.target.targetId}`);
         }
         if (creep.harvest(source) == ERR_NOT_IN_RANGE) {
-            creep.moveTo(source);
+            creep.moveTo(source, memoryUtils.enrichedMemory().pathReuse);
         }
         return;
     } else if (memory.action.action == eUpdate.action) {
@@ -453,7 +456,7 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
         }
         var dx = creep.pos.x - controller.pos.x, dy = creep.pos.y - controller.pos.y;
         if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE || (dx * dx + dy * dy > 8)) {
-            creep.moveTo(controller);
+            creep.moveTo(controller, memoryUtils.enrichedMemory().pathReuse);
         }
         return;
     } else if (memory.action.action == eBuild.action) {
@@ -462,7 +465,7 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
             && site.progress !== undefined && site.progressTotal !== undefined
             && site.progress < site.progressTotal) {
             if (creep.build(site) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(site);
+                creep.moveTo(site, memoryUtils.enrichedMemory().pathReuse);
             }
             return;
         }
@@ -488,7 +491,7 @@ function processWorker(creep: Creep, memory: WorkerMemory) {
                 );
             if (weakestStructure.isPresent) {
                 if (creep.repair(weakestStructure.get) == ERR_NOT_IN_RANGE)
-                    creep.moveTo(weakestStructure.get);
+                    creep.moveTo(weakestStructure.get, memoryUtils.enrichedMemory().pathReuse);
                 return;
             }
         }
@@ -505,7 +508,7 @@ function take(creep: Creep, maxTarget: Target) {
             if (giver == null || giver == undefined)
                 return log.error(() => `creep/take: could not find creep ${maxTarget.targetId}`);
             if (giver.transfer(creep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(giver);
+                creep.moveTo(giver, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         case eContainer.targetType: {
@@ -513,7 +516,7 @@ function take(creep: Creep, maxTarget: Target) {
             if (container == null || container == undefined)
                 return log.error(() => `creep/take: could not find container ${maxTarget.targetId}`);
             if (container.transfer(creep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(container);
+                creep.moveTo(container, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         default:
@@ -574,7 +577,7 @@ function give(creep: Creep, minTarget: Target) {
             if (taker == null || taker == undefined)
                 return log.error(() => `creep/give: could not find creep ${minTarget.targetId}`);
             if (creep.transfer(taker, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(taker);
+                creep.moveTo(taker, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         case eSpawn.targetType:
@@ -585,7 +588,7 @@ function give(creep: Creep, minTarget: Target) {
             if (spawn == null || spawn === undefined)
                 return log.error(() => `creep/give: could not find spawn ${minTarget.targetId}`);
             if (creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(spawn);
+                creep.moveTo(spawn, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         case eController.targetType: {
@@ -595,7 +598,7 @@ function give(creep: Creep, minTarget: Target) {
                     return log.error(() => `creep/give: Creep ${creep.name} could not find controller ${controller.id}`);
                 }
                 if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(controller);
+                    creep.moveTo(controller, memoryUtils.enrichedMemory().pathReuse);
                 }
                 return;
             }
@@ -693,5 +696,5 @@ export function spawnActiveNinja(spawn: Spawn, roomName: string) {
     var memory = makeActiveNinjaMemory(roomName);
     var body = createBodyPartsImpl([MOVE, HEAL, MOVE, ATTACK, MOVE, RANGED_ATTACK, MOVE, TOUGH], spawn.room.energyAvailable);
     var name = "Ninja" + memoryUtils.getUid();
-    spawn.createCreep(body, name, memory);
+    return spawn.createCreep(body, name, memory);
 }

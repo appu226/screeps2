@@ -592,3 +592,19 @@ export function deleteLink(chain: Chain, linkName: string) {
     chain.links = chain.links.filter((link: Link) => { return link.linkName != linkName; });
     refreshGroup(chain, true);
 }
+
+export function deleteStructureLink(chain: Chain, pos: RoomPosition, dryRun: boolean = true) {
+    var toBeDeleted = chain.links.filter(
+        link => {
+            if (link.linkType.name == eCreep.name || link.linkType.name == eSource.name) {
+                return false;
+            }
+            var slink = <StructLink>link;
+            return (slink.roomName == pos.roomName && slink.x == pos.x && slink.y == pos.y);
+        }
+    ).map(link => link.linkName);
+    toBeDeleted.forEach(linkName => {
+        console.log("Deleting link " + linkName);
+        if (!dryRun) deleteLink(chain, linkName);
+    });
+}

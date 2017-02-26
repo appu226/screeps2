@@ -513,3 +513,19 @@ function deleteLink(chain, linkName) {
     refreshGroup(chain, true);
 }
 exports.deleteLink = deleteLink;
+function deleteStructureLink(chain, pos, dryRun) {
+    if (dryRun === void 0) { dryRun = true; }
+    var toBeDeleted = chain.links.filter(function (link) {
+        if (link.linkType.name == eCreep.name || link.linkType.name == eSource.name) {
+            return false;
+        }
+        var slink = link;
+        return (slink.roomName == pos.roomName && slink.x == pos.x && slink.y == pos.y);
+    }).map(function (link) { return link.linkName; });
+    toBeDeleted.forEach(function (linkName) {
+        console.log("Deleting link " + linkName);
+        if (!dryRun)
+            deleteLink(chain, linkName);
+    });
+}
+exports.deleteStructureLink = deleteStructureLink;

@@ -9,6 +9,7 @@ var chainUtils = require("./chain");
 var struct = require("./struct");
 function loop() {
     log.debug(function () { return "main/loop: Tick " + Game.time + " started."; });
+    // PathFinder.use(Game.time % 2 == 0);
     cl.executeCustomCommand();
     var mem = memoryUtils.enrichedMemory();
     // var startTime = performance.now();

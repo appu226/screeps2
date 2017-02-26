@@ -10,6 +10,7 @@ import map = require('./map');
 
 export function loop(): void {
     log.debug(() => `main/loop: Tick ${Game.time} started.`);
+    // PathFinder.use(Game.time % 2 == 0);
     cl.executeCustomCommand();
     var mem = memoryUtils.enrichedMemory();
     // var startTime = performance.now();

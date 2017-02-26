@@ -215,7 +215,7 @@ function moveToRoom(creep, roomName) {
         return log.error(function () { return "creep/moveToRoom: findExit(" + creep.room.name + ", " + roomName + ") gave ERR_NO_PATH for creep " + creep.name + "."; });
     else {
         var exit = creep.pos.findClosestByRange(exitDir);
-        return creep.moveTo(exit);
+        return creep.moveTo(exit, memoryUtils.enrichedMemory().pathReuse);
     }
 }
 function processClaimerMemory(creep, claimerMemory) {
@@ -224,7 +224,7 @@ function processClaimerMemory(creep, claimerMemory) {
     }
     var controller = creep.room.controller;
     if (creep.claimController(controller) == ERR_NOT_IN_RANGE)
-        creep.moveTo(controller);
+        creep.moveTo(controller, memoryUtils.enrichedMemory().pathReuse);
 }
 function processSpawnBuilderMemory(creep, spawnBuilderMemory) {
     var constructionSite = Game.getObjectById(spawnBuilderMemory.constructionSiteId);
@@ -243,13 +243,13 @@ function processSpawnBuilderMemory(creep, spawnBuilderMemory) {
         var refillAppeal = (1 - creep.carry.energy / creep.carryCapacity) / distanceHeuristic(creep.pos, closestSource.pos);
         if (buildAppeal > refillAppeal) {
             if (creep.build(constructionSite) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(constructionSite);
+                creep.moveTo(constructionSite, memoryUtils.enrichedMemory().pathReuse);
             }
             return;
         }
         else {
             if (creep.harvest(closestSource) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(closestSource);
+                creep.moveTo(closestSource, memoryUtils.enrichedMemory().pathReuse);
             }
             return;
         }
@@ -263,12 +263,12 @@ function ninjaHeal(creep, anm, canHeal, canRangeHeal, canMove) {
         var distance = mapUtils.manhattan(creep.pos.x, creep.pos.y, closest.pos.x, closest.pos.y);
         if (distance > 4) {
             if (canMove)
-                creep.moveTo(closest);
+                creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         else if (distance > 1) {
             if (canMove)
-                creep.moveTo(closest);
+                creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             if (canRangeHeal)
                 creep.rangedHeal(closest);
             return;
@@ -286,6 +286,9 @@ function ninjaHeal(creep, anm, canHeal, canRangeHeal, canMove) {
     }
 }
 function processActiveNinjaMemory(creep, anm) {
+    if (creep.room.name != anm.roomName) {
+        return moveToRoom(creep, anm.roomName);
+    }
     var attackers = mapUtils.foreignAttackers(anm.roomName);
     var closestOpt = fun.maxBy(attackers, function (attacker) { return mapUtils.manhattan(creep.pos.x, creep.pos.y, attacker.pos.x, attacker.pos.y) * -1; });
     if (!closestOpt.isPresent) {
@@ -295,12 +298,12 @@ function processActiveNinjaMemory(creep, anm) {
         var closest = closestOpt.get;
         var distance = mapUtils.manhattan(creep.pos.x, creep.pos.y, closest.pos.x, closest.pos.y);
         if (distance > 4) {
-            creep.moveTo(closest);
+            creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             return ninjaHeal(creep, anm, true, true, false);
         }
         else if (distance > 1) {
             creep.rangedAttack(closest);
-            creep.moveTo(closest);
+            creep.moveTo(closest, memoryUtils.enrichedMemory().pathReuse);
             return ninjaHeal(creep, anm, true, false, false);
         }
         else {
@@ -311,7 +314,7 @@ function processActiveNinjaMemory(creep, anm) {
 }
 function processRegroupingNinjaMemory(creep, rnm) {
     if (mapUtils.manhattan(creep.pos.x, creep.pos.y, rnm.regroupingPos.x, rnm.regroupingPos.y) > 5)
-        creep.moveTo(rnm.regroupingPos.x, rnm.regroupingPos.y);
+        creep.moveTo(rnm.regroupingPos.x, rnm.regroupingPos.y, memoryUtils.enrichedMemory().pathReuse);
 }
 function processCreepWithMemory(creep, creepMemory) {
     switch (creepMemory.creepMemoryType.name) {
@@ -357,7 +360,7 @@ function processWorker(creep, memory) {
             return log.error(function () { return "creep/processWorker: action HARVEST could not find source id " + memory.target.targetId; });
         }
         if (creep.harvest(source) == ERR_NOT_IN_RANGE) {
-            creep.moveTo(source);
+            creep.moveTo(source, memoryUtils.enrichedMemory().pathReuse);
         }
         return;
     }
@@ -371,7 +374,7 @@ function processWorker(creep, memory) {
         }
         var dx = creep.pos.x - controller.pos.x, dy = creep.pos.y - controller.pos.y;
         if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE || (dx * dx + dy * dy > 8)) {
-            creep.moveTo(controller);
+            creep.moveTo(controller, memoryUtils.enrichedMemory().pathReuse);
         }
         return;
     }
@@ -381,7 +384,7 @@ function processWorker(creep, memory) {
             && site.progress !== undefined && site.progressTotal !== undefined
             && site.progress < site.progressTotal) {
             if (creep.build(site) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(site);
+                creep.moveTo(site, memoryUtils.enrichedMemory().pathReuse);
             }
             return;
         }
@@ -395,7 +398,7 @@ function processWorker(creep, memory) {
             }), function (s) { return s.hits * -1; });
             if (weakestStructure.isPresent) {
                 if (creep.repair(weakestStructure.get) == ERR_NOT_IN_RANGE)
-                    creep.moveTo(weakestStructure.get);
+                    creep.moveTo(weakestStructure.get, memoryUtils.enrichedMemory().pathReuse);
                 return;
             }
         }
@@ -412,7 +415,7 @@ function take(creep, maxTarget) {
             if (giver == null || giver == undefined)
                 return log.error(function () { return "creep/take: could not find creep " + maxTarget.targetId; });
             if (giver.transfer(creep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(giver);
+                creep.moveTo(giver, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         case exports.eContainer.targetType: {
@@ -420,7 +423,7 @@ function take(creep, maxTarget) {
             if (container == null || container == undefined)
                 return log.error(function () { return "creep/take: could not find container " + maxTarget.targetId; });
             if (container.transfer(creep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(container);
+                creep.moveTo(container, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         default:
@@ -470,7 +473,7 @@ function give(creep, minTarget) {
             if (taker == null || taker == undefined)
                 return log.error(function () { return "creep/give: could not find creep " + minTarget.targetId; });
             if (creep.transfer(taker, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(taker);
+                creep.moveTo(taker, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         case exports.eSpawn.targetType:
@@ -481,7 +484,7 @@ function give(creep, minTarget) {
             if (spawn == null || spawn === undefined)
                 return log.error(function () { return "creep/give: could not find spawn " + minTarget.targetId; });
             if (creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)
-                creep.moveTo(spawn);
+                creep.moveTo(spawn, memoryUtils.enrichedMemory().pathReuse);
             return;
         }
         case exports.eController.targetType: {
@@ -491,7 +494,7 @@ function give(creep, minTarget) {
                     return log.error(function () { return "creep/give: Creep " + creep.name + " could not find controller " + controller.id; });
                 }
                 if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(controller);
+                    creep.moveTo(controller, memoryUtils.enrichedMemory().pathReuse);
                 }
                 return;
             }
@@ -582,6 +585,6 @@ function spawnActiveNinja(spawn, roomName) {
     var memory = makeActiveNinjaMemory(roomName);
     var body = createBodyPartsImpl([MOVE, HEAL, MOVE, ATTACK, MOVE, RANGED_ATTACK, MOVE, TOUGH], spawn.room.energyAvailable);
     var name = "Ninja" + memoryUtils.getUid();
-    spawn.createCreep(body, name, memory);
+    return spawn.createCreep(body, name, memory);
 }
 exports.spawnActiveNinja = spawnActiveNinja;
