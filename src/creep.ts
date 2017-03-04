@@ -463,7 +463,7 @@ function processActiveNinjaMemory(creep: Creep, anm: ActiveNinjaMemory) {
 }
 
 function processRegroupingNinjaMemory(creep: Creep, rnm: RegroupingNinjaMemory) {
-    if (mapUtils.manhattan(creep.pos.x, creep.pos.y, rnm.regroupingPos.x, rnm.regroupingPos.y) > 5) {
+    if (mapUtils.manhattan(creep.pos.x, creep.pos.y, rnm.regroupingPos.x, rnm.regroupingPos.y) > 2) {
         var pos = new RoomPosition(rnm.regroupingPos.x, rnm.regroupingPos.y, creep.room.name);
         move(creep, pos);
     }
