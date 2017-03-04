@@ -9,20 +9,7 @@
         "sourceMap": false
     },
     "files": [
-        "src/chain.ts",
-        "src/cl.ts",
-        "src/custom.d.ts",
-        "src/creep.ts",
-        "src/data.ts",
-        "src/enums.ts",
-        "src/functional.ts",
-        "src/log.ts",
         "src/main.ts",
-        "src/map.ts",
-        "src/memory.ts",
-        "src/screeps.d.ts",
-        "src/spawn.ts",
-        "src/struct.ts",
-        "src/squadron.ts"
+        "src/screeps.d.ts"
     ]
 }
