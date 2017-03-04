@@ -14,22 +14,35 @@ function aliveCreeps(names) {
 function attackStrength(creep) {
     return creep.getActiveBodyparts(ATTACK) * 30 + creep.getActiveBodyparts(RANGED_ATTACK) * 20 + creep.getActiveBodyparts(HEAL) * 12;
 }
-function creepToBeSpawned(squadron, energy) {
-    if (energy < ninjaCost)
-        return fun.None();
+function refreshGroup(squadron) {
     var activeCreeps = aliveCreeps(squadron.activeCreepNames);
     squadron.activeCreepNames = activeCreeps.map(function (creep) { return creep.name; });
     var activeAttackStrength = fun.sum(activeCreeps.map(attackStrength));
     var regroupingCreeps = aliveCreeps(squadron.regroupingCreepNames);
     squadron.regroupingCreepNames = regroupingCreeps.map(function (creep) { return creep.name; });
     var regroupingAttackStrength = fun.sum(regroupingCreeps.map(attackStrength));
+    var activeNinjaMemory = cu.makeActiveNinjaMemory(squadron.roomName);
+    var regroupingNinjaMemory = cu.makeRegroupingNinjaMemory(squadron.regroupPos);
+    squadron.activeCreepNames.forEach(function (creepName) {
+        Game.creeps[creepName].memory = activeNinjaMemory;
+    });
+    squadron.regroupingCreepNames.forEach(function (creepName) {
+        Game.creeps[creepName].memory = regroupingNinjaMemory;
+    });
+    return activeAttackStrength + regroupingAttackStrength;
+}
+exports.refreshGroup = refreshGroup;
+function creepToBeSpawned(squadron, energy) {
+    if (energy < ninjaCost)
+        return fun.None();
+    var myAttackStrength = refreshGroup(squadron);
     squadron.maxAttackStrength =
         Math.max(squadron.maxAttackStrength * (Game.rooms[squadron.roomName] === undefined || Game.rooms[squadron.roomName] == null
             ? 1 // if you can't see the room, assume it's as militarized as you last observed
             : forgetfulnessOfWar // even if you can see the room, keep some memory of the previously observed militarization
         ), fun.sum(map.foreignAttackers(squadron.roomName).map(attackStrength)) * dominationFactor);
     var res = fun.None();
-    if (activeAttackStrength + regroupingAttackStrength >= squadron.maxAttackStrength) {
+    if (myAttackStrength >= squadron.maxAttackStrength) {
         squadron.activeCreepNames = squadron.activeCreepNames.concat(squadron.regroupingCreepNames);
         squadron.regroupingCreepNames = [];
     }
@@ -44,14 +57,6 @@ function creepToBeSpawned(squadron, energy) {
             }
         });
     }
-    var activeNinjaMemory = cu.makeActiveNinjaMemory(squadron.roomName);
-    var regroupingNinjaMemory = cu.makeRegroupingNinjaMemory(squadron.regroupPos);
-    squadron.activeCreepNames.forEach(function (creepName) {
-        Game.creeps[creepName].memory = activeNinjaMemory;
-    });
-    squadron.regroupingCreepNames.forEach(function (creepName) {
-        Game.creeps[creepName].memory = regroupingNinjaMemory;
-    });
     return res;
 }
 exports.creepToBeSpawned = creepToBeSpawned;

@@ -29,9 +29,7 @@ function attackStrength(creep: Creep): number {
     return creep.getActiveBodyparts(ATTACK) * 30 + creep.getActiveBodyparts(RANGED_ATTACK) * 20 + creep.getActiveBodyparts(HEAL) * 12;
 }
 
-export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option<cu.CreepToBeSpawned> {
-    if (energy < ninjaCost)
-        return fun.None<cu.CreepToBeSpawned>();
+export function refreshGroup(squadron: Squadron): number {
     var activeCreeps = aliveCreeps(squadron.activeCreepNames);
     squadron.activeCreepNames = activeCreeps.map<string>(creep => creep.name);
     var activeAttackStrength: number = fun.sum(activeCreeps.map<number>(attackStrength));
@@ -39,6 +37,22 @@ export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option
     var regroupingCreeps = aliveCreeps(squadron.regroupingCreepNames);
     squadron.regroupingCreepNames = regroupingCreeps.map<string>(creep => creep.name);
     var regroupingAttackStrength: number = fun.sum(regroupingCreeps.map<number>(attackStrength));
+
+    var activeNinjaMemory = cu.makeActiveNinjaMemory(squadron.roomName);
+    var regroupingNinjaMemory = cu.makeRegroupingNinjaMemory(squadron.regroupPos);
+    squadron.activeCreepNames.forEach((creepName: string) => {
+        Game.creeps[creepName].memory = activeNinjaMemory;
+    });
+    squadron.regroupingCreepNames.forEach((creepName: string) => {
+        Game.creeps[creepName].memory = regroupingNinjaMemory;
+    });
+    return activeAttackStrength + regroupingAttackStrength;
+}
+
+export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option<cu.CreepToBeSpawned> {
+    if (energy < ninjaCost)
+        return fun.None<cu.CreepToBeSpawned>();
+    var myAttackStrength = refreshGroup(squadron);
 
     squadron.maxAttackStrength =
         Math.max(
@@ -51,7 +65,7 @@ export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option
         );
 
     var res: fun.Option<cu.CreepToBeSpawned> = fun.None<cu.CreepToBeSpawned>();
-    if (activeAttackStrength + regroupingAttackStrength >= squadron.maxAttackStrength) {
+    if (myAttackStrength >= squadron.maxAttackStrength) {
         squadron.activeCreepNames = squadron.activeCreepNames.concat(squadron.regroupingCreepNames);
         squadron.regroupingCreepNames = [];
     } else {
@@ -65,14 +79,6 @@ export function creepToBeSpawned(squadron: Squadron, energy: number): fun.Option
             }
         });
     }
-    var activeNinjaMemory = cu.makeActiveNinjaMemory(squadron.roomName);
-    var regroupingNinjaMemory = cu.makeRegroupingNinjaMemory(squadron.regroupPos);
-    squadron.activeCreepNames.forEach((creepName: string) => {
-        Game.creeps[creepName].memory = activeNinjaMemory;
-    });
-    squadron.regroupingCreepNames.forEach((creepName: string) => {
-        Game.creeps[creepName].memory = regroupingNinjaMemory;
-    })
     return res;
 }
 

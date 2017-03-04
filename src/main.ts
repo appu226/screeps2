@@ -7,6 +7,8 @@ import memoryUtils = require('./memory');
 import chainUtils = require('./chain');
 import struct = require('./struct');
 import map = require('./map');
+import sqdrn = require('./squadron');
+import enums = require('./enums');
 
 export function loop(): void {
     log.debug(() => `main/loop: Tick ${Game.time} started.`);
@@ -26,14 +28,23 @@ export function loop(): void {
 
     var groups = mem.creepGroups;
     for (var gidx = 0; gidx < groups.length; ++gidx) {
-        chainUtils.refreshGroup(groups[gidx]);
+        switch (groups[gidx].creepGroupType.name) {
+            case enums.eChain.name:
+                chainUtils.refreshGroup(groups[gidx]);
+                break;
+            case enums.eSquadron.name:
+                sqdrn.refreshGroup(<sqdrn.Squadron>groups[gidx]);
+                break;
+            default:
+                log.error(() => `main/loop: Could not process group of index ${gidx}`);
+        }
     }
 
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
         try {
-        creepSwitch.process(creep);
-        } catch(e) {
+            creepSwitch.process(creep);
+        } catch (e) {
             log.error(() => `main/loop: processing ${creepName} failed with ${JSON.stringify(e)}`);
         }
     }

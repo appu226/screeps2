@@ -7,6 +7,8 @@ var log = require("./log");
 var memoryUtils = require("./memory");
 var chainUtils = require("./chain");
 var struct = require("./struct");
+var sqdrn = require("./squadron");
+var enums = require("./enums");
 function loop() {
     log.debug(function () { return "main/loop: Tick " + Game.time + " started."; });
     // PathFinder.use(Game.time % 2 == 0);
@@ -22,7 +24,16 @@ function loop() {
     }
     var groups = mem.creepGroups;
     for (var gidx = 0; gidx < groups.length; ++gidx) {
-        chainUtils.refreshGroup(groups[gidx]);
+        switch (groups[gidx].creepGroupType.name) {
+            case enums.eChain.name:
+                chainUtils.refreshGroup(groups[gidx]);
+                break;
+            case enums.eSquadron.name:
+                sqdrn.refreshGroup(groups[gidx]);
+                break;
+            default:
+                log.error(function () { return "main/loop: Could not process group of index " + gidx; });
+        }
     }
     for (var creepName in Game.creeps) {
         var creep = Game.creeps[creepName];
