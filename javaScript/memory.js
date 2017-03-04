@@ -62,6 +62,10 @@ function storedPaths() {
 exports.storedPaths = storedPaths;
 function spawnMemory(spawn) {
     var sm = spawn.memory;
+    if (sm.lastCollectedAmount === undefined)
+        sm.lastCollectedAmount = 0;
+    if (sm.lastCollectedTime === undefined)
+        sm.lastCollectedTime = 0;
     return sm;
 }
 exports.spawnMemory = spawnMemory;

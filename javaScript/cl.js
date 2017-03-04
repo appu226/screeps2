@@ -2,7 +2,7 @@
 var memoryUtils = require("./memory");
 var log = require("./log");
 function executeCustomCommand() {
-    var nextCommandNumber = 10;
+    var nextCommandNumber = 11;
     if (memoryUtils.enrichedMemory().lastCommandNumber < nextCommandNumber) {
         // delete (memoryUtils.enrichedMemory()).isInitialized;
         memoryUtils.enrichedMemory().lastCommandNumber = nextCommandNumber;

@@ -6,7 +6,7 @@ var log = require("./log");
 var enums = require("./enums");
 var sqdrn = require("./squadron");
 function processSpawn(spawn) {
-    var disabledCollection = (functional.sum(spawn.room.find(FIND_SOURCES_ACTIVE).map(function (source) { return memoryUtils.sourceMemory(source).energyCollection.total; })) < 60);
+    var disabledCollection = memoryUtils.spawnMemory(spawn).lastCollectedTime + 10 < Game.time;
     if (spawn.room.energyAvailable < (disabledCollection ? 300 : spawn.room.energyCapacityAvailable)
         || spawn.spawning != null)
         return;

@@ -37,7 +37,7 @@ export function enrichedMemory(): EnrichedMemory {
         em.neutralStructures = [];
         em.creepGroupBackup = [];
         em.allies = [];
-        em.pathReuse = {reusePath: 20};
+        em.pathReuse = { reusePath: 20 };
     }
     while (em.messageLog.length > em.maxMessageLogSize)
         em.messageLog.shift();
@@ -62,6 +62,8 @@ export function storedPaths() {
 
 export function spawnMemory(spawn: StructureSpawn): SpawnMemory {
     var sm = <SpawnMemory>spawn.memory;
+    if (sm.lastCollectedAmount === undefined) sm.lastCollectedAmount = 0;
+    if (sm.lastCollectedTime === undefined) sm.lastCollectedTime = 0;
     return sm;
 }
 

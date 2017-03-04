@@ -6,8 +6,18 @@ function collect() {
         var room = Game.rooms[roomName];
         processEnergyCollection(room);
     }
+    for (var spawnName in Game.spawns) {
+        processSpawnEnergy(Game.spawns[spawnName]);
+    }
 }
 exports.collect = collect;
+function processSpawnEnergy(spawn) {
+    var sm = memoryUtils.spawnMemory(spawn);
+    if (sm.lastCollectedAmount < spawn.room.energyAvailable) {
+        sm.lastCollectedTime = Game.time;
+    }
+    sm.lastCollectedAmount = spawn.room.energyAvailable;
+}
 /**
  * @Param {Room} room
  */

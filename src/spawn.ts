@@ -8,9 +8,7 @@ import sqdrn = require('./squadron');
 
 export function processSpawn(spawn: Spawn) {
     var disabledCollection: boolean =
-        (functional.sum(spawn.room.find<Source>(FIND_SOURCES_ACTIVE).map(
-            source => memoryUtils.sourceMemory(source).energyCollection.total
-        )) < 60);
+        memoryUtils.spawnMemory(spawn).lastCollectedTime + 20 < Game.time;
     if (spawn.room.energyAvailable < (disabledCollection ? 300 : spawn.room.energyCapacityAvailable)
         || spawn.spawning != null)
         return;

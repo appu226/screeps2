@@ -59,4 +59,6 @@ interface CreepMemory {
 interface ECreepMemoryType { name: string }
 
 interface SpawnMemory {
+    lastCollectedTime: number;
+    lastCollectedAmount: number;
 }
