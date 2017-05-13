@@ -6,10 +6,25 @@
         "rootDir": "src",
         "target": "es3",
         "noImplicitAny": false,
-        "sourceMap": false
+        "sourceMap": false,
+        "allowJs": true
     },
     "files": [
+        "src/creep.ts",
+        "src/dictionary.ts",
+        "src/functional.d.ts",
+        "src/lodash.min.js",
+        "src/logger.ts",
         "src/main.ts",
-        "src/screeps.d.ts"
+        "src/map.ts",
+        "src/option.ts",
+        "src/paraverse.d.ts",
+        "src/paraverse.ts",
+        "src/room.ts",
+        "src/screeps.d.ts",
+        "src/source.ts",
+        "src/spawn.ts",
+        "src/structure.ts",
+        "src/terrain.ts"
     ]
 }
