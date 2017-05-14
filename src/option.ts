@@ -84,6 +84,10 @@ export function maxBy<TElem>(collection: TElem[], measure: (TElem) => number): O
     );
 }
 
+export function sum(arr: number[]): number {
+    return arr.reduce((prev, curr) => prev + curr, 0);
+}
+
 class Heap<TElem> implements PQ<TElem> {
     length: number;
     isEmpty: boolean;

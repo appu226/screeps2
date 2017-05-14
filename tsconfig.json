@@ -10,9 +10,11 @@
         "allowJs": true
     },
     "files": [
+        "src/controller.ts",
         "src/creep.ts",
         "src/dictionary.ts",
         "src/functional.d.ts",
+        "src/keeperLair.ts",
         "src/lodash.min.js",
         "src/logger.ts",
         "src/main.ts",

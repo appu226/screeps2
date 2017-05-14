@@ -81,6 +81,10 @@ function maxBy(collection, measure) {
     }, None());
 }
 exports.maxBy = maxBy;
+function sum(arr) {
+    return arr.reduce(function (prev, curr) { return prev + curr; }, 0);
+}
+exports.sum = sum;
 var Heap = (function () {
     function Heap(elems) {
         this.data = elems;

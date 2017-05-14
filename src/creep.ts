@@ -25,6 +25,7 @@ function tokenize(comboString: string, delim: string): string[] {
         } else {
             result[result.length - 1] += comboString[i];
         }
+        ++i;
     }
     return result;
 }
@@ -33,7 +34,8 @@ export function makeCreepOrder(orderName: string, creepType: string, pv: Paraver
     switch (creepType) {
         case pv.CREEP_TYPE_BUILDER: return makeBuilderOrder(orderName, pv);
         case pv.CREEP_TYPE_HARVESTER: return makeHarvesterOrder(orderName, tokenize(orderName, "_")[1], pv);
-        case pv.CREEP_TYPE_TRANSPORTER: return makeTransporterOrder(orderName, tokenize(orderName, "_")[1], pv)
+        case pv.CREEP_TYPE_TRANSPORTER: return makeTransporterOrder(orderName, tokenize(orderName, "_")[1], pv);
+        case pv.CREEP_TYPE_UPGRADER: return makeUpgraderOrder(orderName, tokenize(orderName, "_")[1], pv);
         default: throw new Error(`creep/makeCreepOrder: creepType ${creepType} not yet supported.`)
     }
 }
@@ -53,11 +55,41 @@ function getEfficiency(memory: CreepMemory): number {
     else return memory.totalEfficiency / eq.length();
 }
 
+//---------------- UPGRADER -------------------------
+function makeUpgraderOrder(orderName: string, roomName: string, pv: Paraverse): CreepOrder {
+    return {
+        creepType: pv.CREEP_TYPE_UPGRADER,
+        name: `${pv.CREEP_TYPE_UPGRADER}_${pv.getUid()}`,
+        orderName: orderName,
+        basicBody: [MOVE, CARRY, WORK, WORK],
+        addOnBody: [MOVE, MOVE, CARRY, WORK],
+        maxEnergy: 3000,
+        memory: makeUpgraderMemory(roomName, pv)
+    }
+}
+
+function makeUpgraderMemory(roomName: string, pv: Paraverse): UpgraderMemory {
+    return {
+        roomName: roomName,
+        creepType: pv.CREEP_TYPE_UPGRADER,
+        efficiencies: {
+            pushStack: [],
+            popStack: []
+        },
+        totalEfficiency: 0
+    }
+}
+
+interface UpgraderMemory extends CreepMemory {
+    roomName: string
+}
+
+
 //---------------- TRANSPORTER ----------------------
 function makeTransporterOrder(orderName: string, roomName: string, pv: Paraverse): CreepOrder {
     return {
         creepType: pv.CREEP_TYPE_TRANSPORTER,
-        name: `${pv.CREEP_TYPE_TRANSPORTER}_${pv.getUid}`,
+        name: `${pv.CREEP_TYPE_TRANSPORTER}_${pv.getUid()}`,
         orderName: orderName,
         basicBody: [MOVE, CARRY, MOVE, CARRY, MOVE, CARRY],
         addOnBody: [MOVE, CARRY],
@@ -86,7 +118,7 @@ interface TransporterMemory extends CreepMemory {
 function makeBuilderOrder(orderName: string, pv: Paraverse): CreepOrder {
     return {
         creepType: pv.CREEP_TYPE_BUILDER,
-        name: `${pv.CREEP_TYPE_BUILDER}_${pv.getUid}`,
+        name: `${pv.CREEP_TYPE_BUILDER}_${pv.getUid()}`,
         orderName: orderName,
         basicBody: [MOVE, CARRY, WORK, CARRY, CARRY],
         addOnBody: [MOVE, CARRY, WORK, CARRY],
@@ -186,7 +218,7 @@ export function isHarvesterWithSource(creepWrapper: CreepWrapper, sourceId: stri
 function makeHarvesterOrder(orderName: string, sourceId: string, pv: Paraverse): CreepOrder {
     return {
         creepType: pv.CREEP_TYPE_HARVESTER,
-        name: `${pv.CREEP_TYPE_HARVESTER}_${pv.getUid}`,
+        name: `${pv.CREEP_TYPE_HARVESTER}_${pv.getUid()}`,
         orderName: orderName,
         basicBody: [MOVE, CARRY, WORK, WORK],
         addOnBody: [CARRY, WORK, WORK],
