@@ -10,7 +10,7 @@ var mterrain = require("./terrain");
 function makeParaverse(game, map, memory) {
     var paraMemory = memory;
     if (paraMemory.logLevel === undefined)
-        paraMemory.logLevel = 2;
+        paraMemory.logLevel = 4;
     if (paraMemory.creepOrders === undefined)
         paraMemory.creepOrders = {};
     if (paraMemory.terrainMap === undefined)
@@ -32,6 +32,7 @@ var ParaverseImpl = (function () {
         this.game = game;
         this.map = map;
         this.memory = memory;
+        this.log = mlogger.createLogger(memory.logLevel, this);
         this.LOG_LEVEL_SILENT = 0;
         this.LOG_LEVEL_ERROR = 1;
         this.LOG_LEVEL_WARN = 2;
@@ -52,25 +53,8 @@ var ParaverseImpl = (function () {
         this.STRUCTURE_CODE_EXTENSION = 1004;
         this.STRUCTURE_CODE_ROAD = 1005;
         this.STRUCTURE_CODE_RAMPART = 1006;
-        this.constructionSiteCache = {};
-        this.roomWrappers = {};
-        this.structureWrappers = {};
-        this.creepWrappers = {};
-        this.sourceWrappers = {};
-        for (var roomName in Game.rooms) {
-            var room = Game.rooms[roomName];
-            room.find(FIND_STRUCTURES).forEach(function (s) {
-                o.tryCatch(function () { _this.structureWrappers[s.id] = mstructure.makeStructureWrapper(s, _this); }, "Creating wrapper for " + s.structureType + " " + s.id);
-            });
-            room.find(FIND_CREEPS).forEach(function (c) {
-                o.tryCatch(function () { _this.creepWrappers[c.id] = creep.makeCreepWrapper(c, _this); }, "Creating wrapper for creep " + c.name);
-            });
-            room.find(FIND_SOURCES).forEach(function (s) {
-                o.tryCatch(function () { _this.sourceWrappers[s.id] = source.makeSourceWrapper(s, _this); }, "Creating wrapper for source " + s.id);
-            });
-            this.roomWrappers[room.name] = mroom.makeRoomWrapper(room);
-        }
-        this.log = mlogger.createLogger(memory.logLevel, this);
+        this.STRUCTURE_CODE_KEEPER_LAIR = 1007;
+        this.STRUCTURE_CODE_CONTROLLER = 1008;
         this.bodyPartPriority = {};
         this.bodyPartPriority[MOVE] = 1;
         this.bodyPartPriority[HEAL] = 0;
@@ -80,6 +64,25 @@ var ParaverseImpl = (function () {
         this.bodyPartPriority[RANGED_ATTACK] = 2;
         this.bodyPartPriority[CARRY] = 3;
         this.bodyPartPriority[CLAIM] = 3;
+        this.constructionSiteCache = {};
+        this.roomWrappers = {};
+        this.structureWrappers = {};
+        this.creepWrappers = {};
+        this.sourceWrappers = {};
+        var pv = this;
+        for (var roomName in Game.rooms) {
+            var room = Game.rooms[roomName];
+            room.find(FIND_STRUCTURES).forEach(function (s) {
+                o.tryCatch(function () { _this.structureWrappers[s.id] = mstructure.makeStructureWrapper(s, pv); }, "Creating wrapper for " + s.structureType + " " + s.id);
+            });
+            room.find(FIND_CREEPS).forEach(function (c) {
+                o.tryCatch(function () { _this.creepWrappers[c.id] = creep.makeCreepWrapper(c, pv); }, "Creating wrapper for creep " + c.name);
+            });
+            room.find(FIND_SOURCES).forEach(function (s) {
+                o.tryCatch(function () { _this.sourceWrappers[s.id] = source.makeSourceWrapper(s, pv); }, "Creating wrapper for source " + s.id);
+            });
+            this.roomWrappers[room.name] = mroom.makeRoomWrapper(room);
+        }
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return rw.room.controller.my; });
@@ -127,6 +130,16 @@ var ParaverseImpl = (function () {
             return;
         }
     };
+    ParaverseImpl.prototype.removeCreepOrder = function (roomName, orderName) {
+        var pq = this.getCreepOrders(roomName);
+        var creepOrders = this.memory.creepOrders[roomName];
+        var elems = creepOrders.filter(function (pqe) { return pqe.elem.orderName == orderName; });
+        if (elems.length > 0) {
+            var idx = elems[0].index;
+            pq.prioritize(idx, creepOrders[0].priority + 1);
+            pq.pop();
+        }
+    };
     ParaverseImpl.prototype.deprioritizeTopOrder = function (roomName, orderName, energyDeficit) {
         var pq = this.getCreepOrders(roomName);
         var matchingOrders = this.memory.creepOrders[roomName].filter(function (pqe) { return pqe.elem.orderName == orderName; }).forEach(function (pqe) {
@@ -134,16 +147,28 @@ var ParaverseImpl = (function () {
         });
     };
     ParaverseImpl.prototype.getTerrain = function (room) {
+        var _this = this;
         if (this.memory.terrainMap[room.name] === undefined) {
-            var terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49);
-            var result = [];
+            var terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
+            var result_1 = [];
             for (var r = 0; r < 50; ++r) {
-                result.push([]);
+                result_1.push([]);
                 for (var c = 0; c < 50; ++c) {
-                    result[r].push(mterrain.terrainStringToCode(terrain[r][c].terrain, this));
+                    result_1[r].push(-1);
                 }
             }
-            this.memory.terrainMap[room.name] = result;
+            terrain.forEach(function (larwp) {
+                if (larwp.terrain !== undefined) {
+                    result_1[larwp.x][larwp.y] = mterrain.terrainStringToCode(larwp.terrain, _this);
+                }
+            });
+            for (var r = 0; r < 50; ++r) {
+                for (var c = 0; c < 50; ++c) {
+                    if (result_1[r][c] == -1)
+                        throw new Error("result[" + r + "][" + c + "] not set correctly.");
+                }
+            }
+            this.memory.terrainMap[room.name] = result_1;
         }
         return this.memory.terrainMap[room.name];
     };

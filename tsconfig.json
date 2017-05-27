@@ -18,7 +18,6 @@
         "src/lodash.min.js",
         "src/logger.ts",
         "src/main.ts",
-        "src/map.ts",
         "src/option.ts",
         "src/paraverse.d.ts",
         "src/paraverse.ts",

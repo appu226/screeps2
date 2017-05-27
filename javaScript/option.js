@@ -85,6 +85,14 @@ function sum(arr) {
     return arr.reduce(function (prev, curr) { return prev + curr; }, 0);
 }
 exports.sum = sum;
+function findIndexOf(arr, filter) {
+    for (var i = 0; i < arr.length; ++i) {
+        if (filter(arr[i]))
+            return Some(i);
+    }
+    return None();
+}
+exports.findIndexOf = findIndexOf;
 var Heap = (function () {
     function Heap(elems) {
         this.data = elems;
@@ -108,8 +116,7 @@ var Heap = (function () {
             return None();
         }
         else if (this.length == 1) {
-            result = Some(this.data[0].elem);
-            this.data = [];
+            result = Some(this.data.pop().elem);
             this.refresh();
             return result;
         }
@@ -276,6 +283,8 @@ function tryCatch(f, action) {
             console.log(e.message);
         if (e.stackTrace !== undefined)
             console.log(e.stackTrace);
+        if (e.stack !== undefined)
+            console.log(e.stack);
     }
 }
 exports.tryCatch = tryCatch;

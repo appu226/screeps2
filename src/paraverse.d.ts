@@ -16,6 +16,7 @@ declare interface Paraverse {
 
     getCreepOrders(roomName: string): PQ<CreepOrder>;
     scheduleCreep(roomName: string, orderName: string, creepType: string, priority: number): void;
+    removeCreepOrder(roomName: string, orderName: string): void;
     deprioritizeTopOrder(roomName: string, orderName: string, energyDeficit: number): void;
 
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
@@ -53,6 +54,8 @@ declare interface Paraverse {
     STRUCTURE_CODE_EXTENSION: number;
     STRUCTURE_CODE_ROAD: number;
     STRUCTURE_CODE_RAMPART: number;
+    STRUCTURE_CODE_KEEPER_LAIR: number;
+    STRUCTURE_CODE_CONTROLLER: number;
 }
 
 declare interface Logger {
@@ -112,4 +115,9 @@ declare interface PlannedConstructionSite {
     x: number;
     y: number;
     roomName: string;
+}
+
+declare interface XY{
+    x: number;
+    y: number;
 }

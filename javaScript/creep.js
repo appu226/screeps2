@@ -8,6 +8,12 @@ function makeCreepWrapper(c, pv) {
     switch (c.memory.creepType) {
         case pv.CREEP_TYPE_BUILDER:
             return new BuilderCreepWrapper(c, pv);
+        case pv.CREEP_TYPE_HARVESTER:
+            return new HarvesterCreepWrapper(c, pv);
+        case pv.CREEP_TYPE_TRANSPORTER:
+            return new TransporterCreepWrapper(c, pv);
+        case pv.CREEP_TYPE_UPGRADER:
+            return new UpgraderCreepWrapper(c, pv);
         default:
             pv.log.error("makeCreepWrapper: creep " + c.name + " of type " + c.memory.creepType + " not yet supported.");
             return new MiscCreepWrapper(c, c.memory.creepType);
@@ -78,6 +84,49 @@ function makeUpgraderMemory(roomName, pv) {
         totalEfficiency: 0
     };
 }
+var UpgraderCreepWrapper = (function () {
+    function UpgraderCreepWrapper(creep, pv) {
+        this.creep = creep;
+        this.creepType = pv.CREEP_TYPE_UPGRADER;
+        this.memory = creep.memory;
+    }
+    UpgraderCreepWrapper.prototype.process = function (pv) {
+        var roomName = this.memory.roomName;
+        var room = Game.rooms[roomName];
+        if (room === undefined) {
+            this.pushEfficiency(0);
+            throw new Error(this.creep.name + " could not find room " + roomName);
+        }
+        var creep = this.creep;
+        var controller = room.controller;
+        var upgradeResult = creep.upgradeController(controller);
+        switch (upgradeResult) {
+            case OK: {
+                this.pushEfficiency(1);
+                break;
+            }
+            case ERR_NOT_IN_RANGE: {
+                this.pushEfficiency(moveCreep(this, controller.pos, pv) ? 1 : 0);
+                break;
+            }
+            case ERR_NOT_ENOUGH_ENERGY: {
+                this.pushEfficiency(0);
+                break;
+            }
+            default: {
+                this.pushEfficiency(0);
+                throw new Error(creep.name + " upgrading " + roomName + " failed with code " + upgradeResult + ".");
+            }
+        }
+    };
+    UpgraderCreepWrapper.prototype.pushEfficiency = function (efficiency) {
+        pushEfficiency(this.memory, efficiency);
+    };
+    UpgraderCreepWrapper.prototype.getEfficiency = function () {
+        return getEfficiency(this.memory);
+    };
+    return UpgraderCreepWrapper;
+}());
 //---------------- TRANSPORTER ----------------------
 function makeTransporterOrder(orderName, roomName, pv) {
     return {
@@ -98,9 +147,131 @@ function makeTransporterMemory(roomName, pv) {
             pushStack: [],
             popStack: []
         },
-        totalEfficiency: 0
+        totalEfficiency: 0,
+        sourceId: "",
+        sourceType: "",
+        destinationId: "",
+        destinationType: "",
+        resourceType: "",
+        status: "free"
     };
 }
+var TransporterCreepWrapper = (function () {
+    function TransporterCreepWrapper(creep, pv) {
+        this.creep = creep;
+        this.creepType = pv.CREEP_TYPE_TRANSPORTER;
+        this.memory = creep.memory;
+    }
+    TransporterCreepWrapper.prototype.process = function (pv) {
+        switch (this.memory.status) {
+            case "free": return this.free(pv);
+            case "collecting": return this.collecting(pv);
+            case "transporting": return this.transporting(pv);
+            default: {
+                pv.log.error("Creep " + this.creep.name + " has unrecognized status " + this.memory.status);
+                this.memory.status = "free";
+                this.pushEfficiency(0);
+                return;
+            }
+        }
+    };
+    TransporterCreepWrapper.prototype.free = function (pv) {
+        var creep = this.creep;
+        var terrain = pv.getTerrainWithStructures(creep.room);
+        var validMoves = [];
+        var checkForObstacle = function (dx, dy) {
+            var x = creep.pos.x + dx;
+            var y = creep.pos.y + dy;
+            if (x < 0 || x > 49 || y < 0 || y > 49)
+                return;
+            if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP)
+                return false;
+            validMoves.push({ x: x, y: y });
+        };
+        var nextToObstacle = checkForObstacle(0, 1) ||
+            checkForObstacle(0, -1) ||
+            checkForObstacle(-1, 0) ||
+            checkForObstacle(1, 0);
+        if (nextToObstacle && validMoves.length > 0) {
+            var randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+            var newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);
+            moveCreep(this, newPos, pv);
+        }
+        this.pushEfficiency(0);
+    };
+    TransporterCreepWrapper.prototype.collecting = function (pv) {
+        var creep = this.creep;
+        var memory = this.memory;
+        var collectionStatus = 0;
+        var sourceObject = null;
+        switch (memory.sourceType) {
+            case "creep": {
+                var sourceCreep = pv.game.getObjectById(memory.sourceId);
+                collectionStatus = sourceCreep.transfer(creep, memory.resourceType);
+                sourceObject = sourceCreep;
+                break;
+            }
+            case "structure": {
+                var sourceStructure = pv.game.getObjectById(memory.sourceId);
+                collectionStatus = creep.withdraw(sourceStructure, memory.resourceType);
+                sourceObject = sourceStructure;
+                break;
+            }
+            default: {
+                this.pushEfficiency(0);
+                throw new Error("Unexpected sourceType \"" + memory.sourceType + "\", expecting \"creep\" or \"structure\"");
+            }
+        }
+        switch (collectionStatus) {
+            case ERR_NOT_IN_RANGE: {
+                this.pushEfficiency(moveCreep(this, sourceObject.pos, pv) ? 1 : 0);
+                break;
+            }
+            case ERR_NOT_ENOUGH_ENERGY:
+            case ERR_NOT_ENOUGH_RESOURCES:
+            case OK: {
+                if (creep.carry[memory.resourceType] > 0) {
+                    pv.log.debug(creep.name + " status changing to transporting.");
+                    memory.status = "transporting";
+                    this.pushEfficiency(1);
+                }
+                break;
+            }
+            default: {
+                this.pushEfficiency(0);
+                break;
+            }
+        }
+    };
+    TransporterCreepWrapper.prototype.transporting = function (pv) {
+        var creep = this.creep;
+        var memory = this.memory;
+        if (creep.carry[memory.resourceType] == 0) {
+            pv.log.debug(creep.name + " status changing to free.");
+            memory.status = "free";
+            this.pushEfficiency(1);
+            return;
+        }
+        var destination = pv.game.getObjectById(memory.destinationId);
+        var transferResult = creep.transfer(destination, memory.resourceType);
+        if (transferResult == ERR_NOT_IN_RANGE) {
+            this.pushEfficiency(moveCreep(this, destination.pos, pv) ? 1 : 0);
+        }
+        else if (transferResult == OK) {
+            this.pushEfficiency(1);
+        }
+        else {
+            this.pushEfficiency(0);
+        }
+    };
+    TransporterCreepWrapper.prototype.pushEfficiency = function (efficiency) {
+        pushEfficiency(this.memory, efficiency);
+    };
+    TransporterCreepWrapper.prototype.getEfficiency = function () {
+        return getEfficiency(this.memory);
+    };
+    return TransporterCreepWrapper;
+}());
 //---------------- BUILDER --------------------------
 function makeBuilderOrder(orderName, pv) {
     return {

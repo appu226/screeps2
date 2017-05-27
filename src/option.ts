@@ -88,6 +88,14 @@ export function sum(arr: number[]): number {
     return arr.reduce((prev, curr) => prev + curr, 0);
 }
 
+export function findIndexOf<TElem>(arr: TElem[], filter: (TElem) => boolean): Option<number> {
+    for(let i = 0; i < arr.length; ++i) {
+        if(filter(arr[i]))
+            return Some<number>(i);
+    }
+    return None<number>();
+}
+
 class Heap<TElem> implements PQ<TElem> {
     length: number;
     isEmpty: boolean;
@@ -115,8 +123,7 @@ class Heap<TElem> implements PQ<TElem> {
         if (this.isEmpty) {
             return None<TElem>();
         } else if (this.length == 1) {
-            result = Some<TElem>(this.data[0].elem);
-            this.data = [];
+            result = Some<TElem>(this.data.pop().elem);
             this.refresh();
             return result;
         } else {
@@ -290,5 +297,6 @@ export function tryCatch(f: () => void, action: string) {
         console.log(`Caught error while ${action}`);
         if (e.message !== undefined) console.log(e.message);
         if (e.stackTrace !== undefined) console.log(e.stackTrace);
+        if (e.stack !== undefined) console.log(e.stack);
     }
 }

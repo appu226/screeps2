@@ -12,7 +12,11 @@ var ControllerWrapper = (function () {
         var upgraders = pv.getMyCreeps().filter(function (cw) { return cw.creepType == pv.CREEP_TYPE_UPGRADER && cw.creep.room.name == roomName; });
         var totalEfficiency = o.sum(upgraders.map(function (cw) { return cw.getEfficiency(); }));
         if (totalEfficiency >= upgraders.length * 90.0 / 100.0) {
+            pv.log.debug("Scheduling upgrader for room " + roomName);
             pv.scheduleCreep(roomName, "Upgrader_" + roomName, pv.CREEP_TYPE_UPGRADER, .3);
+        }
+        else {
+            pv.removeCreepOrder(roomName, "Upgrader_" + roomName);
         }
     };
     return ControllerWrapper;

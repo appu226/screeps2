@@ -13,6 +13,7 @@ export function loop(): void {
     var creeps = pv.getMyCreeps();
     creeps.forEach((c) => o.tryCatch(() => c.process(pv), `processing structure ${c.creep.name}`));
 
-    var sources = pv.getMySources();
-    sources.forEach((s) => o.tryCatch(() => s.process(pv), `processing source ${s.source.id}`));
+    // var sources = pv.getMySources();
+    // sources.forEach((s) => o.tryCatch(() => s.process(pv), `processing source ${s.source.id}`));
+    pv.log.debug("Completed main loop.");
 }

@@ -23,7 +23,7 @@ export function makeParaverse(
     memory: Memory
 ): Paraverse {
     var paraMemory = <ParaMemory>memory;
-    if (paraMemory.logLevel === undefined) paraMemory.logLevel = 2;
+    if (paraMemory.logLevel === undefined) paraMemory.logLevel = 4;
     if (paraMemory.creepOrders === undefined) paraMemory.creepOrders = {};
     if (paraMemory.terrainMap === undefined) paraMemory.terrainMap = {};
     if (paraMemory.terrainStructureMap === undefined) paraMemory.terrainStructureMap = {};
@@ -70,6 +70,8 @@ class ParaverseImpl implements Paraverse {
     STRUCTURE_CODE_EXTENSION: number;
     STRUCTURE_CODE_ROAD: number;
     STRUCTURE_CODE_RAMPART: number;
+    STRUCTURE_CODE_KEEPER_LAIR: number;
+    STRUCTURE_CODE_CONTROLLER: number;
 
     constructionSiteCache: Dictionary<ConstructionSite[]>;
 
@@ -81,6 +83,7 @@ class ParaverseImpl implements Paraverse {
         this.game = game;
         this.map = map;
         this.memory = memory;
+        this.log = mlogger.createLogger(memory.logLevel, this);
 
         this.LOG_LEVEL_SILENT = 0;
         this.LOG_LEVEL_ERROR = 1;
@@ -105,47 +108,10 @@ class ParaverseImpl implements Paraverse {
         this.STRUCTURE_CODE_EXTENSION = 1004;
         this.STRUCTURE_CODE_ROAD = 1005;
         this.STRUCTURE_CODE_RAMPART = 1006;
+        this.STRUCTURE_CODE_KEEPER_LAIR = 1007;
+        this.STRUCTURE_CODE_CONTROLLER = 1008;
 
-        this.constructionSiteCache = {};
 
-        this.roomWrappers = {};
-        this.structureWrappers = {};
-        this.creepWrappers = {};
-        this.sourceWrappers = {};
-
-        for (var roomName in Game.rooms) {
-            var room = Game.rooms[roomName];
-            room.find<Structure>(FIND_STRUCTURES).forEach(
-                (s) => {
-                    o.tryCatch(
-                        () => { this.structureWrappers[s.id] = mstructure.makeStructureWrapper(s, this); },
-                        `Creating wrapper for ${s.structureType} ${s.id}`
-                    );
-                }
-            );
-
-            room.find<Creep>(FIND_CREEPS).forEach(
-                (c) => {
-                    o.tryCatch(
-                        () => { this.creepWrappers[c.id] = creep.makeCreepWrapper(c, this); },
-                        `Creating wrapper for creep ${c.name}`
-                    );
-                }
-            );
-
-            room.find<Source>(FIND_SOURCES).forEach(
-                (s) => {
-                    o.tryCatch(
-                        () => { this.sourceWrappers[s.id] = source.makeSourceWrapper(s, this); },
-                        `Creating wrapper for source ${s.id}`
-                    );
-                }
-            );
-
-            this.roomWrappers[room.name] = mroom.makeRoomWrapper(room);
-        }
-
-        this.log = mlogger.createLogger(memory.logLevel, this);
         this.bodyPartPriority = {};
         this.bodyPartPriority[MOVE] = 1;
         this.bodyPartPriority[HEAL] = 0;
@@ -155,6 +121,46 @@ class ParaverseImpl implements Paraverse {
         this.bodyPartPriority[RANGED_ATTACK] = 2;
         this.bodyPartPriority[CARRY] = 3;
         this.bodyPartPriority[CLAIM] = 3;
+
+        this.constructionSiteCache = {};
+
+        this.roomWrappers = {};
+        this.structureWrappers = {};
+        this.creepWrappers = {};
+        this.sourceWrappers = {};
+
+        let pv = this;
+        for (var roomName in Game.rooms) {
+            var room = Game.rooms[roomName];
+            room.find<Structure>(FIND_STRUCTURES).forEach(
+                (s) => {
+                    o.tryCatch(
+                        () => { this.structureWrappers[s.id] = mstructure.makeStructureWrapper(s, pv); },
+                        `Creating wrapper for ${s.structureType} ${s.id}`
+                    );
+                }
+            );
+
+            room.find<Creep>(FIND_CREEPS).forEach(
+                (c) => {
+                    o.tryCatch(
+                        () => { this.creepWrappers[c.id] = creep.makeCreepWrapper(c, pv); },
+                        `Creating wrapper for creep ${c.name}`
+                    );
+                }
+            );
+
+            room.find<Source>(FIND_SOURCES).forEach(
+                (s) => {
+                    o.tryCatch(
+                        () => { this.sourceWrappers[s.id] = source.makeSourceWrapper(s, pv); },
+                        `Creating wrapper for source ${s.id}`
+                    );
+                }
+            );
+
+            this.roomWrappers[room.name] = mroom.makeRoomWrapper(room);
+        }
     }
 
     getMyRooms(): RoomWrapper[] {
@@ -211,6 +217,17 @@ class ParaverseImpl implements Paraverse {
         }
     }
 
+    removeCreepOrder(roomName: string, orderName: string): void {
+        let pq = this.getCreepOrders(roomName);
+        let creepOrders = this.memory.creepOrders[roomName];
+        let elems = creepOrders.filter(pqe => pqe.elem.orderName == orderName)
+        if(elems.length > 0) {
+            let idx = elems[0].index;
+            pq.prioritize(idx, creepOrders[0].priority + 1);
+            pq.pop();
+        }
+    }
+
     deprioritizeTopOrder(roomName: string, orderName: string, energyDeficit: number): void {
         let pq = this.getCreepOrders(roomName);
         let matchingOrders =
@@ -223,12 +240,23 @@ class ParaverseImpl implements Paraverse {
 
     getTerrain(room: Room): number[][] {
         if (this.memory.terrainMap[room.name] === undefined) {
-            let terrain = room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49);
+            let terrain = <LookAtResultWithPos[]>room.lookForAtArea(LOOK_TERRAIN, 0, 0, 49, 49, true);
             let result: number[][] = [];
             for (let r = 0; r < 50; ++r) {
                 result.push([]);
                 for (let c = 0; c < 50; ++c) {
-                    result[r].push(mterrain.terrainStringToCode(terrain[r][c].terrain, this))
+                    result[r].push(-1)
+                }
+            }
+            terrain.forEach(larwp => {
+                if (larwp.terrain !== undefined) {
+                    result[larwp.x][larwp.y] = mterrain.terrainStringToCode(larwp.terrain, this);
+                }
+            });
+            for (let r = 0; r < 50; ++r) {
+                for (let c = 0; c < 50; ++c) {
+                    if(result[r][c] == -1)
+                        throw new Error(`result[${r}][${c}] not set correctly.`);
                 }
             }
             this.memory.terrainMap[room.name] = result;

@@ -9,7 +9,8 @@ function loop() {
     structures.forEach(function (s) { return o.tryCatch(function () { return s.process(pv); }, "processing structure " + s.structure.id); });
     var creeps = pv.getMyCreeps();
     creeps.forEach(function (c) { return o.tryCatch(function () { return c.process(pv); }, "processing structure " + c.creep.name); });
-    var sources = pv.getMySources();
-    sources.forEach(function (s) { return o.tryCatch(function () { return s.process(pv); }, "processing source " + s.source.id); });
+    // var sources = pv.getMySources();
+    // sources.forEach((s) => o.tryCatch(() => s.process(pv), `processing source ${s.source.id}`));
+    pv.log.debug("Completed main loop.");
 }
 exports.loop = loop;
