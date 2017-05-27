@@ -160,7 +160,7 @@ var Heap = (function () {
     };
     Heap.prototype.heapify = function () {
         this.data.forEach(function (value, index) { value.index = index; });
-        for (var i = Math.floor(this.length / 2) - 1; i >= 0; ++i) {
+        for (var i = Math.floor(this.length / 2) - 1; i >= 0; --i) {
             this.siftDownRecursively(i);
         }
     };
