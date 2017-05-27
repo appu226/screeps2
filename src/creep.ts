@@ -211,16 +211,19 @@ class TransporterCreepWrapper implements CreepWrapper {
         let checkForObstacle = function(dx: number, dy: number): boolean {
             let x = creep.pos.x + dx;
             let y = creep.pos.y + dy;
-            if (x < 0 || x > 49 || y < 0 || y > 49) return;
-            if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP)
-                return false;
+            if (x < 0 || x > 49 || y < 0 || y > 49) return true;
+            if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP) {
+                return true;
+            }
             validMoves.push({x: x, y: y});
+            return false;
         };
-        let nextToObstacle: boolean = 
-            checkForObstacle(0, 1) ||
-            checkForObstacle(0, -1) ||
-            checkForObstacle(-1, 0) ||
-            checkForObstacle(1, 0);
+        let downObs = checkForObstacle(0, 1);
+        let leftObs = checkForObstacle(-1, 0);
+        let rightObs = checkForObstacle(1, 0);
+        let upObs = checkForObstacle(0, -1);
+        let nextToObstacle: boolean = upObs || downObs || leftObs || rightObs;
+            
         if(nextToObstacle && validMoves.length > 0) {
             let randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
             let newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);

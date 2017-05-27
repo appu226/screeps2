@@ -183,15 +183,18 @@ var TransporterCreepWrapper = (function () {
             var x = creep.pos.x + dx;
             var y = creep.pos.y + dy;
             if (x < 0 || x > 49 || y < 0 || y > 49)
-                return;
-            if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP)
-                return false;
+                return true;
+            if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP) {
+                return true;
+            }
             validMoves.push({ x: x, y: y });
+            return false;
         };
-        var nextToObstacle = checkForObstacle(0, 1) ||
-            checkForObstacle(0, -1) ||
-            checkForObstacle(-1, 0) ||
-            checkForObstacle(1, 0);
+        var downObs = checkForObstacle(0, 1);
+        var leftObs = checkForObstacle(-1, 0);
+        var rightObs = checkForObstacle(1, 0);
+        var upObs = checkForObstacle(0, -1);
+        var nextToObstacle = upObs || downObs || leftObs || rightObs;
         if (nextToObstacle && validMoves.length > 0) {
             var randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
             var newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);
