@@ -53,6 +53,26 @@ var QueueImpl = (function () {
     QueueImpl.prototype.isEmpty = function () {
         return this.length() == 0;
     };
+    QueueImpl.prototype.count = function (f) {
+        var helper = function (arr) {
+            return arr.reduce(function (prev, curr) { return f(curr) ? prev + 1 : prev; }, 0);
+        };
+        return helper(this.pushStack) + helper(this.popStack);
+    };
+    QueueImpl.prototype.toArray = function () {
+        var result = [];
+        for (var i = this.popStack.length - 1; i >= 0; --i)
+            result.push(this.popStack[i]);
+        for (var i = 0; i < this.pushStack.length; ++i)
+            result.push(this.pushStack[i]);
+        return result;
+    };
+    QueueImpl.prototype.filter = function (f) {
+        return new QueueImpl(this.pushStack.filter(function (value) { return f(value); }), this.popStack.filter((function (value) { return f(value); })));
+    };
+    QueueImpl.prototype.map = function (f) {
+        return new QueueImpl(this.pushStack.map(function (value) { return f(value); }), this.popStack.map(function (value) { return f(value); }));
+    };
     return QueueImpl;
 }());
 function makeQueue(pushStack, popStack) {

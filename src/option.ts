@@ -54,6 +54,26 @@ class QueueImpl<TElem> implements Queue<TElem>
     isEmpty(): boolean {
         return this.length() == 0;
     }
+    count(f: (TElem) => boolean): number {
+        let helper = function (arr: TElem[]): number {
+            return arr.reduce<number>((prev: number, curr: TElem) => f(curr) ? prev + 1 : prev, 0);
+        }
+        return helper(this.pushStack) + helper(this.popStack);
+    }
+    toArray(): TElem[] {
+        let result: TElem[] = [];
+        for (let i = this.popStack.length - 1; i >= 0; --i)
+            result.push(this.popStack[i]);
+        for (let i = 0; i < this.pushStack.length; ++i)
+            result.push(this.pushStack[i]);
+        return result;
+    }
+    filter(f: (TElem) => boolean): Queue<TElem> {
+        return new QueueImpl<TElem>(this.pushStack.filter((value) => f(value)), this.popStack.filter((value => f(value))));
+    }
+    map<TNew>(f: (TElem) => TNew): Queue<TNew> {
+        return new QueueImpl<TNew>(this.pushStack.map<TNew>((value) => f(value)), this.popStack.map<TNew>((value) => f(value)));
+    }
 }
 
 export function makeQueue<TElem>(pushStack: TElem[], popStack: TElem[] = []): Queue<TElem> {
@@ -89,8 +109,8 @@ export function sum(arr: number[]): number {
 }
 
 export function findIndexOf<TElem>(arr: TElem[], filter: (TElem) => boolean): Option<number> {
-    for(let i = 0; i < arr.length; ++i) {
-        if(filter(arr[i]))
+    for (let i = 0; i < arr.length; ++i) {
+        if (filter(arr[i]))
             return Some<number>(i);
     }
     return None<number>();

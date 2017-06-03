@@ -16,6 +16,10 @@ declare interface Queue<TElem> {
     peek(): Option<TElem>;
     length(): number;
     isEmpty(): boolean;
+    toArray(): TElem[];
+    count(f: (TElem) => boolean): number;
+    filter(f: (TElem) => boolean): Queue<TElem>;
+    map<TNew>(f: (TElem) => TNew): Queue<TNew>;
 }
 
 declare interface PQEntry<TElem> {
