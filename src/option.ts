@@ -74,6 +74,26 @@ class QueueImpl<TElem> implements Queue<TElem>
     map<TNew>(f: (TElem) => TNew): Queue<TNew> {
         return new QueueImpl<TNew>(this.pushStack.map<TNew>((value) => f(value)), this.popStack.map<TNew>((value) => f(value)));
     }
+    find(f: (TElem) => boolean): Option<TElem> {
+        for (let i = this.popStack.length - 1; i >= 0; --i)
+            if (f(this.popStack[i])) return Some<TElem>(this.popStack[i]);
+        for (let i = 0; i < this.pushStack.length; ++i)
+            if (f(this.pushStack[i])) return Some<TElem>(this.pushStack[i]);
+        return None<TElem>();
+    }
+    extract(f: (TElem) => boolean): Option<TElem> {
+        for (let i = this.popStack.length - 1; i >= 0; --i)
+            if (f(this.popStack[i]))
+                return Some<TElem>(
+                    this.popStack.splice(i, 1)[0]
+                );
+        for (let i = 0; i < this.pushStack.length; ++i)
+            if (f(this.pushStack[i]))
+                return Some<TElem>(
+                    this.pushStack.splice(i, 1)[0]
+                );
+        return None<TElem>();
+    }
 }
 
 export function makeQueue<TElem>(pushStack: TElem[], popStack: TElem[] = []): Queue<TElem> {

@@ -73,6 +73,24 @@ var QueueImpl = (function () {
     QueueImpl.prototype.map = function (f) {
         return new QueueImpl(this.pushStack.map(function (value) { return f(value); }), this.popStack.map(function (value) { return f(value); }));
     };
+    QueueImpl.prototype.find = function (f) {
+        for (var i = this.popStack.length - 1; i >= 0; --i)
+            if (f(this.popStack[i]))
+                return Some(this.popStack[i]);
+        for (var i = 0; i < this.pushStack.length; ++i)
+            if (f(this.pushStack[i]))
+                return Some(this.pushStack[i]);
+        return None();
+    };
+    QueueImpl.prototype.extract = function (f) {
+        for (var i = this.popStack.length - 1; i >= 0; --i)
+            if (f(this.popStack[i]))
+                return Some(this.popStack.splice(i, 1)[0]);
+        for (var i = 0; i < this.pushStack.length; ++i)
+            if (f(this.pushStack[i]))
+                return Some(this.pushStack.splice(i, 1)[0]);
+        return None();
+    };
     return QueueImpl;
 }());
 function makeQueue(pushStack, popStack) {

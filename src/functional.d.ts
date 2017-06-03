@@ -20,6 +20,8 @@ declare interface Queue<TElem> {
     count(f: (TElem) => boolean): number;
     filter(f: (TElem) => boolean): Queue<TElem>;
     map<TNew>(f: (TElem) => TNew): Queue<TNew>;
+    find(f: (TElem) => boolean): Option<TElem>;
+    extract(f: (TElem) => boolean): Option<TElem>;
 }
 
 declare interface PQEntry<TElem> {
