@@ -40,6 +40,14 @@ class SpawnWrapper implements StructureWrapper {
                 return;
             }
         }
+
+        pv.requestResourceReceive(
+            this.structure.room.name,
+            this.structure.id,
+            false,
+            RESOURCE_ENERGY,
+            this.structure.energyCapacity - this.structure.energy
+        );
     }
 }
 

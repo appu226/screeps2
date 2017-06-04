@@ -118,6 +118,7 @@ var UpgraderCreepWrapper = (function () {
                 throw new Error(creep.name + " upgrading " + roomName + " failed with code " + upgradeResult + ".");
             }
         }
+        pv.requestResourceReceive(this.creep.room.name, this.creep.id, true, RESOURCE_ENERGY, this.creep.carryCapacity - this.creep.carry.energy);
     };
     UpgraderCreepWrapper.prototype.pushEfficiency = function (efficiency) {
         pushEfficiency(this.memory, efficiency);
@@ -368,6 +369,7 @@ var BuilderCreepWrapper = (function () {
             this.pushEfficiency(0);
             this.memory.constructionSiteId = o.None();
         }
+        pv.requestResourceReceive(this.creep.room.name, this.creep.id, true, RESOURCE_ENERGY, this.creep.carryCapacity - this.creep.carry.energy);
     };
     BuilderCreepWrapper.prototype.pushEfficiency = function (efficiency) {
         pushEfficiency(this.memory, efficiency);
@@ -463,6 +465,7 @@ var HarvesterCreepWrapper = (function () {
                 pv.scheduleCreep(this.creep.room.name, pv.CREEP_TYPE_TRANSPORTER + "_" + this.creep.room.name, pv.CREEP_TYPE_TRANSPORTER, .5);
             }
         }
+        pv.requestResourceSend(this.creep.room.name, this.creep.id, true, RESOURCE_ENERGY, this.creep.carry.energy);
     };
     HarvesterCreepWrapper.prototype.pushEfficiency = function (efficiency) {
         pushEfficiency(this.memory, efficiency);

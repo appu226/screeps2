@@ -103,14 +103,14 @@ class UpgraderCreepWrapper implements CreepWrapper {
     process(pv: Paraverse) {
         let roomName = this.memory.roomName;
         let room = Game.rooms[roomName];
-        if(room === undefined) {
+        if (room === undefined) {
             this.pushEfficiency(0);
             throw new Error(`${this.creep.name} could not find room ${roomName}`);
         }
         let creep = this.creep;
         let controller = room.controller;
         let upgradeResult = creep.upgradeController(controller);
-        switch(upgradeResult) {
+        switch (upgradeResult) {
             case OK: {
                 this.pushEfficiency(1);
                 break;
@@ -128,6 +128,13 @@ class UpgraderCreepWrapper implements CreepWrapper {
                 throw new Error(`${creep.name} upgrading ${roomName} failed with code ${upgradeResult}.`);
             }
         }
+        pv.requestResourceReceive(
+            this.creep.room.name,
+            this.creep.id,
+            true,
+            RESOURCE_ENERGY,
+            this.creep.carryCapacity - this.creep.carry.energy
+        );
     }
 
     pushEfficiency(efficiency: number): void {
@@ -189,7 +196,7 @@ class TransporterCreepWrapper implements CreepWrapper {
     }
 
     process(pv: Paraverse) {
-        switch(this.memory.status) {
+        switch (this.memory.status) {
             case "free": return this.free(pv);
             case "collecting": return this.collecting(pv);
             case "transporting": return this.transporting(pv);
@@ -206,14 +213,14 @@ class TransporterCreepWrapper implements CreepWrapper {
         let creep = this.creep;
         let terrain = pv.getTerrainWithStructures(creep.room);
         let validMoves: XY[] = [];
-        let checkForObstacle = function(dx: number, dy: number): boolean {
+        let checkForObstacle = function (dx: number, dy: number): boolean {
             let x = creep.pos.x + dx;
             let y = creep.pos.y + dy;
             if (x < 0 || x > 49 || y < 0 || y > 49) return true;
             if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP) {
                 return true;
             }
-            validMoves.push({x: x, y: y});
+            validMoves.push({ x: x, y: y });
             return false;
         };
         let downObs = checkForObstacle(0, 1);
@@ -221,8 +228,8 @@ class TransporterCreepWrapper implements CreepWrapper {
         let rightObs = checkForObstacle(1, 0);
         let upObs = checkForObstacle(0, -1);
         let nextToObstacle: boolean = upObs || downObs || leftObs || rightObs;
-            
-        if(nextToObstacle && validMoves.length > 0) {
+
+        if (nextToObstacle && validMoves.length > 0) {
             let randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
             let newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);
             moveCreep(this, newPos, pv);
@@ -234,8 +241,8 @@ class TransporterCreepWrapper implements CreepWrapper {
         let creep = this.creep;
         let memory = this.memory;
         let collectionStatus: number = 0;
-        let sourceObject: Creep|Structure = null;
-        switch(memory.sourceType) {
+        let sourceObject: Creep | Structure = null;
+        switch (memory.sourceType) {
             case "creep": {
                 let sourceCreep = pv.game.getObjectById<Creep>(memory.sourceId);
                 collectionStatus = sourceCreep.transfer(creep, memory.resourceType);
@@ -253,7 +260,7 @@ class TransporterCreepWrapper implements CreepWrapper {
                 throw new Error(`Unexpected sourceType "${memory.sourceType}", expecting "creep" or "structure"`);
             }
         }
-        switch(collectionStatus) {
+        switch (collectionStatus) {
             case ERR_NOT_IN_RANGE: {
                 this.pushEfficiency(
                     moveCreep(this, sourceObject.pos, pv) ? 1 : 0
@@ -263,7 +270,7 @@ class TransporterCreepWrapper implements CreepWrapper {
             case ERR_NOT_ENOUGH_ENERGY:
             case ERR_NOT_ENOUGH_RESOURCES:
             case OK: {
-                if(creep.carry[memory.resourceType] > 0) {
+                if (creep.carry[memory.resourceType] > 0) {
                     pv.log.debug(`${creep.name} status changing to transporting.`);
                     memory.status = "transporting";
                     this.pushEfficiency(1);
@@ -286,7 +293,7 @@ class TransporterCreepWrapper implements CreepWrapper {
             this.pushEfficiency(1);
             return;
         }
-        let destination = pv.game.getObjectById<Creep|Structure>(memory.destinationId);
+        let destination = pv.game.getObjectById<Creep | Structure>(memory.destinationId);
         let transferResult = creep.transfer(destination, memory.resourceType);
         if (transferResult == ERR_NOT_IN_RANGE) {
             this.pushEfficiency(moveCreep(this, destination.pos, pv) ? 1 : 0);
@@ -407,6 +414,14 @@ class BuilderCreepWrapper implements CreepWrapper {
             this.pushEfficiency(0);
             this.memory.constructionSiteId = o.None<string>();
         }
+
+        pv.requestResourceReceive(
+            this.creep.room.name,
+            this.creep.id,
+            true,
+            RESOURCE_ENERGY,
+            this.creep.carryCapacity - this.creep.carry.energy
+        );
     }
 
     pushEfficiency(efficiency: number): void {
@@ -515,6 +530,13 @@ class HarvesterCreepWrapper implements CreepWrapper {
                 pv.scheduleCreep(this.creep.room.name, `${pv.CREEP_TYPE_TRANSPORTER}_${this.creep.room.name}`, pv.CREEP_TYPE_TRANSPORTER, .5);
             }
         }
+        pv.requestResourceSend(
+            this.creep.room.name,
+            this.creep.id,
+            true,
+            RESOURCE_ENERGY,
+            this.creep.carry.energy
+        );
     }
 
     pushEfficiency(efficiency: number): void {
