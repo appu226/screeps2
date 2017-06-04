@@ -63,6 +63,7 @@ class ParaverseImpl implements Paraverse {
     CREEP_TYPE_HARVESTER: string;
     CREEP_TYPE_TRANSPORTER: string;
     CREEP_TYPE_UPGRADER: string;
+    CREEP_TYPE_FOREIGNER: string;
 
     TERRAIN_CODE_PLAIN: number;
     TERRAIN_CODE_SWAMP: number;
@@ -103,6 +104,7 @@ class ParaverseImpl implements Paraverse {
         this.CREEP_TYPE_HARVESTER = "harvester";
         this.CREEP_TYPE_TRANSPORTER = "transporter";
         this.CREEP_TYPE_UPGRADER = "upgrader";
+        this.CREEP_TYPE_FOREIGNER = "foreigner";
 
         this.TERRAIN_CODE_PLAIN = 0;
         this.TERRAIN_CODE_SWAMP = TERRAIN_MASK_SWAMP;

@@ -6,6 +6,8 @@ export function moveCreep(cw: CreepWrapper, pos: RoomPosition, pv: Paraverse): b
 }
 
 export function makeCreepWrapper(c: Creep, pv: Paraverse): CreepWrapper {
+    if (!c.my)
+        return new MiscCreepWrapper(c, pv.CREEP_TYPE_FOREIGNER);
     switch ((<CreepMemory>c.memory).creepType) {
         case pv.CREEP_TYPE_BUILDER:
             return new BuilderCreepWrapper(c, pv);

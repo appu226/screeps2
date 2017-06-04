@@ -5,6 +5,8 @@ function moveCreep(cw, pos, pv) {
 }
 exports.moveCreep = moveCreep;
 function makeCreepWrapper(c, pv) {
+    if (!c.my)
+        return new MiscCreepWrapper(c, pv.CREEP_TYPE_FOREIGNER);
     switch (c.memory.creepType) {
         case pv.CREEP_TYPE_BUILDER:
             return new BuilderCreepWrapper(c, pv);

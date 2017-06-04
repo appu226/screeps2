@@ -45,6 +45,7 @@ declare interface Paraverse {
     CREEP_TYPE_HARVESTER: string;
     CREEP_TYPE_TRANSPORTER: string;
     CREEP_TYPE_UPGRADER: string;
+    CREEP_TYPE_FOREIGNER: string;
 
     TERRAIN_CODE_PLAIN: number;
     TERRAIN_CODE_SWAMP: number;
