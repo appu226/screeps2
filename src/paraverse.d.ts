@@ -17,7 +17,6 @@ declare interface Paraverse {
     getCreepOrders(roomName: string): PQ<CreepOrder>;
     scheduleCreep(roomName: string, orderName: string, creepType: string, priority: number): void;
     removeCreepOrder(roomName: string, orderName: string): void;
-    deprioritizeTopOrder(roomName: string, orderName: string, energyDeficit: number): void;
 
     requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
     requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;

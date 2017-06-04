@@ -16,10 +16,7 @@ var SpawnWrapper = (function () {
             var order = topOrder.get;
             var minEnergy = order.basicBody.map(function (bp) { return BODYPART_COST[bp]; }).reduce(function (p, c) { return p + c; }, 0);
             var avblEnergy = me.room.energyAvailable;
-            if (minEnergy > avblEnergy) {
-                pv.deprioritizeTopOrder(me.room.name, order.orderName, minEnergy - avblEnergy);
-            }
-            else {
+            if (avblEnergy >= minEnergy) {
                 for (var x = 0; minEnergy + BODYPART_COST[order.addOnBody[x]] <= Math.min(order.maxEnergy, avblEnergy); x = (x + 1) % order.addOnBody.length) {
                     order.basicBody.push(order.addOnBody[x]);
                 }

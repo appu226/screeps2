@@ -20,9 +20,7 @@ class SpawnWrapper implements StructureWrapper {
             let order = topOrder.get;
             let minEnergy = order.basicBody.map(bp => BODYPART_COST[bp]).reduce<number>((p, c) => p + c, 0);
             let avblEnergy = me.room.energyAvailable;
-            if (minEnergy > avblEnergy) {
-                pv.deprioritizeTopOrder(me.room.name, order.orderName, minEnergy - avblEnergy);
-            } else {
+            if (avblEnergy >= minEnergy) {
                 for (
                     let x = 0;
                     minEnergy + BODYPART_COST[order.addOnBody[x]] <= Math.min(order.maxEnergy, avblEnergy);

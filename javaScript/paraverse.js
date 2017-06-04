@@ -147,12 +147,6 @@ var ParaverseImpl = (function () {
             pq.pop();
         }
     };
-    ParaverseImpl.prototype.deprioritizeTopOrder = function (roomName, orderName, energyDeficit) {
-        var pq = this.getCreepOrders(roomName);
-        var matchingOrders = this.memory.creepOrders[roomName].filter(function (pqe) { return pqe.elem.orderName == orderName; }).forEach(function (pqe) {
-            pq.prioritize(pqe.index, pqe.priority - energyDeficit / 10.0 / 100.0);
-        });
-    };
     ParaverseImpl.prototype.requestResourceReceive = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
         mrr.pushResourceRequest(this.memory.resourceReceiveRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.numTransportersReceivingFrom(requestorId, resourceType), this);
     };

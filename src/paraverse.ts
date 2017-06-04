@@ -240,16 +240,6 @@ class ParaverseImpl implements Paraverse {
         }
     }
 
-    deprioritizeTopOrder(roomName: string, orderName: string, energyDeficit: number): void {
-        let pq = this.getCreepOrders(roomName);
-        let matchingOrders =
-            this.memory.creepOrders[roomName].filter(
-                (pqe) => pqe.elem.orderName == orderName
-            ).forEach((pqe) => {
-                pq.prioritize(pqe.index, pqe.priority - energyDeficit / 10.0 / 100.0);
-            });
-    }
-
     requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void {
         mrr.pushResourceRequest(
             this.memory.resourceReceiveRequests,
