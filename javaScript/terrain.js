@@ -14,3 +14,14 @@ function terrainStringToCode(terrain, pv) {
     }
 }
 exports.terrainStringToCode = terrainStringToCode;
+function euclidean(p1, p2, pv) {
+    if (p1.roomName == p2.roomName) {
+        var dx = p1.x - p2.x;
+        var dy = p1.y - p2.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    else {
+        return pv.map.getRoomLinearDistance(p1.roomName, p2.roomName) * 50 * Math.sqrt(2);
+    }
+}
+exports.euclidean = euclidean;

@@ -16,5 +16,7 @@ export function loop(): void {
     var creeps = pv.getMyCreeps();
     creeps.forEach((c) => o.tryCatch(() => c.process(pv), `processing structure ${c.creep.name}`));
 
+    o.tryCatch(() => pv.manageSupplyAndDemand(), `managing supply and demand.`);
+
     pv.log.debug("Completed main loop.");
 }

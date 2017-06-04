@@ -7,6 +7,7 @@ var o = require("./option");
 var mlogger = require("./logger");
 var mroom = require("./room");
 var mterrain = require("./terrain");
+var mrr = require("./resourceRequest");
 function makeParaverse(game, map, memory) {
     var paraMemory = memory;
     if (paraMemory.logLevel === undefined)
@@ -23,6 +24,10 @@ function makeParaverse(game, map, memory) {
         paraMemory.sourceMemories = {};
     if (paraMemory.uid === undefined)
         paraMemory.uid = game.time;
+    if (paraMemory.resourceSendRequests === undefined)
+        paraMemory.resourceSendRequests = { pushStack: [], popStack: [] };
+    if (paraMemory.resourceReceiveRequests === undefined)
+        paraMemory.resourceReceiveRequests = { pushStack: [], popStack: [] };
     return new ParaverseImpl(game, map, paraMemory);
 }
 exports.makeParaverse = makeParaverse;
@@ -55,6 +60,7 @@ var ParaverseImpl = (function () {
         this.STRUCTURE_CODE_RAMPART = 1006;
         this.STRUCTURE_CODE_KEEPER_LAIR = 1007;
         this.STRUCTURE_CODE_CONTROLLER = 1008;
+        this.DELIVERY_AMOUNT = 50;
         this.bodyPartPriority = {};
         this.bodyPartPriority[MOVE] = 1;
         this.bodyPartPriority[HEAL] = 0;
@@ -145,6 +151,57 @@ var ParaverseImpl = (function () {
         var matchingOrders = this.memory.creepOrders[roomName].filter(function (pqe) { return pqe.elem.orderName == orderName; }).forEach(function (pqe) {
             pq.prioritize(pqe.index, pqe.priority - energyDeficit / 10.0 / 100.0);
         });
+    };
+    ParaverseImpl.prototype.requestResourceReceive = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
+        mrr.pushResourceRequest(this.memory.resourceReceiveRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.numTransportersReceivingFrom(requestorId, resourceType), this);
+    };
+    ParaverseImpl.prototype.requestResourceSend = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
+        mrr.pushResourceRequest(this.memory.resourceSendRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.numTransportersSendingTo(requestorId, resourceType), this);
+    };
+    ParaverseImpl.prototype.numTransportersReceivingFrom = function (requestorId, resourceType) {
+        var _this = this;
+        return this.getMyCreeps().filter(function (cw) { return creep.isTransporterReceivingFrom(cw, requestorId, resourceType, _this); }).length;
+    };
+    ParaverseImpl.prototype.numTransportersSendingTo = function (requestorId, resourceType) {
+        var _this = this;
+        return this.getMyCreeps().filter(function (cw) { return creep.isTransporterSendingTo(cw, requestorId, resourceType, _this); }).length;
+    };
+    ParaverseImpl.prototype.getReceiveRequests = function () {
+        var queueData = this.memory.resourceReceiveRequests;
+        return o.makeQueue(queueData.pushStack, queueData.popStack);
+    };
+    ParaverseImpl.prototype.getSendRequests = function () {
+        var queueData = this.memory.resourceSendRequests;
+        return o.makeQueue(queueData.pushStack, queueData.popStack);
+    };
+    ParaverseImpl.prototype.manageSupplyAndDemand = function () {
+        var _this = this;
+        var receiveRequests = this.getReceiveRequests();
+        var sendRequests = this.getSendRequests();
+        var _loop_1 = function (isr) {
+            var sr = sendRequests.pop().get;
+            var isRequestAssigned = false; // parameter to track whether request has been assigned to a transporter
+            var destination = this_1.game.getObjectById(sr.requestorId);
+            var freeTransporters = this_1.getMyCreeps().filter(function (cw) { return creep.isFreeTransporter(cw, _this); });
+            var closestTransporter = o.maxBy(freeTransporters, function (cw) { return mterrain.euclidean(cw.creep.pos, destination.pos, _this) * -1; });
+            if (closestTransporter.isPresent) {
+                var rro = receiveRequests.extract(function (rr) { return rr.resourceType == sr.resourceType; });
+                if (rro.isPresent) {
+                    creep.assignTransporter(closestTransporter.get.elem, sr, rro.get, this_1);
+                    isRequestAssigned = true;
+                }
+            }
+            //if request could not be assigned, push it back into the queue
+            if (!isRequestAssigned)
+                sendRequests.push(sr);
+        };
+        var this_1 = this;
+        //go through the entire sendRequest queue, popping every request
+        //requests that cannot be satisfied get pushed back into the queue
+        //FIFO behavior guarantees that order of unsatisfied requests is preserved
+        for (var isr = sendRequests.length(); isr > 0; --isr) {
+            _loop_1(isr);
+        }
     };
     ParaverseImpl.prototype.getTerrain = function (room) {
         var _this = this;

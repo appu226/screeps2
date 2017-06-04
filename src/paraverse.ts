@@ -6,6 +6,7 @@ import o = require('./option');
 import mlogger = require('./logger');
 import mroom = require('./room');
 import mterrain = require('./terrain');
+import mrr = require('./resourceRequest');
 
 interface ParaMemory extends Memory {
     logLevel: number;
@@ -15,6 +16,8 @@ interface ParaMemory extends Memory {
     plannedConstructionSites: Dictionary<PlannedConstructionSite[]>;
     sourceMemories: Dictionary<SourceMemory>;
     uid: number;
+    resourceSendRequests: QueueData<ResourceRequest>;
+    resourceReceiveRequests: QueueData<ResourceRequest>;
 }
 
 export function makeParaverse(
@@ -30,6 +33,9 @@ export function makeParaverse(
     if (paraMemory.plannedConstructionSites === undefined) paraMemory.plannedConstructionSites = {};
     if (paraMemory.sourceMemories === undefined) paraMemory.sourceMemories = {};
     if (paraMemory.uid === undefined) paraMemory.uid = game.time;
+    if (paraMemory.resourceSendRequests === undefined) paraMemory.resourceSendRequests = { pushStack: [], popStack: [] };
+    if (paraMemory.resourceReceiveRequests === undefined) paraMemory.resourceReceiveRequests = { pushStack: [], popStack: [] };
+
     return new ParaverseImpl(game, map, paraMemory);
 }
 
@@ -73,6 +79,8 @@ class ParaverseImpl implements Paraverse {
     STRUCTURE_CODE_KEEPER_LAIR: number;
     STRUCTURE_CODE_CONTROLLER: number;
 
+    DELIVERY_AMOUNT: number;
+
     constructionSiteCache: Dictionary<ConstructionSite[]>;
 
     constructor(
@@ -110,6 +118,8 @@ class ParaverseImpl implements Paraverse {
         this.STRUCTURE_CODE_RAMPART = 1006;
         this.STRUCTURE_CODE_KEEPER_LAIR = 1007;
         this.STRUCTURE_CODE_CONTROLLER = 1008;
+
+        this.DELIVERY_AMOUNT = 50;
 
 
         this.bodyPartPriority = {};
@@ -221,7 +231,7 @@ class ParaverseImpl implements Paraverse {
         let pq = this.getCreepOrders(roomName);
         let creepOrders = this.memory.creepOrders[roomName];
         let elems = creepOrders.filter(pqe => pqe.elem.orderName == orderName)
-        if(elems.length > 0) {
+        if (elems.length > 0) {
             let idx = elems[0].index;
             pq.prioritize(idx, creepOrders[0].priority + 1);
             pq.pop();
@@ -236,6 +246,71 @@ class ParaverseImpl implements Paraverse {
             ).forEach((pqe) => {
                 pq.prioritize(pqe.index, pqe.priority - energyDeficit / 10.0 / 100.0);
             });
+    }
+
+    requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void {
+        mrr.pushResourceRequest(
+            this.memory.resourceReceiveRequests,
+            roomName,
+            requestorId, isRequestorCreep,
+            resourceType, amount,
+            this.numTransportersReceivingFrom(requestorId, resourceType),
+            this);
+    }
+
+    requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void {
+        mrr.pushResourceRequest(
+            this.memory.resourceSendRequests,
+            roomName,
+            requestorId, isRequestorCreep,
+            resourceType, amount,
+            this.numTransportersSendingTo(requestorId, resourceType),
+            this);
+    }
+
+    numTransportersReceivingFrom(requestorId: string, resourceType: string): number {
+        return this.getMyCreeps().filter((cw: CreepWrapper) => creep.isTransporterReceivingFrom(cw, requestorId, resourceType, this)).length;
+    }
+
+    numTransportersSendingTo(requestorId: string, resourceType: string): number {
+        return this.getMyCreeps().filter((cw: CreepWrapper) => creep.isTransporterSendingTo(cw, requestorId, resourceType, this)).length;
+    }
+
+    getReceiveRequests(): Queue<ResourceRequest> {
+        let queueData = this.memory.resourceReceiveRequests;
+        return o.makeQueue<ResourceRequest>(queueData.pushStack, queueData.popStack);
+    }
+
+    getSendRequests(): Queue<ResourceRequest> {
+        let queueData = this.memory.resourceSendRequests;
+        return o.makeQueue<ResourceRequest>(queueData.pushStack, queueData.popStack);
+    }
+
+    manageSupplyAndDemand(): void {
+        let receiveRequests = this.getReceiveRequests();
+        let sendRequests = this.getSendRequests();
+        //go through the entire sendRequest queue, popping every request
+        //requests that cannot be satisfied get pushed back into the queue
+        //FIFO behavior guarantees that order of unsatisfied requests is preserved
+        for (let isr = sendRequests.length(); isr > 0; --isr) {
+            let sr = sendRequests.pop().get;
+            let isRequestAssigned = false; // parameter to track whether request has been assigned to a transporter
+            let destination = this.game.getObjectById<RoomObject>(sr.requestorId);
+            let freeTransporters = this.getMyCreeps().filter((cw: CreepWrapper) => creep.isFreeTransporter(cw, this));
+            let closestTransporter = o.maxBy<CreepWrapper>(freeTransporters, (cw: CreepWrapper) => mterrain.euclidean(cw.creep.pos, destination.pos, this) * -1);
+            if (closestTransporter.isPresent) {
+                let rro = receiveRequests.extract((rr: ResourceRequest) => rr.resourceType == sr.resourceType);
+                if (rro.isPresent) {
+                    creep.assignTransporter(closestTransporter.get.elem, sr, rro.get, this);
+                    isRequestAssigned = true;
+                }
+            }
+
+            //if request could not be assigned, push it back into the queue
+            if (!isRequestAssigned)
+                sendRequests.push(sr);
+        }
+
     }
 
     getTerrain(room: Room): number[][] {
@@ -255,7 +330,7 @@ class ParaverseImpl implements Paraverse {
             });
             for (let r = 0; r < 50; ++r) {
                 for (let c = 0; c < 50; ++c) {
-                    if(result[r][c] == -1)
+                    if (result[r][c] == -1)
                         throw new Error(`result[${r}][${c}] not set correctly.`);
                 }
             }
@@ -298,7 +373,7 @@ class ParaverseImpl implements Paraverse {
             eligiblePlans,
             (pcs: PlannedConstructionSite) => getPlannedConstructionSitePriority(pcs.structureType, this)
         );
-        if(bestPcsO.isPresent) {
+        if (bestPcsO.isPresent) {
             let bestPcs = bestPcsO.get.elem;
             room.createConstructionSite(bestPcs.x, bestPcs.y, bestPcs.structureType);
         }
@@ -322,7 +397,7 @@ function isEligibleCodeForBuilding(code: number, pv: Paraverse): boolean {
 }
 
 function getPlannedConstructionSitePriority(structureType: string, pv: Paraverse): number {
-    switch(structureType) {
+    switch (structureType) {
         case STRUCTURE_TOWER: return 100;
         case STRUCTURE_WALL: return 99;
         case STRUCTURE_ROAD: return 98;

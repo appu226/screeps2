@@ -19,6 +19,10 @@ declare interface Paraverse {
     removeCreepOrder(roomName: string, orderName: string): void;
     deprioritizeTopOrder(roomName: string, orderName: string, energyDeficit: number): void;
 
+    requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
+    requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
+    manageSupplyAndDemand(): void;
+
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
     getTerrain(room: Room): number[][];
     getTerrainWithStructures(room: Room): number[][];
@@ -56,6 +60,8 @@ declare interface Paraverse {
     STRUCTURE_CODE_RAMPART: number;
     STRUCTURE_CODE_KEEPER_LAIR: number;
     STRUCTURE_CODE_CONTROLLER: number;
+
+    DELIVERY_AMOUNT: number;
 }
 
 declare interface Logger {
@@ -120,4 +126,11 @@ declare interface PlannedConstructionSite {
 declare interface XY{
     x: number;
     y: number;
+}
+
+declare interface ResourceRequest {
+    roomName: string;
+    requestorId: string;
+    isRequestorCreep: boolean;
+    resourceType: string;
 }

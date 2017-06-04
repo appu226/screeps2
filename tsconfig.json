@@ -21,6 +21,7 @@
         "src/option.ts",
         "src/paraverse.d.ts",
         "src/paraverse.ts",
+        "src/resourceRequest.ts",
         "src/room.ts",
         "src/screeps.d.ts",
         "src/source.ts",

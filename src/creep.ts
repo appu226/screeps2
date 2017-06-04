@@ -307,6 +307,39 @@ class TransporterCreepWrapper implements CreepWrapper {
     }
 }
 
+export function isTransporterReceivingFrom(creepWrapper: CreepWrapper, sourceId: string, resourceType: string, pv: Paraverse): boolean {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        return false;
+    let tcw = <TransporterCreepWrapper>creepWrapper;
+    return (tcw.memory.sourceId == sourceId && tcw.memory.resourceType == resourceType);
+}
+
+export function isTransporterSendingTo(creepWrapper: CreepWrapper, destinationId: string, resourceType: string, pv: Paraverse): boolean {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        return false;
+    let tcw = <TransporterCreepWrapper>creepWrapper;
+    return (tcw.memory.destinationId == destinationId && tcw.memory.resourceType == resourceType);
+}
+
+export function isFreeTransporter(creepWrapper: CreepWrapper, pv: Paraverse): boolean {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        return false;
+    let tcw = <TransporterCreepWrapper>creepWrapper;
+    return tcw.memory.status == "free";
+}
+
+export function assignTransporter(creepWrapper: CreepWrapper, sourceRequest: ResourceRequest, destinationRequest: ResourceRequest, pv: Paraverse): void {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        throw new Error(`assignTransporter: expected creep wrapper with type CREEP_TYPE_TRANSPORTER (${pv.CREEP_TYPE_TRANSPORTER}), got ${creepWrapper.creepType}`);
+    let tcw = <TransporterCreepWrapper>creepWrapper;
+    tcw.memory.destinationId = destinationRequest.requestorId;
+    tcw.memory.destinationType = destinationRequest.isRequestorCreep ? "creep" : "structure";
+    tcw.memory.resourceType = sourceRequest.resourceType;
+    tcw.memory.sourceId = sourceRequest.requestorId;
+    tcw.memory.sourceType = sourceRequest.isRequestorCreep ? "creep" : "structure";
+    tcw.memory.status = "collecting";
+}
+
 //---------------- BUILDER --------------------------
 function makeBuilderOrder(orderName: string, pv: Paraverse): CreepOrder {
     return {

@@ -275,6 +275,39 @@ var TransporterCreepWrapper = (function () {
     };
     return TransporterCreepWrapper;
 }());
+function isTransporterReceivingFrom(creepWrapper, sourceId, resourceType, pv) {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        return false;
+    var tcw = creepWrapper;
+    return (tcw.memory.sourceId == sourceId && tcw.memory.resourceType == resourceType);
+}
+exports.isTransporterReceivingFrom = isTransporterReceivingFrom;
+function isTransporterSendingTo(creepWrapper, destinationId, resourceType, pv) {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        return false;
+    var tcw = creepWrapper;
+    return (tcw.memory.destinationId == destinationId && tcw.memory.resourceType == resourceType);
+}
+exports.isTransporterSendingTo = isTransporterSendingTo;
+function isFreeTransporter(creepWrapper, pv) {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        return false;
+    var tcw = creepWrapper;
+    return tcw.memory.status == "free";
+}
+exports.isFreeTransporter = isFreeTransporter;
+function assignTransporter(creepWrapper, sourceRequest, destinationRequest, pv) {
+    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
+        throw new Error("assignTransporter: expected creep wrapper with type CREEP_TYPE_TRANSPORTER (" + pv.CREEP_TYPE_TRANSPORTER + "), got " + creepWrapper.creepType);
+    var tcw = creepWrapper;
+    tcw.memory.destinationId = destinationRequest.requestorId;
+    tcw.memory.destinationType = destinationRequest.isRequestorCreep ? "creep" : "structure";
+    tcw.memory.resourceType = sourceRequest.resourceType;
+    tcw.memory.sourceId = sourceRequest.requestorId;
+    tcw.memory.sourceType = sourceRequest.isRequestorCreep ? "creep" : "structure";
+    tcw.memory.status = "collecting";
+}
+exports.assignTransporter = assignTransporter;
 //---------------- BUILDER --------------------------
 function makeBuilderOrder(orderName, pv) {
     return {
