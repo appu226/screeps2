@@ -32,6 +32,7 @@ declare interface Paraverse {
     constructNextSite(room: Room): void;
 
     isHarvesterWithSource(creepWrapper: CreepWrapper, sourceId: string): boolean;
+    getTransporterEfficiency(room: Room): number;
 
     getUid(): number;
 

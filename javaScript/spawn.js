@@ -18,7 +18,6 @@ var SpawnWrapper = (function () {
             var avblEnergy = me.room.energyAvailable;
             if (minEnergy > avblEnergy) {
                 pv.deprioritizeTopOrder(me.room.name, order.orderName, minEnergy - avblEnergy);
-                return;
             }
             else {
                 for (var x = 0; minEnergy + BODYPART_COST[order.addOnBody[x]] <= Math.min(order.maxEnergy, avblEnergy); x = (x + 1) % order.addOnBody.length) {
@@ -30,7 +29,6 @@ var SpawnWrapper = (function () {
                 pv.log.debug("Spawn " + me.id + " scheduling " + order.basicBody + " for cost " + minEnergy);
                 var result = me.createCreep(order.basicBody, order.name, order.memory);
                 pv.log.debug("with result " + result);
-                return;
             }
         }
         pv.requestResourceReceive(this.structure.room.name, this.structure.id, false, RESOURCE_ENERGY, this.structure.energyCapacity - this.structure.energy);

@@ -22,7 +22,6 @@ class SpawnWrapper implements StructureWrapper {
             let avblEnergy = me.room.energyAvailable;
             if (minEnergy > avblEnergy) {
                 pv.deprioritizeTopOrder(me.room.name, order.orderName, minEnergy - avblEnergy);
-                return;
             } else {
                 for (
                     let x = 0;
@@ -37,7 +36,6 @@ class SpawnWrapper implements StructureWrapper {
                 pv.log.debug(`Spawn ${me.id} scheduling ${order.basicBody} for cost ${minEnergy}`)
                 let result = me.createCreep(order.basicBody, order.name, order.memory);
                 pv.log.debug(`with result ${result}`);
-                return;
             }
         }
 

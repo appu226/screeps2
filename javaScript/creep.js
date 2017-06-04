@@ -464,7 +464,6 @@ var HarvesterCreepWrapper = (function () {
                         moveCreep(this, spawn.pos, pv);
                     }
                 }
-                pv.scheduleCreep(this.creep.room.name, pv.CREEP_TYPE_TRANSPORTER + "_" + this.creep.room.name, pv.CREEP_TYPE_TRANSPORTER, .5);
             }
         }
         pv.requestResourceSend(this.creep.room.name, this.creep.id, true, RESOURCE_ENERGY, this.creep.carry.energy);

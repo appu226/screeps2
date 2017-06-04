@@ -392,6 +392,15 @@ class ParaverseImpl implements Paraverse {
         return creep.isHarvesterWithSource(creepWrapper, sourceId, this);
     }
 
+    getTransporterEfficiency(room: Room): number {
+        let ts = this.getMyCreeps().filter((cw) => cw.creepType == this.CREEP_TYPE_TRANSPORTER && cw.creep.room.name == room.name);
+        let efficiencies = ts.map((cw) => cw.getEfficiency());
+        if (efficiencies.length == 0)
+            return 1;
+        else
+            return o.sum(efficiencies) / efficiencies.length;
+    }
+
 }
 
 function isEligibleCodeForBuilding(code: number, pv: Paraverse): boolean {

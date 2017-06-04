@@ -529,7 +529,6 @@ class HarvesterCreepWrapper implements CreepWrapper {
                         moveCreep(this, spawn.pos, pv);
                     }
                 }
-                pv.scheduleCreep(this.creep.room.name, `${pv.CREEP_TYPE_TRANSPORTER}_${this.creep.room.name}`, pv.CREEP_TYPE_TRANSPORTER, .5);
             }
         }
         pv.requestResourceSend(

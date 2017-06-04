@@ -27,6 +27,9 @@ var RoomWrapperImpl = (function () {
                     pv.log.debug("Scheduled structure in room " + me.name);
                 }
             }
+            if (pv.getTransporterEfficiency(me) > .9) {
+                pv.scheduleCreep(me.name, "Transpoter_" + me.name, pv.CREEP_TYPE_TRANSPORTER, .1);
+            }
         }
     };
     return RoomWrapperImpl;

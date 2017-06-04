@@ -273,6 +273,15 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.isHarvesterWithSource = function (creepWrapper, sourceId) {
         return creep.isHarvesterWithSource(creepWrapper, sourceId, this);
     };
+    ParaverseImpl.prototype.getTransporterEfficiency = function (room) {
+        var _this = this;
+        var ts = this.getMyCreeps().filter(function (cw) { return cw.creepType == _this.CREEP_TYPE_TRANSPORTER && cw.creep.room.name == room.name; });
+        var efficiencies = ts.map(function (cw) { return cw.getEfficiency(); });
+        if (efficiencies.length == 0)
+            return 1;
+        else
+            return o.sum(efficiencies) / efficiencies.length;
+    };
     return ParaverseImpl;
 }());
 function isEligibleCodeForBuilding(code, pv) {
