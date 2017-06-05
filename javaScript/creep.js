@@ -26,8 +26,11 @@ function tokenize(comboString, delim) {
     var i = 0;
     var result = [];
     while (i < comboString.length) {
-        if (i == 0 || comboString[i] == delim[0]) {
+        if (comboString[i] == delim[0]) {
             result.push("");
+        }
+        else if (i == 0) {
+            result.push(comboString[i].toString());
         }
         else {
             result[result.length - 1] += comboString[i];

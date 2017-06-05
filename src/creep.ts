@@ -28,8 +28,10 @@ function tokenize(comboString: string, delim: string): string[] {
     let i = 0;
     let result: string[] = [];
     while (i < comboString.length) {
-        if (i == 0 || comboString[i] == delim[0]) {
+        if (comboString[i] == delim[0]) {
             result.push("");
+        } else if (i == 0) {
+            result.push(comboString[i].toString());
         } else {
             result[result.length - 1] += comboString[i];
         }
