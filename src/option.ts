@@ -340,3 +340,19 @@ export function tryCatch(f: () => void, action: string) {
         if (e.stack !== undefined) console.log(e.stack);
     }
 }
+
+export function tokenize(comboString: string, delim: string): string[] {
+    let i = 0;
+    let result: string[] = [];
+    while (i < comboString.length) {
+        if (comboString[i] == delim[0]) {
+            result.push("");
+        } else if (i == 0) {
+            result.push(comboString[i].toString());
+        } else {
+            result[result.length - 1] += comboString[i];
+        }
+        ++i;
+    }
+    return result;
+}

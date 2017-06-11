@@ -11,7 +11,7 @@ class ControllerWrapper implements StructureWrapper {
         if (!this.my) return;
         let roomName = this.structure.room.name;
         let upgraders = pv.getMyCreeps().filter(cw => cw.creepType == pv.CREEP_TYPE_UPGRADER && cw.creep.room.name == roomName);
-        let totalEfficiency = o.sum(upgraders.map(cw => cw.getEfficiency()));
+        let totalEfficiency = o.sum(upgraders.map(cw => pv.getEfficiency(cw.creep.memory)));
         if (totalEfficiency >= upgraders.length * 90.0 / 100.0) {
             pv.log.debug(`Scheduling upgrader for room ${roomName}`);
             pv.scheduleCreep(roomName, `Upgrader_${roomName}`, pv.CREEP_TYPE_UPGRADER, 2);

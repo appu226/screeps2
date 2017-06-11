@@ -1,6 +1,10 @@
 import dictionary = require('./dictionary');
 import mstructure = require('./structure');
-import creep = require('./creep');
+import mMiscCreep = require('./miscCreep');
+import mtransporter = require('./transporter');
+import mbuilder = require('./builder');
+import mharvester = require('./harvester');
+import mupgrader = require('./upgrader');
 import source = require('./source');
 import o = require('./option');
 import mlogger = require('./logger');
@@ -156,7 +160,7 @@ class ParaverseImpl implements Paraverse {
             room.find<Creep>(FIND_CREEPS).forEach(
                 (c) => {
                     o.tryCatch(
-                        () => { this.creepWrappers[c.id] = creep.makeCreepWrapper(c, pv); },
+                        () => { this.creepWrappers[c.id] = pv.makeCreepWrapper(c); },
                         `Creating wrapper for creep ${c.name}`
                     );
                 }
@@ -223,11 +227,22 @@ class ParaverseImpl implements Paraverse {
         if (this.memory.creepOrders[roomName].filter((pqe) => pqe.elem.orderName == orderName).length > 0) {
             return;
         } else {
-            let creepOrder: CreepOrder = creep.makeCreepOrder(orderName, creepType, this);
+            let creepOrder: CreepOrder = this.makeCreepOrder(orderName, creepType);
             pq.push(creepOrder, priority - this.game.time / 20.0);
             return;
         }
     }
+
+    makeCreepOrder(orderName: string, creepType: string): CreepOrder {
+    switch (creepType) {
+        case this.CREEP_TYPE_BUILDER: return mbuilder.makeBuilderOrder(orderName, this);
+        case this.CREEP_TYPE_HARVESTER: return mharvester.makeHarvesterOrder(orderName, o.tokenize(orderName, "_")[1], this);
+        case this.CREEP_TYPE_TRANSPORTER: return mtransporter.makeTransporterOrder(orderName, this);
+        case this.CREEP_TYPE_UPGRADER: return mupgrader.makeUpgraderOrder(orderName, o.tokenize(orderName, "_")[1], this);
+        default: throw new Error(`creep/makeCreepOrder: creepType ${creepType} not yet supported.`)
+    }
+}
+
 
     removeCreepOrder(roomName: string, orderName: string): void {
         let pq = this.getCreepOrders(roomName);
@@ -261,11 +276,11 @@ class ParaverseImpl implements Paraverse {
     }
 
     numTransportersReceivingFrom(requestorId: string, resourceType: string): number {
-        return this.getMyCreeps().filter((cw: CreepWrapper) => creep.isTransporterReceivingFrom(cw, requestorId, resourceType, this)).length;
+        return this.getMyCreeps().filter((cw: CreepWrapper) => mtransporter.isTransporterReceivingFrom(cw, requestorId, resourceType, this)).length;
     }
 
     numTransportersSendingTo(requestorId: string, resourceType: string): number {
-        return this.getMyCreeps().filter((cw: CreepWrapper) => creep.isTransporterSendingTo(cw, requestorId, resourceType, this)).length;
+        return this.getMyCreeps().filter((cw: CreepWrapper) => mtransporter.isTransporterSendingTo(cw, requestorId, resourceType, this)).length;
     }
 
     getReceiveRequests(): Queue<ResourceRequest> {
@@ -289,12 +304,12 @@ class ParaverseImpl implements Paraverse {
             let isRequestAssigned = false; // parameter to track whether request has been assigned to a transporter
             let destination = this.game.getObjectById<RoomObject>(sr.requestorId);
             if (destination != null) {
-                let freeTransporters = this.getMyCreeps().filter((cw: CreepWrapper) => creep.isFreeTransporter(cw, this));
+                let freeTransporters = this.getMyCreeps().filter((cw: CreepWrapper) => mtransporter.isFreeTransporter(cw, this));
                 let closestTransporter = o.maxBy<CreepWrapper>(freeTransporters, (cw: CreepWrapper) => mterrain.euclidean(cw.creep.pos, destination.pos, this) * -1);
                 if (closestTransporter.isPresent) {
                     let rro = receiveRequests.extract((rr: ResourceRequest) => rr.resourceType == sr.resourceType);
                     if (rro.isPresent) {
-                        creep.assignTransporter(closestTransporter.get.elem, sr, rro.get, this);
+                        mtransporter.assignTransporter(closestTransporter.get.elem, sr, rro.get, this);
                         isRequestAssigned = true;
                     }
                 }
@@ -380,17 +395,55 @@ class ParaverseImpl implements Paraverse {
         return ++(this.memory.uid);
     }
 
+    moveCreep(cw: CreepWrapper, pos: RoomPosition): boolean {
+        return cw.creep.moveTo(pos) == OK;
+    }
+
+    makeCreepWrapper(c: Creep): CreepWrapper {
+        if (!c.my)
+            return new mMiscCreep.MiscCreepWrapper(c, this.CREEP_TYPE_FOREIGNER);
+        switch ((<CreepMemory>c.memory).creepType) {
+            case this.CREEP_TYPE_BUILDER:
+                return new mbuilder.BuilderCreepWrapper(c, this);
+            case this.CREEP_TYPE_HARVESTER:
+                return new mharvester.HarvesterCreepWrapper(c, this);
+            case this.CREEP_TYPE_TRANSPORTER:
+                return new mtransporter.TransporterCreepWrapper(c, this);
+            case this.CREEP_TYPE_UPGRADER:
+                return new mupgrader.UpgraderCreepWrapper(c, this);
+            default:
+                this.log.error(`makeCreepWrapper: creep ${c.name} of type ${(<CreepMemory>c.memory).creepType} not yet supported.`);
+                return new mMiscCreep.MiscCreepWrapper(c, (<CreepMemory>c.memory).creepType);
+        }
+    }
+
     isHarvesterWithSource(creepWrapper: CreepWrapper, sourceId: string): boolean {
-        return creep.isHarvesterWithSource(creepWrapper, sourceId, this);
+        return mharvester.isHarvesterWithSource(creepWrapper, sourceId, this);
     }
 
     getTransporterEfficiency(room: Room): number {
         let ts = this.getMyCreeps().filter((cw) => cw.creepType == this.CREEP_TYPE_TRANSPORTER && cw.creep.room.name == room.name);
-        let efficiencies = ts.map((cw) => cw.getEfficiency());
+        let efficiencies = ts.map((cw) => this.getEfficiency(cw.creep.memory));
         if (efficiencies.length == 0)
             return 1;
         else
             return o.sum(efficiencies) / efficiencies.length;
+    }
+
+    pushEfficiency(memory: CreepMemory, efficiency: number): void {
+        let maxSize = 50;
+        let eq = o.makeQueue(memory.efficiencies.pushStack, memory.efficiencies.popStack)
+        eq.push(efficiency);
+        memory.totalEfficiency += efficiency;
+        while (eq.length() > maxSize && maxSize >= 0) {
+            memory.totalEfficiency -= eq.pop().get;
+        }
+    }
+
+    getEfficiency(memory: CreepMemory): number {
+        let eq = o.makeQueue(memory.efficiencies.pushStack, memory.efficiencies.popStack);
+        if (eq.isEmpty()) return 0;
+        else return memory.totalEfficiency / eq.length();
     }
 
 }

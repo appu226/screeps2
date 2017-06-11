@@ -10,7 +10,7 @@ var ControllerWrapper = (function () {
             return;
         var roomName = this.structure.room.name;
         var upgraders = pv.getMyCreeps().filter(function (cw) { return cw.creepType == pv.CREEP_TYPE_UPGRADER && cw.creep.room.name == roomName; });
-        var totalEfficiency = o.sum(upgraders.map(function (cw) { return cw.getEfficiency(); }));
+        var totalEfficiency = o.sum(upgraders.map(function (cw) { return pv.getEfficiency(cw.creep.memory); }));
         if (totalEfficiency >= upgraders.length * 90.0 / 100.0) {
             pv.log.debug("Scheduling upgrader for room " + roomName);
             pv.scheduleCreep(roomName, "Upgrader_" + roomName, pv.CREEP_TYPE_UPGRADER, 2);

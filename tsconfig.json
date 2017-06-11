@@ -10,14 +10,16 @@
         "allowJs": true
     },
     "files": [
+        "src/builder.ts",
         "src/controller.ts",
-        "src/creep.ts",
         "src/dictionary.ts",
         "src/functional.d.ts",
+        "src/harvester.ts",
         "src/keeperLair.ts",
         "src/lodash.min.js",
         "src/logger.ts",
         "src/main.ts",
+        "src/miscCreep.ts",
         "src/option.ts",
         "src/paraverse.d.ts",
         "src/paraverse.ts",
@@ -27,6 +29,8 @@
         "src/source.ts",
         "src/spawn.ts",
         "src/structure.ts",
-        "src/terrain.ts"
+        "src/terrain.ts",
+        "src/transporter.ts",
+        "src/upgrader.ts"
     ]
 }

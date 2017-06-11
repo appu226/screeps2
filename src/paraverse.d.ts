@@ -30,8 +30,12 @@ declare interface Paraverse {
 
     constructNextSite(room: Room): void;
 
+    moveCreep(cw: CreepWrapper, pos: RoomPosition): boolean;
+    makeCreepWrapper(c: Creep): CreepWrapper;
     isHarvesterWithSource(creepWrapper: CreepWrapper, sourceId: string): boolean;
     getTransporterEfficiency(room: Room): number;
+    pushEfficiency(memory: CreepMemory, efficiency: number): void;
+    getEfficiency(memory: CreepMemory): number;
 
     getUid(): number;
 
@@ -83,8 +87,6 @@ declare interface CreepWrapper {
     creep: Creep;
     creepType: string;
     process(pv: Paraverse): void;
-    pushEfficiency(efficiency: number): void;
-    getEfficiency(): number;
 }
 
 declare interface SourceMemory {

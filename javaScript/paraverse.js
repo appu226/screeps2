@@ -1,7 +1,11 @@
 "use strict";
 var dictionary = require("./dictionary");
 var mstructure = require("./structure");
-var creep = require("./creep");
+var mMiscCreep = require("./miscCreep");
+var mtransporter = require("./transporter");
+var mbuilder = require("./builder");
+var mharvester = require("./harvester");
+var mupgrader = require("./upgrader");
 var source = require("./source");
 var o = require("./option");
 var mlogger = require("./logger");
@@ -83,7 +87,7 @@ var ParaverseImpl = (function () {
                 o.tryCatch(function () { _this.structureWrappers[s.id] = mstructure.makeStructureWrapper(s, pv); }, "Creating wrapper for " + s.structureType + " " + s.id);
             });
             room.find(FIND_CREEPS).forEach(function (c) {
-                o.tryCatch(function () { _this.creepWrappers[c.id] = creep.makeCreepWrapper(c, pv); }, "Creating wrapper for creep " + c.name);
+                o.tryCatch(function () { _this.creepWrappers[c.id] = pv.makeCreepWrapper(c); }, "Creating wrapper for creep " + c.name);
             });
             room.find(FIND_SOURCES).forEach(function (s) {
                 o.tryCatch(function () { _this.sourceWrappers[s.id] = source.makeSourceWrapper(s, pv); }, "Creating wrapper for source " + s.id);
@@ -132,9 +136,18 @@ var ParaverseImpl = (function () {
             return;
         }
         else {
-            var creepOrder = creep.makeCreepOrder(orderName, creepType, this);
+            var creepOrder = this.makeCreepOrder(orderName, creepType);
             pq.push(creepOrder, priority - this.game.time / 20.0);
             return;
+        }
+    };
+    ParaverseImpl.prototype.makeCreepOrder = function (orderName, creepType) {
+        switch (creepType) {
+            case this.CREEP_TYPE_BUILDER: return mbuilder.makeBuilderOrder(orderName, this);
+            case this.CREEP_TYPE_HARVESTER: return mharvester.makeHarvesterOrder(orderName, o.tokenize(orderName, "_")[1], this);
+            case this.CREEP_TYPE_TRANSPORTER: return mtransporter.makeTransporterOrder(orderName, this);
+            case this.CREEP_TYPE_UPGRADER: return mupgrader.makeUpgraderOrder(orderName, o.tokenize(orderName, "_")[1], this);
+            default: throw new Error("creep/makeCreepOrder: creepType " + creepType + " not yet supported.");
         }
     };
     ParaverseImpl.prototype.removeCreepOrder = function (roomName, orderName) {
@@ -155,11 +168,11 @@ var ParaverseImpl = (function () {
     };
     ParaverseImpl.prototype.numTransportersReceivingFrom = function (requestorId, resourceType) {
         var _this = this;
-        return this.getMyCreeps().filter(function (cw) { return creep.isTransporterReceivingFrom(cw, requestorId, resourceType, _this); }).length;
+        return this.getMyCreeps().filter(function (cw) { return mtransporter.isTransporterReceivingFrom(cw, requestorId, resourceType, _this); }).length;
     };
     ParaverseImpl.prototype.numTransportersSendingTo = function (requestorId, resourceType) {
         var _this = this;
-        return this.getMyCreeps().filter(function (cw) { return creep.isTransporterSendingTo(cw, requestorId, resourceType, _this); }).length;
+        return this.getMyCreeps().filter(function (cw) { return mtransporter.isTransporterSendingTo(cw, requestorId, resourceType, _this); }).length;
     };
     ParaverseImpl.prototype.getReceiveRequests = function () {
         var queueData = this.memory.resourceReceiveRequests;
@@ -178,12 +191,12 @@ var ParaverseImpl = (function () {
             var isRequestAssigned = false; // parameter to track whether request has been assigned to a transporter
             var destination = this_1.game.getObjectById(sr.requestorId);
             if (destination != null) {
-                var freeTransporters = this_1.getMyCreeps().filter(function (cw) { return creep.isFreeTransporter(cw, _this); });
+                var freeTransporters = this_1.getMyCreeps().filter(function (cw) { return mtransporter.isFreeTransporter(cw, _this); });
                 var closestTransporter = o.maxBy(freeTransporters, function (cw) { return mterrain.euclidean(cw.creep.pos, destination.pos, _this) * -1; });
                 if (closestTransporter.isPresent) {
                     var rro = receiveRequests.extract(function (rr) { return rr.resourceType == sr.resourceType; });
                     if (rro.isPresent) {
-                        creep.assignTransporter(closestTransporter.get.elem, sr, rro.get, this_1);
+                        mtransporter.assignTransporter(closestTransporter.get.elem, sr, rro.get, this_1);
                         isRequestAssigned = true;
                     }
                 }
@@ -266,17 +279,53 @@ var ParaverseImpl = (function () {
         }
         return ++(this.memory.uid);
     };
+    ParaverseImpl.prototype.moveCreep = function (cw, pos) {
+        return cw.creep.moveTo(pos) == OK;
+    };
+    ParaverseImpl.prototype.makeCreepWrapper = function (c) {
+        if (!c.my)
+            return new mMiscCreep.MiscCreepWrapper(c, this.CREEP_TYPE_FOREIGNER);
+        switch (c.memory.creepType) {
+            case this.CREEP_TYPE_BUILDER:
+                return new mbuilder.BuilderCreepWrapper(c, this);
+            case this.CREEP_TYPE_HARVESTER:
+                return new mharvester.HarvesterCreepWrapper(c, this);
+            case this.CREEP_TYPE_TRANSPORTER:
+                return new mtransporter.TransporterCreepWrapper(c, this);
+            case this.CREEP_TYPE_UPGRADER:
+                return new mupgrader.UpgraderCreepWrapper(c, this);
+            default:
+                this.log.error("makeCreepWrapper: creep " + c.name + " of type " + c.memory.creepType + " not yet supported.");
+                return new mMiscCreep.MiscCreepWrapper(c, c.memory.creepType);
+        }
+    };
     ParaverseImpl.prototype.isHarvesterWithSource = function (creepWrapper, sourceId) {
-        return creep.isHarvesterWithSource(creepWrapper, sourceId, this);
+        return mharvester.isHarvesterWithSource(creepWrapper, sourceId, this);
     };
     ParaverseImpl.prototype.getTransporterEfficiency = function (room) {
         var _this = this;
         var ts = this.getMyCreeps().filter(function (cw) { return cw.creepType == _this.CREEP_TYPE_TRANSPORTER && cw.creep.room.name == room.name; });
-        var efficiencies = ts.map(function (cw) { return cw.getEfficiency(); });
+        var efficiencies = ts.map(function (cw) { return _this.getEfficiency(cw.creep.memory); });
         if (efficiencies.length == 0)
             return 1;
         else
             return o.sum(efficiencies) / efficiencies.length;
+    };
+    ParaverseImpl.prototype.pushEfficiency = function (memory, efficiency) {
+        var maxSize = 50;
+        var eq = o.makeQueue(memory.efficiencies.pushStack, memory.efficiencies.popStack);
+        eq.push(efficiency);
+        memory.totalEfficiency += efficiency;
+        while (eq.length() > maxSize && maxSize >= 0) {
+            memory.totalEfficiency -= eq.pop().get;
+        }
+    };
+    ParaverseImpl.prototype.getEfficiency = function (memory) {
+        var eq = o.makeQueue(memory.efficiencies.pushStack, memory.efficiencies.popStack);
+        if (eq.isEmpty())
+            return 0;
+        else
+            return memory.totalEfficiency / eq.length();
     };
     return ParaverseImpl;
 }());
