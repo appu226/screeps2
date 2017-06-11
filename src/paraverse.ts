@@ -221,28 +221,16 @@ class ParaverseImpl implements Paraverse {
         return this.constructionSiteCache[room.name];
     }
 
-    scheduleCreep(roomName: string, orderName: string, creepType: string, priority: number): void {
+    scheduleCreep(roomName: string, order: CreepOrder, priority: number): void {
         // call getCreepOrders before looking at the raw entries
         let pq = this.getCreepOrders(roomName);
-        if (this.memory.creepOrders[roomName].filter((pqe) => pqe.elem.orderName == orderName).length > 0) {
+        if (this.memory.creepOrders[roomName].filter((pqe) => pqe.elem.orderName == order.orderName).length > 0) {
             return;
         } else {
-            let creepOrder: CreepOrder = this.makeCreepOrder(orderName, creepType);
-            pq.push(creepOrder, priority - this.game.time / 20.0);
+            pq.push(order, priority - this.game.time / 20.0);
             return;
         }
     }
-
-    makeCreepOrder(orderName: string, creepType: string): CreepOrder {
-    switch (creepType) {
-        case this.CREEP_TYPE_BUILDER: return mbuilder.makeBuilderOrder(orderName, this);
-        case this.CREEP_TYPE_HARVESTER: return mharvester.makeHarvesterOrder(orderName, o.tokenize(orderName, "_")[1], this);
-        case this.CREEP_TYPE_TRANSPORTER: return mtransporter.makeTransporterOrder(orderName, this);
-        case this.CREEP_TYPE_UPGRADER: return mupgrader.makeUpgraderOrder(orderName, o.tokenize(orderName, "_")[1], this);
-        default: throw new Error(`creep/makeCreepOrder: creepType ${creepType} not yet supported.`)
-    }
-}
-
 
     removeCreepOrder(roomName: string, orderName: string): void {
         let pq = this.getCreepOrders(roomName);
@@ -254,6 +242,11 @@ class ParaverseImpl implements Paraverse {
             pq.pop();
         }
     }
+
+    makeBuilderOrder(orderName: string): CreepOrder { return mbuilder.makeBuilderOrder(orderName, this); }
+    makeHarvesterOrder(orderName: string, sourceId: string): CreepOrder { return mharvester.makeHarvesterOrder(orderName, sourceId, this); }
+    makeTransporterOrder(orderName: string): CreepOrder { return mtransporter.makeTransporterOrder(orderName, this); }
+    makeUpgraderOrder(orderName: string, roomName: string): CreepOrder { return mupgrader.makeUpgraderOrder(orderName, roomName, this); }
 
     requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void {
         mrr.pushResourceRequest(

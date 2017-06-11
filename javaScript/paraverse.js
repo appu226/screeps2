@@ -129,25 +129,15 @@ var ParaverseImpl = (function () {
         }
         return this.constructionSiteCache[room.name];
     };
-    ParaverseImpl.prototype.scheduleCreep = function (roomName, orderName, creepType, priority) {
+    ParaverseImpl.prototype.scheduleCreep = function (roomName, order, priority) {
         // call getCreepOrders before looking at the raw entries
         var pq = this.getCreepOrders(roomName);
-        if (this.memory.creepOrders[roomName].filter(function (pqe) { return pqe.elem.orderName == orderName; }).length > 0) {
+        if (this.memory.creepOrders[roomName].filter(function (pqe) { return pqe.elem.orderName == order.orderName; }).length > 0) {
             return;
         }
         else {
-            var creepOrder = this.makeCreepOrder(orderName, creepType);
-            pq.push(creepOrder, priority - this.game.time / 20.0);
+            pq.push(order, priority - this.game.time / 20.0);
             return;
-        }
-    };
-    ParaverseImpl.prototype.makeCreepOrder = function (orderName, creepType) {
-        switch (creepType) {
-            case this.CREEP_TYPE_BUILDER: return mbuilder.makeBuilderOrder(orderName, this);
-            case this.CREEP_TYPE_HARVESTER: return mharvester.makeHarvesterOrder(orderName, o.tokenize(orderName, "_")[1], this);
-            case this.CREEP_TYPE_TRANSPORTER: return mtransporter.makeTransporterOrder(orderName, this);
-            case this.CREEP_TYPE_UPGRADER: return mupgrader.makeUpgraderOrder(orderName, o.tokenize(orderName, "_")[1], this);
-            default: throw new Error("creep/makeCreepOrder: creepType " + creepType + " not yet supported.");
         }
     };
     ParaverseImpl.prototype.removeCreepOrder = function (roomName, orderName) {
@@ -160,6 +150,10 @@ var ParaverseImpl = (function () {
             pq.pop();
         }
     };
+    ParaverseImpl.prototype.makeBuilderOrder = function (orderName) { return mbuilder.makeBuilderOrder(orderName, this); };
+    ParaverseImpl.prototype.makeHarvesterOrder = function (orderName, sourceId) { return mharvester.makeHarvesterOrder(orderName, sourceId, this); };
+    ParaverseImpl.prototype.makeTransporterOrder = function (orderName) { return mtransporter.makeTransporterOrder(orderName, this); };
+    ParaverseImpl.prototype.makeUpgraderOrder = function (orderName, roomName) { return mupgrader.makeUpgraderOrder(orderName, roomName, this); };
     ParaverseImpl.prototype.requestResourceReceive = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
         mrr.pushResourceRequest(this.memory.resourceReceiveRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.numTransportersReceivingFrom(requestorId, resourceType), this);
     };

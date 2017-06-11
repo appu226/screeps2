@@ -12,7 +12,7 @@ class SourceWrapperImpl implements SourceWrapper {
             pv.getMyCreeps() // search all creeps
                 .filter(cw => pv.isHarvesterWithSource(cw, this.source.id)); // that belong to this source
         if (allCreeps.length == 0 || o.sum(allCreeps.map(cw => pv.getEfficiency(cw.creep.memory))) / allCreeps.length > .9) {
-            pv.scheduleCreep(this.source.room.name, "Harvester_" + this.source.id, pv.CREEP_TYPE_HARVESTER, 5);
+            pv.scheduleCreep(this.source.room.name, pv.makeHarvesterOrder("Harvester_" + this.source.id, this.source.id), 5);
         }
     }
 }

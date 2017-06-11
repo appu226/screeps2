@@ -28,7 +28,7 @@ var RoomWrapperImpl = (function () {
                 }
             }
             if (pv.getTransporterEfficiency(me) > .9) {
-                pv.scheduleCreep(me.name, "Transpoter_" + me.name, pv.CREEP_TYPE_TRANSPORTER, 4);
+                pv.scheduleCreep(me.name, pv.makeTransporterOrder("Transporter_" + me.name), 4);
             }
         }
     };
@@ -41,7 +41,7 @@ function scheduleBuilderIfRequired(me, pv) {
             && cw.creepType == pv.CREEP_TYPE_BUILDER;
     });
     if (builders.length == 0) {
-        pv.scheduleCreep(me.name, me.name + "_" + pv.CREEP_TYPE_BUILDER, pv.CREEP_TYPE_BUILDER, 2);
+        pv.scheduleCreep(me.name, pv.makeBuilderOrder(me.name + "_" + pv.CREEP_TYPE_BUILDER), 2);
     }
 }
 function scheduleConstructionSitesIfRequired(room, pv, structureType) {

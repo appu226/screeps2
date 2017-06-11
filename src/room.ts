@@ -37,8 +37,7 @@ class RoomWrapperImpl implements RoomWrapper {
             if (pv.getTransporterEfficiency(me) > .9) {
                 pv.scheduleCreep(
                     me.name,
-                    `Transpoter_${me.name}`,
-                    pv.CREEP_TYPE_TRANSPORTER,
+                    pv.makeTransporterOrder(`Transporter_${me.name}`),
                     4
                 );
             }
@@ -55,7 +54,7 @@ function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {
             && cw.creepType == pv.CREEP_TYPE_BUILDER
         );
     if (builders.length == 0) {
-        pv.scheduleCreep(me.name, `${me.name}_${pv.CREEP_TYPE_BUILDER}`, pv.CREEP_TYPE_BUILDER, 2);
+        pv.scheduleCreep(me.name, pv.makeBuilderOrder(`${me.name}_${pv.CREEP_TYPE_BUILDER}`), 2);
     }
 }
 

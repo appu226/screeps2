@@ -15,8 +15,12 @@ declare interface Paraverse {
     getSourceMemory(source: Source): SourceMemory;
 
     getCreepOrders(roomName: string): PQ<CreepOrder>;
-    scheduleCreep(roomName: string, orderName: string, creepType: string, priority: number): void;
+    scheduleCreep(roomName: string, order: CreepOrder, priority: number): void;
     removeCreepOrder(roomName: string, orderName: string): void;
+    makeBuilderOrder(orderName: string): CreepOrder;
+    makeHarvesterOrder(orderName: string, sourceId: string): CreepOrder;
+    makeTransporterOrder(orderName: string): CreepOrder;
+    makeUpgraderOrder(orderName: string, roomName: string): CreepOrder;
 
     requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
     requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
