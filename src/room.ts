@@ -39,7 +39,7 @@ class RoomWrapperImpl implements RoomWrapper {
                     me.name,
                     `Transpoter_${me.name}`,
                     pv.CREEP_TYPE_TRANSPORTER,
-                    .1
+                    4
                 );
             }
         }
@@ -55,7 +55,7 @@ function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {
             && cw.creepType == pv.CREEP_TYPE_BUILDER
         );
     if (builders.length == 0) {
-        pv.scheduleCreep(me.name, `${me.name}_${pv.CREEP_TYPE_BUILDER}`, pv.CREEP_TYPE_BUILDER, 5);
+        pv.scheduleCreep(me.name, `${me.name}_${pv.CREEP_TYPE_BUILDER}`, pv.CREEP_TYPE_BUILDER, 2);
     }
 }
 

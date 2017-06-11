@@ -133,7 +133,7 @@ var ParaverseImpl = (function () {
         }
         else {
             var creepOrder = creep.makeCreepOrder(orderName, creepType, this);
-            pq.push(creepOrder, Math.pow(2, priority) - this.game.time / 100.0);
+            pq.push(creepOrder, priority - this.game.time / 50.0);
             return;
         }
     };
