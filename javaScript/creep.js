@@ -207,6 +207,11 @@ var TransporterCreepWrapper = (function () {
         }
         this.pushEfficiency(0);
     };
+    TransporterCreepWrapper.prototype.failAndResetToFree = function (reason, pv) {
+        this.memory.status = "free";
+        pv.log.debug(reason);
+        this.pushEfficiency(0);
+    };
     TransporterCreepWrapper.prototype.collecting = function (pv) {
         var creep = this.creep;
         var memory = this.memory;
@@ -215,12 +220,16 @@ var TransporterCreepWrapper = (function () {
         switch (memory.sourceType) {
             case "creep": {
                 var sourceCreep = pv.game.getObjectById(memory.sourceId);
+                if (sourceCreep == null)
+                    return this.failAndResetToFree("Freeing transporter " + creep.name + " because it couldn't find source " + memory.sourceId, pv);
                 collectionStatus = sourceCreep.transfer(creep, memory.resourceType);
                 sourceObject = sourceCreep;
                 break;
             }
             case "structure": {
                 var sourceStructure = pv.game.getObjectById(memory.sourceId);
+                if (sourceStructure == null)
+                    return this.failAndResetToFree("Freeing transporter " + creep.name + " because it couldn't find source " + memory.sourceId, pv);
                 collectionStatus = creep.withdraw(sourceStructure, memory.resourceType);
                 sourceObject = sourceStructure;
                 break;
@@ -261,6 +270,8 @@ var TransporterCreepWrapper = (function () {
             return;
         }
         var destination = pv.game.getObjectById(memory.destinationId);
+        if (destination == null)
+            return this.failAndResetToFree("Freeing transporter " + this.creep.name + " because it couldn't find destination " + memory.destinationId, pv);
         var transferResult = creep.transfer(destination, memory.resourceType);
         if (transferResult == ERR_NOT_IN_RANGE) {
             this.pushEfficiency(moveCreep(this, destination.pos, pv) ? 1 : 0);
@@ -442,6 +453,10 @@ var HarvesterCreepWrapper = (function () {
         var _this = this;
         if (this.creep.carry.energy < this.creep.carryCapacity) {
             var source = pv.game.getObjectById(this.memory.sourceId);
+            if (source == null) {
+                this.pushEfficiency(0);
+                return;
+            }
             var harvestAttempt = this.creep.harvest(source);
             if (harvestAttempt == ERR_NOT_IN_RANGE) {
                 this.pushEfficiency(0);

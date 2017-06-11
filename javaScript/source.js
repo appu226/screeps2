@@ -1,4 +1,5 @@
 "use strict";
+var o = require("./option");
 var SourceWrapperImpl = (function () {
     function SourceWrapperImpl(s, pv) {
         this.source = s;
@@ -8,7 +9,7 @@ var SourceWrapperImpl = (function () {
         var _this = this;
         var allCreeps = pv.getMyCreeps() // search all creeps
             .filter(function (cw) { return pv.isHarvesterWithSource(cw, _this.source.id); }); // that belong to this source
-        if (allCreeps.length == 0) {
+        if (allCreeps.length == 0 || o.sum(allCreeps.map(function (cw) { return cw.getEfficiency(); })) / allCreeps.length > .9) {
             pv.scheduleCreep(this.source.room.name, "Harvester_" + this.source.id, pv.CREEP_TYPE_HARVESTER, 5);
         }
     };

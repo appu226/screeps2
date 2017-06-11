@@ -133,7 +133,7 @@ var ParaverseImpl = (function () {
         }
         else {
             var creepOrder = creep.makeCreepOrder(orderName, creepType, this);
-            pq.push(creepOrder, priority - this.game.time / 50.0);
+            pq.push(creepOrder, priority - this.game.time / 20.0);
             return;
         }
     };
@@ -177,18 +177,20 @@ var ParaverseImpl = (function () {
             var sr = sendRequests.pop().get;
             var isRequestAssigned = false; // parameter to track whether request has been assigned to a transporter
             var destination = this_1.game.getObjectById(sr.requestorId);
-            var freeTransporters = this_1.getMyCreeps().filter(function (cw) { return creep.isFreeTransporter(cw, _this); });
-            var closestTransporter = o.maxBy(freeTransporters, function (cw) { return mterrain.euclidean(cw.creep.pos, destination.pos, _this) * -1; });
-            if (closestTransporter.isPresent) {
-                var rro = receiveRequests.extract(function (rr) { return rr.resourceType == sr.resourceType; });
-                if (rro.isPresent) {
-                    creep.assignTransporter(closestTransporter.get.elem, sr, rro.get, this_1);
-                    isRequestAssigned = true;
+            if (destination != null) {
+                var freeTransporters = this_1.getMyCreeps().filter(function (cw) { return creep.isFreeTransporter(cw, _this); });
+                var closestTransporter = o.maxBy(freeTransporters, function (cw) { return mterrain.euclidean(cw.creep.pos, destination.pos, _this) * -1; });
+                if (closestTransporter.isPresent) {
+                    var rro = receiveRequests.extract(function (rr) { return rr.resourceType == sr.resourceType; });
+                    if (rro.isPresent) {
+                        creep.assignTransporter(closestTransporter.get.elem, sr, rro.get, this_1);
+                        isRequestAssigned = true;
+                    }
                 }
+                //if request could not be assigned, push it back into the queue
+                if (!isRequestAssigned)
+                    sendRequests.push(sr);
             }
-            //if request could not be assigned, push it back into the queue
-            if (!isRequestAssigned)
-                sendRequests.push(sr);
         };
         var this_1 = this;
         //go through the entire sendRequest queue, popping every request

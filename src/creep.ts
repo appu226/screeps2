@@ -241,6 +241,12 @@ class TransporterCreepWrapper implements CreepWrapper {
         this.pushEfficiency(0);
     }
 
+    failAndResetToFree(reason: string, pv: Paraverse): void {
+        this.memory.status = "free";
+        pv.log.debug(reason);
+        this.pushEfficiency(0);
+    }
+
     collecting(pv: Paraverse): void {
         let creep = this.creep;
         let memory = this.memory;
@@ -249,12 +255,22 @@ class TransporterCreepWrapper implements CreepWrapper {
         switch (memory.sourceType) {
             case "creep": {
                 let sourceCreep = pv.game.getObjectById<Creep>(memory.sourceId);
+                if (sourceCreep == null) 
+                    return this.failAndResetToFree(
+                        `Freeing transporter ${creep.name} because it couldn't find source ${memory.sourceId}`,
+                        pv
+                    );
                 collectionStatus = sourceCreep.transfer(creep, memory.resourceType);
                 sourceObject = sourceCreep;
                 break;
             }
             case "structure": {
                 let sourceStructure = pv.game.getObjectById<Structure>(memory.sourceId);
+                if (sourceStructure == null)
+                    return this.failAndResetToFree(
+                        `Freeing transporter ${creep.name} because it couldn't find source ${memory.sourceId}`,
+                        pv
+                    );
                 collectionStatus = creep.withdraw(sourceStructure, memory.resourceType);
                 sourceObject = sourceStructure;
                 break;
@@ -298,6 +314,11 @@ class TransporterCreepWrapper implements CreepWrapper {
             return;
         }
         let destination = pv.game.getObjectById<Creep | Structure>(memory.destinationId);
+        if (destination == null)
+            return this.failAndResetToFree(
+                `Freeing transporter ${this.creep.name} because it couldn't find destination ${memory.destinationId}`,
+                pv
+            );
         let transferResult = creep.transfer(destination, memory.resourceType);
         if (transferResult == ERR_NOT_IN_RANGE) {
             this.pushEfficiency(moveCreep(this, destination.pos, pv) ? 1 : 0);
@@ -507,6 +528,10 @@ class HarvesterCreepWrapper implements CreepWrapper {
     process(pv: Paraverse) {
         if (this.creep.carry.energy < this.creep.carryCapacity) {
             let source = pv.game.getObjectById<Source>(this.memory.sourceId);
+            if (source == null) {
+                this.pushEfficiency(0);
+                return;
+            }
             let harvestAttempt = this.creep.harvest(source);
             if (harvestAttempt == ERR_NOT_IN_RANGE) {
                 this.pushEfficiency(0);
