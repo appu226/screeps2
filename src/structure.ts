@@ -1,6 +1,11 @@
 import mspawn = require('./spawn');
-import mkeeperLair = require('./keeperLair');
+import mextension = require('./extension');
 import mcontroller = require('./controller');
+import mkeeperLair = require('./keeperLair');
+import mrampart = require('./rampart');
+import mroad = require('./road');
+import mtower = require('./tower');
+import mwall = require('./wall');
 
 export function makeStructureWrapper(structure: Structure, pv: Paraverse): StructureWrapper {
     switch (structure.structureType) {
@@ -10,7 +15,16 @@ export function makeStructureWrapper(structure: Structure, pv: Paraverse): Struc
             return mkeeperLair.makeKeeperLairWrapper(<StructureKeeperLair>structure);
         case STRUCTURE_CONTROLLER:
             return mcontroller.makeControllerWrapper(<StructureController>structure);
-
+        case STRUCTURE_ROAD:
+            return mroad.makeRoadWrapper(<StructureRoad>structure);
+        case STRUCTURE_RAMPART:
+            return mrampart.makeRampartWrapper(<StructureRampart>structure, pv);
+        case STRUCTURE_TOWER:
+            return mtower.makeTowerWrapper(<StructureTower>structure);
+        case STRUCTURE_EXTENSION:
+            return mextension.makeExtensionWrapper(<StructureExtension>structure);
+        case STRUCTURE_WALL:
+            return mwall.makeWallWrapper(<StructureWall>structure, pv);
         default: throw new Error(`makeStructureWrapper: type ${structure.structureType} not yet supported.`)
     }
 }
