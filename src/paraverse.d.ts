@@ -25,6 +25,10 @@ declare interface Paraverse {
     requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
     requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
     manageSupplyAndDemand(): void;
+    recordDeliveryIntent(destinationId: string, resourceName: string): void;
+    recordCollectionIntent(sourceId: string, resourceName: string): void;
+    getDeliveryIntent(destinationId: string, resourceName: string): number;
+    getCollectionIntent(sourceId: string, resourceName: string): number;
 
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
     getTerrain(room: Room): number[][];

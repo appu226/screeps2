@@ -32,6 +32,17 @@ var TransporterCreepWrapper = (function () {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = creep.memory;
+        switch (this.memory.status) {
+            case "collecting":
+                pv.recordCollectionIntent(this.memory.sourceId, this.memory.resourceType);
+                pv.recordDeliveryIntent(this.memory.destinationId, this.memory.resourceType);
+                break;
+            case "transporting":
+                pv.recordDeliveryIntent(this.memory.destinationId, this.memory.resourceType);
+                break;
+            default:
+                break;
+        }
     }
     TransporterCreepWrapper.prototype.process = function (pv) {
         switch (this.memory.status) {
@@ -152,20 +163,6 @@ var TransporterCreepWrapper = (function () {
     return TransporterCreepWrapper;
 }());
 exports.TransporterCreepWrapper = TransporterCreepWrapper;
-function isTransporterReceivingFrom(creepWrapper, sourceId, resourceType, pv) {
-    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
-        return false;
-    var tcw = creepWrapper;
-    return (tcw.memory.sourceId == sourceId && tcw.memory.resourceType == resourceType);
-}
-exports.isTransporterReceivingFrom = isTransporterReceivingFrom;
-function isTransporterSendingTo(creepWrapper, destinationId, resourceType, pv) {
-    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
-        return false;
-    var tcw = creepWrapper;
-    return (tcw.memory.destinationId == destinationId && tcw.memory.resourceType == resourceType);
-}
-exports.isTransporterSendingTo = isTransporterSendingTo;
 function isFreeTransporter(creepWrapper, pv) {
     if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
         return false;

@@ -56,6 +56,8 @@ class ParaverseImpl implements Paraverse {
     structureWrappers: Dictionary<StructureWrapper>;
     creepWrappers: Dictionary<CreepWrapper>;
     sourceWrappers: Dictionary<SourceWrapper>;
+    deliveryIntent: Dictionary<Dictionary<number>>;
+    collectionIntent: Dictionary<Dictionary<number>>;
 
     LOG_LEVEL_SILENT: number;
     LOG_LEVEL_ERROR: number;
@@ -126,6 +128,8 @@ class ParaverseImpl implements Paraverse {
         this.STRUCTURE_CODE_CONTROLLER = 1008;
 
         this.DELIVERY_AMOUNT = 50;
+        this.deliveryIntent = {};
+        this.collectionIntent = {};
 
 
         this.bodyPartPriority = {};
@@ -254,7 +258,7 @@ class ParaverseImpl implements Paraverse {
             roomName,
             requestorId, isRequestorCreep,
             resourceType, amount,
-            this.numTransportersReceivingFrom(requestorId, resourceType),
+            this.getDeliveryIntent(requestorId, resourceType),
             this);
     }
 
@@ -264,16 +268,8 @@ class ParaverseImpl implements Paraverse {
             roomName,
             requestorId, isRequestorCreep,
             resourceType, amount,
-            this.numTransportersSendingTo(requestorId, resourceType),
+            this.getCollectionIntent(requestorId, resourceType),
             this);
-    }
-
-    numTransportersReceivingFrom(requestorId: string, resourceType: string): number {
-        return this.getMyCreeps().filter((cw: CreepWrapper) => mtransporter.isTransporterReceivingFrom(cw, requestorId, resourceType, this)).length;
-    }
-
-    numTransportersSendingTo(requestorId: string, resourceType: string): number {
-        return this.getMyCreeps().filter((cw: CreepWrapper) => mtransporter.isTransporterSendingTo(cw, requestorId, resourceType, this)).length;
     }
 
     getReceiveRequests(): Queue<ResourceRequest> {
@@ -313,6 +309,45 @@ class ParaverseImpl implements Paraverse {
             }
         }
 
+    }
+
+    recordDeliveryIntent(destinationId: string, resourceName: string): void {
+        if (this.deliveryIntent === undefined)
+            this.deliveryIntent = {};
+        let di = this.deliveryIntent;
+        if (di[destinationId] === undefined)
+            di[destinationId] = {};
+        let ddi = di[destinationId];
+        if (ddi[resourceName] === undefined)
+            ddi[resourceName] = 0;
+        ddi[resourceName] += 1;
+    }
+    recordCollectionIntent(sourceId: string, resourceName: string): void {
+        if (this.collectionIntent === undefined)
+            this.collectionIntent = {};
+        let ci = this.collectionIntent;
+        if (ci[sourceId] === undefined)
+            ci[sourceId] = {};
+        let sci = ci[sourceId];
+        if (sci[resourceName] === undefined)
+            sci[resourceName] = 0;
+        sci[resourceName] += 1;
+    }
+    getDeliveryIntent(destinationId: string, resourceName: string): number {
+        if (this.deliveryIntent === undefined) this.deliveryIntent = {};
+        let di = this.deliveryIntent;
+        if (di[destinationId] === undefined) di[destinationId] = {};
+        let ddi = di[destinationId];
+        if (ddi[resourceName] === undefined) ddi[resourceName] = 0;
+        return ddi[resourceName];
+    }
+    getCollectionIntent(sourceId: string, resourceName: string): number {
+        if (this.collectionIntent === undefined) this.collectionIntent = {};
+        let ci = this.collectionIntent;
+        if (ci[sourceId] === undefined) ci[sourceId] = {};
+        let sci = ci[sourceId];
+        if (sci[resourceName] === undefined) sci[resourceName] = 0;
+        return sci[resourceName];
     }
 
     getTerrain(room: Room): number[][] {

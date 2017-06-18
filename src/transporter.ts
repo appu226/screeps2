@@ -44,6 +44,17 @@ export class TransporterCreepWrapper implements CreepWrapper {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = <TransporterMemory>creep.memory;
+        switch (this.memory.status) {
+            case "collecting":
+                pv.recordCollectionIntent(this.memory.sourceId, this.memory.resourceType);
+                pv.recordDeliveryIntent(this.memory.destinationId, this.memory.resourceType);
+                break;
+            case "transporting":
+                pv.recordDeliveryIntent(this.memory.destinationId, this.memory.resourceType);
+                break;
+            default:
+                break;
+        }
     }
 
     process(pv: Paraverse) {
@@ -102,7 +113,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
         switch (memory.sourceType) {
             case "creep": {
                 let sourceCreep = pv.game.getObjectById<Creep>(memory.sourceId);
-                if (sourceCreep == null) 
+                if (sourceCreep == null)
                     return this.failAndResetToFree(
                         `Freeing transporter ${creep.name} because it couldn't find source ${memory.sourceId}`,
                         pv
@@ -175,20 +186,6 @@ export class TransporterCreepWrapper implements CreepWrapper {
             pv.pushEfficiency(memory, 0);
         }
     }
-}
-
-export function isTransporterReceivingFrom(creepWrapper: CreepWrapper, sourceId: string, resourceType: string, pv: Paraverse): boolean {
-    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
-        return false;
-    let tcw = <TransporterCreepWrapper>creepWrapper;
-    return (tcw.memory.sourceId == sourceId && tcw.memory.resourceType == resourceType);
-}
-
-export function isTransporterSendingTo(creepWrapper: CreepWrapper, destinationId: string, resourceType: string, pv: Paraverse): boolean {
-    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
-        return false;
-    let tcw = <TransporterCreepWrapper>creepWrapper;
-    return (tcw.memory.destinationId == destinationId && tcw.memory.resourceType == resourceType);
 }
 
 export function isFreeTransporter(creepWrapper: CreepWrapper, pv: Paraverse): boolean {

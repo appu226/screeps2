@@ -66,6 +66,8 @@ var ParaverseImpl = (function () {
         this.STRUCTURE_CODE_KEEPER_LAIR = 1007;
         this.STRUCTURE_CODE_CONTROLLER = 1008;
         this.DELIVERY_AMOUNT = 50;
+        this.deliveryIntent = {};
+        this.collectionIntent = {};
         this.bodyPartPriority = {};
         this.bodyPartPriority[MOVE] = 1;
         this.bodyPartPriority[HEAL] = 0;
@@ -155,18 +157,10 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.makeTransporterOrder = function (orderName) { return mtransporter.makeTransporterOrder(orderName, this); };
     ParaverseImpl.prototype.makeUpgraderOrder = function (orderName, roomName) { return mupgrader.makeUpgraderOrder(orderName, roomName, this); };
     ParaverseImpl.prototype.requestResourceReceive = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
-        mrr.pushResourceRequest(this.memory.resourceReceiveRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.numTransportersReceivingFrom(requestorId, resourceType), this);
+        mrr.pushResourceRequest(this.memory.resourceReceiveRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.getDeliveryIntent(requestorId, resourceType), this);
     };
     ParaverseImpl.prototype.requestResourceSend = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
-        mrr.pushResourceRequest(this.memory.resourceSendRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.numTransportersSendingTo(requestorId, resourceType), this);
-    };
-    ParaverseImpl.prototype.numTransportersReceivingFrom = function (requestorId, resourceType) {
-        var _this = this;
-        return this.getMyCreeps().filter(function (cw) { return mtransporter.isTransporterReceivingFrom(cw, requestorId, resourceType, _this); }).length;
-    };
-    ParaverseImpl.prototype.numTransportersSendingTo = function (requestorId, resourceType) {
-        var _this = this;
-        return this.getMyCreeps().filter(function (cw) { return mtransporter.isTransporterSendingTo(cw, requestorId, resourceType, _this); }).length;
+        mrr.pushResourceRequest(this.memory.resourceSendRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.getCollectionIntent(requestorId, resourceType), this);
     };
     ParaverseImpl.prototype.getReceiveRequests = function () {
         var queueData = this.memory.resourceReceiveRequests;
@@ -206,6 +200,50 @@ var ParaverseImpl = (function () {
         for (var isr = sendRequests.length(); isr > 0; --isr) {
             _loop_1(isr);
         }
+    };
+    ParaverseImpl.prototype.recordDeliveryIntent = function (destinationId, resourceName) {
+        if (this.deliveryIntent === undefined)
+            this.deliveryIntent = {};
+        var di = this.deliveryIntent;
+        if (di[destinationId] === undefined)
+            di[destinationId] = {};
+        var ddi = di[destinationId];
+        if (ddi[resourceName] === undefined)
+            ddi[resourceName] = 0;
+        ddi[resourceName] += 1;
+    };
+    ParaverseImpl.prototype.recordCollectionIntent = function (sourceId, resourceName) {
+        if (this.collectionIntent === undefined)
+            this.collectionIntent = {};
+        var ci = this.collectionIntent;
+        if (ci[sourceId] === undefined)
+            ci[sourceId] = {};
+        var sci = ci[sourceId];
+        if (sci[resourceName] === undefined)
+            sci[resourceName] = 0;
+        sci[resourceName] += 1;
+    };
+    ParaverseImpl.prototype.getDeliveryIntent = function (destinationId, resourceName) {
+        if (this.deliveryIntent === undefined)
+            this.deliveryIntent = {};
+        var di = this.deliveryIntent;
+        if (di[destinationId] === undefined)
+            di[destinationId] = {};
+        var ddi = di[destinationId];
+        if (ddi[resourceName] === undefined)
+            ddi[resourceName] = 0;
+        return ddi[resourceName];
+    };
+    ParaverseImpl.prototype.getCollectionIntent = function (sourceId, resourceName) {
+        if (this.collectionIntent === undefined)
+            this.collectionIntent = {};
+        var ci = this.collectionIntent;
+        if (ci[sourceId] === undefined)
+            ci[sourceId] = {};
+        var sci = ci[sourceId];
+        if (sci[resourceName] === undefined)
+            sci[resourceName] = 0;
+        return sci[resourceName];
     };
     ParaverseImpl.prototype.getTerrain = function (room) {
         var _this = this;
