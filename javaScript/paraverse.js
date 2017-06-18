@@ -32,6 +32,10 @@ function makeParaverse(game, map, memory) {
         paraMemory.resourceSendRequests = { pushStack: [], popStack: [] };
     if (paraMemory.resourceReceiveRequests === undefined)
         paraMemory.resourceReceiveRequests = { pushStack: [], popStack: [] };
+    if (paraMemory.towerMemory === undefined)
+        paraMemory.towerMemory = {};
+    if (paraMemory.wallHitPoints === undefined)
+        paraMemory.wallHitPoints = {};
     return new ParaverseImpl(game, map, paraMemory);
 }
 exports.makeParaverse = makeParaverse;
@@ -96,6 +100,24 @@ var ParaverseImpl = (function () {
             });
             this.roomWrappers[room.name] = mroom.makeRoomWrapper(room);
         }
+        //delete memory of dead crees
+        for (var creepName in this.memory.creeps) {
+            if (this.game.creeps[creepName] === undefined) {
+                delete this.memory.creeps[creepName];
+            }
+        }
+        //delete memory of dead spawns
+        for (var spawnName in this.memory.spawns) {
+            if (this.game.spawns[spawnName] === undefined) {
+                delete this.game.spawns[spawnName];
+            }
+        }
+        //delete memory of dead towers
+        for (var towerId in this.memory.towerMemory) {
+            var tower = this.game.getObjectById(towerId);
+            if (tower === undefined || tower == null)
+                delete this.memory.towerMemory[towerId];
+        }
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return rw.room.controller.my; });
@@ -114,6 +136,9 @@ var ParaverseImpl = (function () {
             this.memory.sourceMemories[s.id] = source.makeSourceMemory(s, this);
         }
         return this.memory.sourceMemories[s.id];
+    };
+    ParaverseImpl.prototype.getHostileCreeps = function (room) {
+        return dictionary.getValues(this.creepWrappers).filter(function (cw) { return !cw.creep.my && cw.creep.room.name == room.name; }).map(function (cw) { return cw.creep; });
     };
     ParaverseImpl.prototype.getCreepOrders = function (roomName) {
         if (this.memory.creepOrders[roomName] === undefined) {
@@ -304,6 +329,27 @@ var ParaverseImpl = (function () {
             var bestPcs = bestPcsO.get.elem;
             room.createConstructionSite(bestPcs.x, bestPcs.y, bestPcs.structureType);
         }
+    };
+    ParaverseImpl.prototype.getTowerMemory = function (towerId) {
+        if (this.memory.towerMemory[towerId] === undefined) {
+            this.memory.towerMemory[towerId] = {
+                status: "free",
+                target: ""
+            };
+        }
+        return this.memory.towerMemory[towerId];
+    };
+    ParaverseImpl.prototype.setTowerMemory = function (towerId, towerMemory) {
+        this.memory.towerMemory[towerId] = towerMemory;
+    };
+    ParaverseImpl.prototype.getWallHitPoints = function (room) {
+        if (this.memory.wallHitPoints[room.name] === undefined) {
+            this.memory.wallHitPoints[room.name] = 1000;
+        }
+        return this.memory.wallHitPoints[room.name];
+    };
+    ParaverseImpl.prototype.setWallHitPoints = function (room, hitPoints) {
+        this.memory.wallHitPoints[room.name] = hitPoints;
     };
     ParaverseImpl.prototype.getUid = function () {
         if (this.memory.uid === undefined) {

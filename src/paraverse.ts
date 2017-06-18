@@ -22,6 +22,8 @@ interface ParaMemory extends Memory {
     uid: number;
     resourceSendRequests: QueueData<ResourceRequest>;
     resourceReceiveRequests: QueueData<ResourceRequest>;
+    towerMemory: Dictionary<TowerMemory>;
+    wallHitPoints: Dictionary<number>;
 }
 
 export function makeParaverse(
@@ -39,6 +41,8 @@ export function makeParaverse(
     if (paraMemory.uid === undefined) paraMemory.uid = game.time;
     if (paraMemory.resourceSendRequests === undefined) paraMemory.resourceSendRequests = { pushStack: [], popStack: [] };
     if (paraMemory.resourceReceiveRequests === undefined) paraMemory.resourceReceiveRequests = { pushStack: [], popStack: [] };
+    if (paraMemory.towerMemory === undefined) paraMemory.towerMemory = {};
+    if (paraMemory.wallHitPoints === undefined) paraMemory.wallHitPoints = {};
 
     return new ParaverseImpl(game, map, paraMemory);
 }
@@ -181,6 +185,27 @@ class ParaverseImpl implements Paraverse {
 
             this.roomWrappers[room.name] = mroom.makeRoomWrapper(room);
         }
+
+        //delete memory of dead crees
+        for (let creepName in this.memory.creeps) {
+            if(this.game.creeps[creepName] === undefined) {
+                delete this.memory.creeps[creepName];
+            }
+        }
+
+        //delete memory of dead spawns
+        for (let spawnName in this.memory.spawns) {
+            if (this.game.spawns[spawnName] === undefined) {
+                delete this.game.spawns[spawnName];
+            }
+        }
+
+        //delete memory of dead towers
+        for (let towerId in this.memory.towerMemory) {
+            let tower = this.game.getObjectById<StructureTower>(towerId);
+            if (tower === undefined || tower == null)
+                delete this.memory.towerMemory[towerId];
+        }
     }
 
     getMyRooms(): RoomWrapper[] {
@@ -204,6 +229,10 @@ class ParaverseImpl implements Paraverse {
             this.memory.sourceMemories[s.id] = source.makeSourceMemory(s, this);
         }
         return this.memory.sourceMemories[s.id];
+    }
+
+    getHostileCreeps(room: Room): Creep[] {
+        return dictionary.getValues<CreepWrapper>(this.creepWrappers).filter(cw => !cw.creep.my && cw.creep.room.name == room.name).map(cw => cw.creep);
     }
 
     getCreepOrders(roomName: string): PQ<CreepOrder> {
@@ -414,6 +443,31 @@ class ParaverseImpl implements Paraverse {
             let bestPcs = bestPcsO.get.elem;
             room.createConstructionSite(bestPcs.x, bestPcs.y, bestPcs.structureType);
         }
+    }
+
+    getTowerMemory(towerId: string): TowerMemory {
+        if (this.memory.towerMemory[towerId] === undefined) {
+            this.memory.towerMemory[towerId] = {
+                status: "free",
+                target: ""
+            };
+        }
+        return this.memory.towerMemory[towerId];
+    }
+
+    setTowerMemory(towerId: string, towerMemory: TowerMemory): void {
+        this.memory.towerMemory[towerId] = towerMemory;
+    }
+
+    getWallHitPoints(room: Room): number {
+        if (this.memory.wallHitPoints[room.name] === undefined) {
+            this.memory.wallHitPoints[room.name] = 1000;
+        }
+        return this.memory.wallHitPoints[room.name];
+    }
+
+    setWallHitPoints(room: Room, hitPoints: number): void {
+        this.memory.wallHitPoints[room.name] = hitPoints;
     }
 
     getUid(): number {

@@ -1,12 +1,14 @@
 class LoggerImpl implements Logger {
     logLevel: number;
     pv: Paraverse;
+    msgLevelStr: string[];
     constructor(logLevel: number, pv: Paraverse) {
         this.logLevel = logLevel;
         this.pv = pv;
+        this.msgLevelStr = ["SILENT", "ERROR", "WARN", "INFO", "DEBUG"];
     }
     selectivePrint(msgLevel: number, message: string) {
-        if(msgLevel >= this.logLevel) console.log(message);
+        if(msgLevel >= this.logLevel) console.log(`[${this.msgLevelStr[msgLevel]}] ${message}`);
     }
     debug(message: string): void {
         this.selectivePrint(this.pv.LOG_LEVEL_DEBUG, message);

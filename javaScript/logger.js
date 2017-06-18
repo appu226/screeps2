@@ -3,10 +3,11 @@ var LoggerImpl = (function () {
     function LoggerImpl(logLevel, pv) {
         this.logLevel = logLevel;
         this.pv = pv;
+        this.msgLevelStr = ["SILENT", "ERROR", "WARN", "INFO", "DEBUG"];
     }
     LoggerImpl.prototype.selectivePrint = function (msgLevel, message) {
         if (msgLevel >= this.logLevel)
-            console.log(message);
+            console.log("[" + this.msgLevelStr[msgLevel] + "] " + message);
     };
     LoggerImpl.prototype.debug = function (message) {
         this.selectivePrint(this.pv.LOG_LEVEL_DEBUG, message);

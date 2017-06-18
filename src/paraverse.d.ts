@@ -14,6 +14,8 @@ declare interface Paraverse {
     getMySources(): SourceWrapper[];
     getSourceMemory(source: Source): SourceMemory;
 
+    getHostileCreeps(room: Room): Creep[];
+
     getCreepOrders(roomName: string): PQ<CreepOrder>;
     scheduleCreep(roomName: string, order: CreepOrder, priority: number): void;
     removeCreepOrder(roomName: string, orderName: string): void;
@@ -44,6 +46,12 @@ declare interface Paraverse {
     getTransporterEfficiency(room: Room): number;
     pushEfficiency(memory: CreepMemory, efficiency: number): void;
     getEfficiency(memory: CreepMemory): number;
+
+    getTowerMemory(towerId: string): TowerMemory;
+    setTowerMemory(towerId: string, towerMemory: TowerMemory): void;
+
+    getWallHitPoints(room: Room): number;
+    setWallHitPoints(room: Room, hitPoints: number): void;
 
     getUid(): number;
 
@@ -144,4 +152,9 @@ declare interface ResourceRequest {
     requestorId: string;
     isRequestorCreep: boolean;
     resourceType: string;
+}
+
+declare interface TowerMemory {
+    status: string;
+    target: string;
 }
