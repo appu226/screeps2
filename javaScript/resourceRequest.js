@@ -39,7 +39,7 @@ function pushResourceRequest(queueData, roomName, requestorId, isRequestorCreep,
     var numScheduledEntries = queue.count(function (resourceRequest) { return compareResourceRequest(rr, resourceRequest) == 0; });
     var alreadyScheduledAmount = (numScheduledEntries + numTransportersInTransit) * pv.DELIVERY_AMOUNT;
     while (alreadyScheduledAmount < amount) {
-        alreadyScheduledAmount += 50;
+        alreadyScheduledAmount += pv.DELIVERY_AMOUNT;
         queue.push(rr);
     }
 }

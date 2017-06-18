@@ -48,7 +48,7 @@ export function pushResourceRequest(
     let numScheduledEntries = queue.count((resourceRequest: ResourceRequest) => compareResourceRequest(rr, resourceRequest) == 0);
     let alreadyScheduledAmount = (numScheduledEntries + numTransportersInTransit) * pv.DELIVERY_AMOUNT;
     while (alreadyScheduledAmount < amount) {
-        alreadyScheduledAmount += 50;
+        alreadyScheduledAmount += pv.DELIVERY_AMOUNT;
         queue.push(rr);
     }
 }

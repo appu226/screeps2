@@ -127,7 +127,7 @@ class ParaverseImpl implements Paraverse {
         this.STRUCTURE_CODE_KEEPER_LAIR = 1007;
         this.STRUCTURE_CODE_CONTROLLER = 1008;
 
-        this.DELIVERY_AMOUNT = 50;
+        this.DELIVERY_AMOUNT = 150;
         this.deliveryIntent = {};
         this.collectionIntent = {};
 
