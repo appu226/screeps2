@@ -5,6 +5,10 @@ var ExtensionWrapper = (function () {
         this.my = extension.my;
     }
     ExtensionWrapper.prototype.process = function (pv) {
+        var extension = this.structure;
+        if (extension.energy < extension.energyCapacity) {
+            pv.requestResourceReceive(extension.room.name, extension.id, false, RESOURCE_ENERGY, extension.energyCapacity - extension.energy);
+        }
     };
     return ExtensionWrapper;
 }());

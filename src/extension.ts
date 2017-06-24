@@ -8,7 +8,10 @@ class ExtensionWrapper implements StructureWrapper {
     }
 
     process(pv: Paraverse): void {
-
+        let extension = this.structure;
+        if (extension.energy < extension.energyCapacity) {
+            pv.requestResourceReceive(extension.room.name, extension.id, false, RESOURCE_ENERGY, extension.energyCapacity - extension.energy);
+        }
     }
 }
 
