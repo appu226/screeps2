@@ -9,8 +9,8 @@ function makeHarvesterOrder(orderName, sourceId, pv) {
         creepType: pv.CREEP_TYPE_HARVESTER,
         name: pv.CREEP_TYPE_HARVESTER + "_" + pv.getUid(),
         orderName: orderName,
-        basicBody: [MOVE, CARRY, WORK, WORK],
-        addOnBody: [CARRY, WORK, WORK],
+        basicBody: [MOVE, CARRY, CARRY, CARRY, WORK],
+        addOnBody: [WORK],
         maxEnergy: 1000,
         memory: makeHarvesterMemory(sourceId, pv)
     };

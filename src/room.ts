@@ -41,6 +41,18 @@ class RoomWrapperImpl implements RoomWrapper {
                     4
                 );
             }
+
+            let hostileCreeps = pv.getHostileCreeps(me);
+            for (let hci = 0; hci < hostileCreeps.length; ++hci) {
+                let hc = hostileCreeps[hci];
+                if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
+                    pv.scheduleCreep(
+                        me.name,
+                        pv.makeDefenderOrder(`defender_${me.name}_${hc.id}`, hc.id),
+                        2
+                    );
+                }
+            }
         }
     }
 
@@ -59,26 +71,15 @@ function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {
 }
 
 function scheduleConstructionSitesIfRequired(room: Room, pv: Paraverse, structureType: string): boolean {
-    let terrain: number[][] = pv.getTerrainWithStructures(room);
-    let structureCode: number = pv.getStructureCode(structureType);
     let alreadyAvailable =
-        terrain.reduce<number>(
-            (prev, current) =>
-                current.reduce<number>(
-                    (prev2, curr2) => curr2 == structureCode ? prev2 + 1 : prev2,
-                    prev
-                ),
-            0
-        );
+        pv.getMyStructures().filter(sw => sw.my && sw.structure.room.name == room.name && sw.structure.structureType == structureType);
+    let possibleConstructionSites =
+        pv.getPossibleConstructionSites(room);
     let plannedConstructionSites =
-        pv.getPlannedConstructionSites(room.name).filter((pcs) => {
-            let t = terrain[pcs.x][pcs.y];
-            return (t == pv.TERRAIN_CODE_SWAMP || t == pv.TERRAIN_CODE_PLAIN)
-                && pcs.structureType == structureType
-        });
+        pv.getPlannedConstructionSites(room.name).filter(pcs => pcs.structureType == structureType && possibleConstructionSites[pcs.x][pcs.y]);
     if (plannedConstructionSites.length == 0 // nothing planned 
-        || alreadyAvailable >= plannedConstructionSites.length // more created than planned
-        || alreadyAvailable >= CONTROLLER_STRUCTURES[structureType][room.controller.level] // cannot create more
+        || alreadyAvailable.length >= plannedConstructionSites.length // more created than planned
+        || alreadyAvailable.length >= CONTROLLER_STRUCTURES[structureType][room.controller.level] // cannot create more
     ) {
         return false;
     } else {

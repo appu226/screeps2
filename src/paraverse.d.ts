@@ -23,6 +23,7 @@ declare interface Paraverse {
     makeHarvesterOrder(orderName: string, sourceId: string): CreepOrder;
     makeTransporterOrder(orderName: string): CreepOrder;
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder;
+    makeDefenderOrder(orderName: string, targetId: string): CreepOrder;
 
     requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
     requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
@@ -34,8 +35,8 @@ declare interface Paraverse {
 
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
     getTerrain(room: Room): number[][];
-    getTerrainWithStructures(room: Room): number[][];
-    getStructureCode(structureType: string): number;
+    getPossibleMoveSites(room: Room): boolean[][];
+    getPossibleConstructionSites(room: Room): boolean[][];
     getPlannedConstructionSites(roomName: string): PlannedConstructionSite[];
 
     constructNextSite(room: Room): void;
@@ -46,6 +47,10 @@ declare interface Paraverse {
     getTransporterEfficiency(room: Room): number;
     pushEfficiency(memory: CreepMemory, efficiency: number): void;
     getEfficiency(memory: CreepMemory): number;
+    avoidObstacle(creepWrapper: CreepWrapper): void;
+    recordDefense(soldier: Creep, enemyId: string): void;
+    getTotalCollectedDefense(enemyId: string): number;
+    getSoldierCapability(soldier: Creep): number;
 
     getTowerMemory(towerId: string): TowerMemory;
     setTowerMemory(towerId: string, towerMemory: TowerMemory): void;
@@ -62,6 +67,7 @@ declare interface Paraverse {
     LOG_LEVEL_DEBUG: number;
 
     CREEP_TYPE_BUILDER: string;
+    CREEP_TYPE_DEFENDER: string;
     CREEP_TYPE_HARVESTER: string;
     CREEP_TYPE_TRANSPORTER: string;
     CREEP_TYPE_UPGRADER: string;
@@ -71,16 +77,10 @@ declare interface Paraverse {
     TERRAIN_CODE_SWAMP: number;
     TERRAIN_CODE_WALL: number;
     TERRAIN_CODE_LAVA: number;
-
-    STRUCTURE_CODE_SOURCE: number;
-    STRUCTURE_CODE_TOWER: number;
-    STRUCTURE_CODE_CWALL: number;
-    STRUCTURE_CODE_SPAWN: number;
-    STRUCTURE_CODE_EXTENSION: number;
-    STRUCTURE_CODE_ROAD: number;
-    STRUCTURE_CODE_RAMPART: number;
-    STRUCTURE_CODE_KEEPER_LAIR: number;
-    STRUCTURE_CODE_CONTROLLER: number;
+    TERRAIN_CODE_STRUCTURE: number;
+    TERRAIN_CODE_SOURCE: number;
+    TERRAIN_CODE_CREEP: number;
+    TERRAIN_CODE_CONSTRUCTION_SITE: number;
 
     DELIVERY_AMOUNT: number;
 }

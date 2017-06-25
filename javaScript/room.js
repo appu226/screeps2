@@ -30,6 +30,13 @@ var RoomWrapperImpl = (function () {
             if (pv.getTransporterEfficiency(me) > .9) {
                 pv.scheduleCreep(me.name, pv.makeTransporterOrder("Transporter_" + me.name), 4);
             }
+            var hostileCreeps = pv.getHostileCreeps(me);
+            for (var hci = 0; hci < hostileCreeps.length; ++hci) {
+                var hc = hostileCreeps[hci];
+                if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
+                    pv.scheduleCreep(me.name, pv.makeDefenderOrder("defender_" + me.name + "_" + hc.id, hc.id), 2);
+                }
+            }
         }
     };
     return RoomWrapperImpl;
@@ -45,19 +52,12 @@ function scheduleBuilderIfRequired(me, pv) {
     }
 }
 function scheduleConstructionSitesIfRequired(room, pv, structureType) {
-    var terrain = pv.getTerrainWithStructures(room);
-    var structureCode = pv.getStructureCode(structureType);
-    var alreadyAvailable = terrain.reduce(function (prev, current) {
-        return current.reduce(function (prev2, curr2) { return curr2 == structureCode ? prev2 + 1 : prev2; }, prev);
-    }, 0);
-    var plannedConstructionSites = pv.getPlannedConstructionSites(room.name).filter(function (pcs) {
-        var t = terrain[pcs.x][pcs.y];
-        return (t == pv.TERRAIN_CODE_SWAMP || t == pv.TERRAIN_CODE_PLAIN)
-            && pcs.structureType == structureType;
-    });
+    var alreadyAvailable = pv.getMyStructures().filter(function (sw) { return sw.my && sw.structure.room.name == room.name && sw.structure.structureType == structureType; });
+    var possibleConstructionSites = pv.getPossibleConstructionSites(room);
+    var plannedConstructionSites = pv.getPlannedConstructionSites(room.name).filter(function (pcs) { return pcs.structureType == structureType && possibleConstructionSites[pcs.x][pcs.y]; });
     if (plannedConstructionSites.length == 0 // nothing planned 
-        || alreadyAvailable >= plannedConstructionSites.length // more created than planned
-        || alreadyAvailable >= CONTROLLER_STRUCTURES[structureType][room.controller.level] // cannot create more
+        || alreadyAvailable.length >= plannedConstructionSites.length // more created than planned
+        || alreadyAvailable.length >= CONTROLLER_STRUCTURES[structureType][room.controller.level] // cannot create more
     ) {
         return false;
     }

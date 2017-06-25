@@ -72,30 +72,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
     }
 
     free(pv: Paraverse): void {
-        let creep = this.creep;
-        let terrain = pv.getTerrainWithStructures(creep.room);
-        let validMoves: XY[] = [];
-        let checkForObstacle = function (dx: number, dy: number): boolean {
-            let x = creep.pos.x + dx;
-            let y = creep.pos.y + dy;
-            if (x < 0 || x > 49 || y < 0 || y > 49) return true;
-            if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP) {
-                return true;
-            }
-            validMoves.push({ x: x, y: y });
-            return false;
-        };
-        let downObs = checkForObstacle(0, 1);
-        let leftObs = checkForObstacle(-1, 0);
-        let rightObs = checkForObstacle(1, 0);
-        let upObs = checkForObstacle(0, -1);
-        let nextToObstacle: boolean = upObs || downObs || leftObs || rightObs;
-
-        if (nextToObstacle && validMoves.length > 0) {
-            let randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-            let newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);
-            pv.moveCreep(this, newPos);
-        }
+        pv.avoidObstacle(this);
         pv.pushEfficiency(this.memory, 0);
     }
 
@@ -147,6 +124,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
             }
             case ERR_NOT_ENOUGH_ENERGY:
             case ERR_NOT_ENOUGH_RESOURCES:
+            case ERR_FULL:
             case OK: {
                 if (creep.carry[memory.resourceType] > 0) {
                     pv.log.debug(`${creep.name} status changing to transporting.`);

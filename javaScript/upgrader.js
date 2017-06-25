@@ -4,7 +4,7 @@ function makeUpgraderOrder(orderName, roomName, pv) {
         creepType: pv.CREEP_TYPE_UPGRADER,
         name: pv.CREEP_TYPE_UPGRADER + "_" + pv.getUid(),
         orderName: orderName,
-        basicBody: [MOVE, CARRY, WORK, WORK],
+        basicBody: [MOVE, CARRY, CARRY, CARRY, WORK],
         addOnBody: [MOVE, MOVE, CARRY, WORK],
         maxEnergy: 3000,
         memory: makeUpgraderMemory(roomName, pv)

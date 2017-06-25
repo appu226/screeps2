@@ -58,30 +58,7 @@ var TransporterCreepWrapper = (function () {
         }
     };
     TransporterCreepWrapper.prototype.free = function (pv) {
-        var creep = this.creep;
-        var terrain = pv.getTerrainWithStructures(creep.room);
-        var validMoves = [];
-        var checkForObstacle = function (dx, dy) {
-            var x = creep.pos.x + dx;
-            var y = creep.pos.y + dy;
-            if (x < 0 || x > 49 || y < 0 || y > 49)
-                return true;
-            if (terrain[x][y] != pv.TERRAIN_CODE_PLAIN && terrain[x][y] != pv.TERRAIN_CODE_SWAMP) {
-                return true;
-            }
-            validMoves.push({ x: x, y: y });
-            return false;
-        };
-        var downObs = checkForObstacle(0, 1);
-        var leftObs = checkForObstacle(-1, 0);
-        var rightObs = checkForObstacle(1, 0);
-        var upObs = checkForObstacle(0, -1);
-        var nextToObstacle = upObs || downObs || leftObs || rightObs;
-        if (nextToObstacle && validMoves.length > 0) {
-            var randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-            var newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);
-            pv.moveCreep(this, newPos);
-        }
+        pv.avoidObstacle(this);
         pv.pushEfficiency(this.memory, 0);
     };
     TransporterCreepWrapper.prototype.failAndResetToFree = function (reason, pv) {
@@ -123,6 +100,7 @@ var TransporterCreepWrapper = (function () {
             }
             case ERR_NOT_ENOUGH_ENERGY:
             case ERR_NOT_ENOUGH_RESOURCES:
+            case ERR_FULL:
             case OK: {
                 if (creep.carry[memory.resourceType] > 0) {
                     pv.log.debug(creep.name + " status changing to transporting.");

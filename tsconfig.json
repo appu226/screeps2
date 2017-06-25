@@ -12,6 +12,7 @@
     "files": [
         "src/builder.ts",
         "src/controller.ts",
+        "src/defender.ts",
         "src/dictionary.ts",
         "src/extension.ts",
         "src/functional.d.ts",
