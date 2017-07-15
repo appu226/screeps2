@@ -30,7 +30,7 @@ var RoomWrapperImpl = (function () {
             if (pv.getTransporterEfficiency(me) > .9) {
                 pv.scheduleCreep(me.name, pv.makeTransporterOrder("Transporter_" + me.name), 4);
             }
-            var hostileCreeps = pv.getHostileCreeps(me);
+            var hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (var hci = 0; hci < hostileCreeps.length; ++hci) {
                 var hc = hostileCreeps[hci];
                 if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
@@ -42,11 +42,7 @@ var RoomWrapperImpl = (function () {
     return RoomWrapperImpl;
 }());
 function scheduleBuilderIfRequired(me, pv) {
-    var builders = pv.getMyCreeps().filter(function (cw) {
-        return cw.creep.my
-            && cw.creep.room.name == me.name
-            && cw.creepType == pv.CREEP_TYPE_BUILDER;
-    });
+    var builders = pv.getMyCreepsByRoomAndType(me, pv.CREEP_TYPE_BUILDER);
     if (builders.length == 0) {
         pv.scheduleCreep(me.name, pv.makeBuilderOrder(me.name + "_" + pv.CREEP_TYPE_BUILDER), 2);
     }

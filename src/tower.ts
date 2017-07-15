@@ -21,7 +21,7 @@ class TowerWrapper implements StructureWrapper {
         pv.requestResourceReceive(t.room.name, t.id, false, RESOURCE_ENERGY, t.energyCapacity - t.energy);
 
         //attack closest and weakest enemy
-        let enemies = pv.getHostileCreeps(t.room);
+        let enemies = pv.getHostileCreepsInRoom(t.room);
         let ce = //closest enemy
             o.maxBy<Creep>(enemies, closestAndWeakestFinder);
         if (ce.isPresent) {
@@ -30,7 +30,7 @@ class TowerWrapper implements StructureWrapper {
         }
 
         //heal closest and weakest creep
-        let myCreeps = pv.getMyCreeps().map(cw => cw.creep).filter(c => c.room.name == t.room.name);
+        let myCreeps = pv.getMyCreepsByRoom(t.room).map(cw => cw.creep);
         let cc = //closest creep
             o.maxBy<Creep>(myCreeps, closestAndWeakestFinder);
         if (cc.isPresent) {

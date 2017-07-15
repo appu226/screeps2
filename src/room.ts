@@ -42,7 +42,7 @@ class RoomWrapperImpl implements RoomWrapper {
                 );
             }
 
-            let hostileCreeps = pv.getHostileCreeps(me);
+            let hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (let hci = 0; hci < hostileCreeps.length; ++hci) {
                 let hc = hostileCreeps[hci];
                 if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
@@ -60,11 +60,7 @@ class RoomWrapperImpl implements RoomWrapper {
 
 function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {
     let builders =
-        pv.getMyCreeps().filter((cw) =>
-            cw.creep.my
-            && cw.creep.room.name == me.name
-            && cw.creepType == pv.CREEP_TYPE_BUILDER
-        );
+        pv.getMyCreepsByRoomAndType(me, pv.CREEP_TYPE_BUILDER);
     if (builders.length == 0) {
         pv.scheduleCreep(me.name, pv.makeBuilderOrder(`${me.name}_${pv.CREEP_TYPE_BUILDER}`), 2);
     }

@@ -12,3 +12,22 @@ export function forEach<TElem>(dictionary: Dictionary<TElem>, func: (key: string
     }
     return;
 }
+
+export function arrayToDictionary<TElem>(array: TElem[], keyFunc: (TElem) => string): Dictionary<TElem[]> {
+    let result: Dictionary<TElem[]> = {};
+    for(let i = 0; i < array.length; ++i) {
+        let elem = array[i];
+        let key = keyFunc(elem);
+        if (result[key] === undefined) result[key] = [];
+        result[key].push(elem);
+    }
+    return result;
+}
+
+export function mapValues<TElem, TNewElem>(dict: Dictionary<TElem>, mapFunc: (TElem) => TNewElem): Dictionary<TNewElem> {
+    let result: Dictionary<TNewElem> = {};
+    for(let key in dict) {
+        result[key] = mapFunc(dict[key]);
+    }
+    return result;
+}

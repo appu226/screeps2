@@ -33,12 +33,20 @@ var DefenderCreepWrapper = (function () {
         var defender = this.creep;
         var memory = this.memory;
         var enemy = pv.game.getObjectById(memory.targetId);
-        if (enemy != null && pv.getTotalCollectedDefense(memory.targetId) >= pv.getSoldierCapability(enemy) * .2)
-            pv.moveCreep(this, enemy.pos);
-        else {
-            pv.avoidObstacle(this);
+        if (enemy == null) {
+            var hostileCreeps = pv.getHostileCreepsInRoom(defender.room);
+            if (hostileCreeps.length > 0)
+                enemy = hostileCreeps[0];
         }
-        defender.rangedAttack(enemy);
+        if (enemy == null) {
+            var hostileStructures = pv.getHostileStructuresInRoom(defender.room);
+            if (hostileStructures.length > 0)
+                enemy = hostileStructures[0];
+        }
+        var couldMove = pv.moveCreep(this, enemy.pos);
+        var attackResult = defender.rangedAttack(enemy);
+        pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);
+        return;
     };
     return DefenderCreepWrapper;
 }());

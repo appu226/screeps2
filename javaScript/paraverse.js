@@ -79,22 +79,22 @@ var ParaverseImpl = (function () {
         this.constructionSiteCache = {};
         this.possibleConstructionSitesCache = {};
         this.possibleMoveSitesCache = {};
-        this.roomWrappers = {};
-        this.structureWrappers = {};
-        this.creepWrappers = {};
-        this.sourceWrappers = {};
         this.collectedDefense = {};
+        this.roomWrappers = {};
+        this.structureWrappers = [];
+        this.creepWrappers = [];
+        this.sourceWrappers = [];
         var pv = this;
         for (var roomName in Game.rooms) {
             var room = Game.rooms[roomName];
             room.find(FIND_STRUCTURES).forEach(function (s) {
-                o.tryCatch(function () { _this.structureWrappers[s.id] = mstructure.makeStructureWrapper(s, pv); }, "Creating wrapper for " + s.structureType + " " + s.id);
+                o.tryCatch(function () { _this.structureWrappers.push(mstructure.makeStructureWrapper(s, pv)); }, "Creating wrapper for " + s.structureType + " " + s.id);
             });
             room.find(FIND_CREEPS).forEach(function (c) {
-                o.tryCatch(function () { _this.creepWrappers[c.id] = pv.makeCreepWrapper(c); }, "Creating wrapper for creep " + c.name);
+                o.tryCatch(function () { _this.creepWrappers.push(pv.makeCreepWrapper(c)); }, "Creating wrapper for creep " + c.name);
             });
             room.find(FIND_SOURCES).forEach(function (s) {
-                o.tryCatch(function () { _this.sourceWrappers[s.id] = source.makeSourceWrapper(s, pv); }, "Creating wrapper for source " + s.id);
+                o.tryCatch(function () { _this.sourceWrappers.push(source.makeSourceWrapper(s, pv)); }, "Creating wrapper for source " + s.id);
             });
             this.roomWrappers[room.name] = mroom.makeRoomWrapper(room);
         }
@@ -116,18 +116,54 @@ var ParaverseImpl = (function () {
             if (tower === undefined || tower == null)
                 delete this.memory.towerMemory[towerId];
         }
+        this.myCreepWrappers = this.creepWrappers.filter(function (cw) { return cw.creep.my; });
+        this.hostileStructuresByRoom =
+            dictionary.arrayToDictionary(this.structureWrappers.filter(function (sw) { return !sw.my; }).map(function (sw) { return sw.structure; }), function (s) { return s.room.name; });
+        this.myCreepWrappersByRoom =
+            dictionary.arrayToDictionary(this.myCreepWrappers, function (cw) { return cw.creep.room.name; });
+        this.myCreepWrappersByRoomAndType =
+            dictionary.mapValues(this.myCreepWrappersByRoom, function (cwa) { return dictionary.arrayToDictionary(cwa, function (cw) { return cw.creepType; }); });
+        this.hostileCreepsByRoom =
+            dictionary.arrayToDictionary(this.creepWrappers.filter(function (cw) { return !cw.creep.my; }).map(function (cw) { return cw.creep; }), function (c) { return c.room.name; });
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return rw.room.controller.my; });
     };
     ParaverseImpl.prototype.getMyStructures = function () {
-        return dictionary.getValues(this.structureWrappers).filter(function (sw) { return sw.my; });
+        return this.structureWrappers.filter(function (sw) { return sw.my; });
     };
     ParaverseImpl.prototype.getMyCreeps = function () {
-        return dictionary.getValues(this.creepWrappers).filter(function (cw) { return cw.creep.my; });
+        if (this.myCreepWrappers === undefined || this.myCreepWrappers == null) {
+            this.myCreepWrappers = this.creepWrappers.filter(function (cw) { return cw.creep.my; });
+        }
+        return this.myCreepWrappers;
+    };
+    ParaverseImpl.prototype.getMyCreepsByRoom = function (room) {
+        if (this.myCreepWrappersByRoom === undefined) {
+            this.myCreepWrappersByRoom = {};
+        }
+        var mcwbr = this.myCreepWrappersByRoom;
+        if (mcwbr[room.name] === undefined) {
+            mcwbr[room.name] = this.getMyCreeps().filter(function (cw) { return cw.creep.room.name == room.name; });
+        }
+        return mcwbr[room.name];
+    };
+    ParaverseImpl.prototype.getMyCreepsByRoomAndType = function (room, creepType) {
+        if (this.myCreepWrappersByRoomAndType === undefined) {
+            this.myCreepWrappersByRoomAndType = {};
+        }
+        var mcwbrat = this.myCreepWrappersByRoomAndType;
+        if (mcwbrat[room.name] === undefined) {
+            mcwbrat[room.name] = {};
+        }
+        var mcwbt = mcwbrat[room.name];
+        if (mcwbt[creepType] === undefined) {
+            mcwbt[creepType] = this.getMyCreepsByRoom(room).filter(function (cw) { return cw.creepType == creepType; });
+        }
+        return mcwbt[creepType];
     };
     ParaverseImpl.prototype.getMySources = function () {
-        return dictionary.getValues(this.sourceWrappers).filter(function (sw) { return sw.source.room.controller.my; });
+        return this.sourceWrappers.filter(function (sw) { return sw.source.room.controller.my; });
     };
     ParaverseImpl.prototype.getSourceMemory = function (s) {
         if (this.memory.sourceMemories[s.id] === undefined) {
@@ -135,8 +171,23 @@ var ParaverseImpl = (function () {
         }
         return this.memory.sourceMemories[s.id];
     };
-    ParaverseImpl.prototype.getHostileCreeps = function (room) {
-        return dictionary.getValues(this.creepWrappers).filter(function (cw) { return !cw.creep.my && cw.creep.room.name == room.name; }).map(function (cw) { return cw.creep; });
+    ParaverseImpl.prototype.getHostileCreepsInRoom = function (room) {
+        if (this.hostileCreepsByRoom === undefined || this.hostileCreepsByRoom == null)
+            this.hostileCreepsByRoom = {};
+        var hcbr = this.hostileCreepsByRoom;
+        if (hcbr[room.name] === undefined) {
+            hcbr[room.name] = [];
+        }
+        return hcbr[room.name];
+    };
+    ParaverseImpl.prototype.getHostileStructuresInRoom = function (room) {
+        if (this.hostileStructuresByRoom === undefined || this.hostileStructuresByRoom == null)
+            this.hostileStructuresByRoom = {};
+        var hsbr = this.hostileStructuresByRoom;
+        if (hsbr[room.name] === undefined) {
+            hsbr[room.name] = [];
+        }
+        return hsbr[room.name];
     };
     ParaverseImpl.prototype.getCreepOrders = function (roomName) {
         if (this.memory.creepOrders[roomName] === undefined) {
@@ -301,14 +352,13 @@ var ParaverseImpl = (function () {
             this.possibleMoveSitesCache = {};
         if (this.possibleMoveSitesCache[room.name] === undefined) {
             var result_2 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
-            dictionary.forEach(this.structureWrappers, function (k, v) {
-                if (v.structure.room.name == room.name)
-                    result_2[v.structure.pos.x][v.structure.pos.y] = false;
+            this.structureWrappers.forEach(function (sw) {
+                if (sw.structure.room.name == room.name)
+                    result_2[sw.structure.pos.x][sw.structure.pos.y] = false;
             });
             this.getMySources().forEach(function (sw) { result_2[sw.source.pos.x][sw.source.pos.y] = false; });
-            this.getMyCreeps().forEach(function (cw) { if (cw.creep.room.name == room.name)
-                result_2[cw.creep.pos.x][cw.creep.pos.y] = false; });
-            this.getHostileCreeps(room).forEach(function (creep) { if (creep.room.name == room.name)
+            this.getMyCreepsByRoom(room).forEach(function (cw) { result_2[cw.creep.pos.x][cw.creep.pos.y] = false; });
+            this.getHostileCreepsInRoom(room).forEach(function (creep) { if (creep.room.name == room.name)
                 result_2[creep.pos.x][creep.pos.y] = false; });
             this.possibleMoveSitesCache[room.name] = result_2;
         }
@@ -321,9 +371,9 @@ var ParaverseImpl = (function () {
         if (this.possibleConstructionSitesCache[room.name] === undefined) {
             var result_3 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
             this.getConstructionSitesFromRoom(room).forEach(function (cs) { return result_3[cs.pos.x][cs.pos.y] = false; });
-            dictionary.forEach(this.structureWrappers, function (k, v) {
-                if (v.structure.room.name == room.name)
-                    result_3[v.structure.pos.x][v.structure.pos.y] = false;
+            this.structureWrappers.forEach(function (sw) {
+                if (sw.structure.room.name == room.name)
+                    result_3[sw.structure.pos.x][sw.structure.pos.y] = false;
             });
             this.getMySources().forEach(function (sw) { return result_3[sw.source.pos.x][sw.source.pos.y] = false; });
             this.possibleConstructionSitesCache[room.name] = result_3;
@@ -405,7 +455,7 @@ var ParaverseImpl = (function () {
     };
     ParaverseImpl.prototype.getTransporterEfficiency = function (room) {
         var _this = this;
-        var ts = this.getMyCreeps().filter(function (cw) { return cw.creepType == _this.CREEP_TYPE_TRANSPORTER && cw.creep.room.name == room.name; });
+        var ts = this.getMyCreepsByRoomAndType(room, this.CREEP_TYPE_TRANSPORTER);
         var efficiencies = ts.map(function (cw) { return _this.getEfficiency(cw.creep.memory); });
         if (efficiencies.length == 0)
             return 1;

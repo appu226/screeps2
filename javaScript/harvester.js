@@ -34,11 +34,7 @@ var HarvesterCreepWrapper = (function () {
         this.memory = creep.memory;
     }
     HarvesterCreepWrapper.prototype.roomHasTransporters = function (pv) {
-        var _this = this;
-        return pv.getMyCreeps().filter(function (cw) {
-            return cw.creepType == pv.CREEP_TYPE_TRANSPORTER &&
-                cw.creep.room.name == _this.creep.room.name;
-        }).length > 0;
+        return pv.getMyCreepsByRoomAndType(this.creep.room, pv.CREEP_TYPE_TRANSPORTER).length > 0;
     };
     HarvesterCreepWrapper.prototype.process = function (pv) {
         var _this = this;

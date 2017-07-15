@@ -56,9 +56,23 @@ class ParaverseImpl implements Paraverse {
     bodyPartPriority: Dictionary<number>;
 
     roomWrappers: Dictionary<RoomWrapper>;
-    structureWrappers: Dictionary<StructureWrapper>;
-    creepWrappers: Dictionary<CreepWrapper>;
-    sourceWrappers: Dictionary<SourceWrapper>;
+    structureWrappers: StructureWrapper[];
+    creepWrappers: CreepWrapper[];
+    sourceWrappers: SourceWrapper[];
+
+
+    constructionSiteCache: Dictionary<ConstructionSite[]>;
+    possibleConstructionSitesCache: Dictionary<boolean[][]>;
+    possibleMoveSitesCache: Dictionary<boolean[][]>;
+
+    hostileStructuresByRoom: Dictionary<Structure[]>;
+    hostileCreepsByRoom: Dictionary<Creep[]>;
+
+    myCreepWrappers: CreepWrapper[];
+    myCreepWrappersByRoom: Dictionary<CreepWrapper[]>;
+    myCreepWrappersByRoomAndType: Dictionary<Dictionary<CreepWrapper[]>>;
+
+
     deliveryIntent: Dictionary<Dictionary<number>>;
     collectionIntent: Dictionary<Dictionary<number>>;
 
@@ -87,10 +101,6 @@ class ParaverseImpl implements Paraverse {
     TERRAIN_CODE_CONSTRUCTION_SITE: number;
 
     DELIVERY_AMOUNT: number;
-
-    constructionSiteCache: Dictionary<ConstructionSite[]>;
-    possibleConstructionSitesCache: Dictionary<boolean[][]>;
-    possibleMoveSitesCache: Dictionary<boolean[][]>;
 
     constructor(
         game: Game,
@@ -142,14 +152,13 @@ class ParaverseImpl implements Paraverse {
         this.constructionSiteCache = {};
         this.possibleConstructionSitesCache = {};
         this.possibleMoveSitesCache = {};
+        this.collectedDefense = {};
 
 
         this.roomWrappers = {};
-        this.structureWrappers = {};
-        this.creepWrappers = {};
-        this.sourceWrappers = {};
-
-        this.collectedDefense = {};
+        this.structureWrappers = [];
+        this.creepWrappers = [];
+        this.sourceWrappers = [];
 
         let pv = this;
         for (var roomName in Game.rooms) {
@@ -157,7 +166,7 @@ class ParaverseImpl implements Paraverse {
             room.find<Structure>(FIND_STRUCTURES).forEach(
                 (s) => {
                     o.tryCatch(
-                        () => { this.structureWrappers[s.id] = mstructure.makeStructureWrapper(s, pv); },
+                        () => { this.structureWrappers.push(mstructure.makeStructureWrapper(s, pv)); },
                         `Creating wrapper for ${s.structureType} ${s.id}`
                     );
                 }
@@ -166,7 +175,7 @@ class ParaverseImpl implements Paraverse {
             room.find<Creep>(FIND_CREEPS).forEach(
                 (c) => {
                     o.tryCatch(
-                        () => { this.creepWrappers[c.id] = pv.makeCreepWrapper(c); },
+                        () => { this.creepWrappers.push(pv.makeCreepWrapper(c)); },
                         `Creating wrapper for creep ${c.name}`
                     );
                 }
@@ -175,7 +184,7 @@ class ParaverseImpl implements Paraverse {
             room.find<Source>(FIND_SOURCES).forEach(
                 (s) => {
                     o.tryCatch(
-                        () => { this.sourceWrappers[s.id] = source.makeSourceWrapper(s, pv); },
+                        () => { this.sourceWrappers.push(source.makeSourceWrapper(s, pv)); },
                         `Creating wrapper for source ${s.id}`
                     );
                 }
@@ -204,6 +213,31 @@ class ParaverseImpl implements Paraverse {
             if (tower === undefined || tower == null)
                 delete this.memory.towerMemory[towerId];
         }
+
+        this.myCreepWrappers = this.creepWrappers.filter(cw => cw.creep.my);
+        this.hostileStructuresByRoom =
+            dictionary.arrayToDictionary<Structure>(
+                this.structureWrappers.filter(sw => !sw.my).map(sw => sw.structure),
+                (s: Structure) => s.room.name
+            );
+        this.myCreepWrappersByRoom =
+            dictionary.arrayToDictionary<CreepWrapper>(
+                this.myCreepWrappers,
+                (cw: CreepWrapper) => cw.creep.room.name
+            );
+        this.myCreepWrappersByRoomAndType =
+            dictionary.mapValues<CreepWrapper[], Dictionary<CreepWrapper[]>>(
+                this.myCreepWrappersByRoom,
+                (cwa: CreepWrapper[]) => dictionary.arrayToDictionary(
+                    cwa,
+                    (cw: CreepWrapper) => cw.creepType
+                )
+            );
+        this.hostileCreepsByRoom =
+            dictionary.arrayToDictionary<Creep>(
+                this.creepWrappers.filter(cw => !cw.creep.my).map(cw => cw.creep),
+                (c: Creep) => c.room.name
+            );
     }
 
     getMyRooms(): RoomWrapper[] {
@@ -211,15 +245,44 @@ class ParaverseImpl implements Paraverse {
     }
 
     getMyStructures(): StructureWrapper[] {
-        return dictionary.getValues<StructureWrapper>(this.structureWrappers).filter(sw => sw.my);
+        return this.structureWrappers.filter(sw => sw.my);
     }
 
     getMyCreeps(): CreepWrapper[] {
-        return dictionary.getValues<CreepWrapper>(this.creepWrappers).filter(cw => cw.creep.my);
+        if (this.myCreepWrappers === undefined || this.myCreepWrappers == null) {
+            this.myCreepWrappers = this.creepWrappers.filter(cw => cw.creep.my);
+        }
+        return this.myCreepWrappers;
+    }
+
+    getMyCreepsByRoom(room: Room): CreepWrapper[] {
+        if (this.myCreepWrappersByRoom === undefined) {
+            this.myCreepWrappersByRoom = {}
+        }
+        let mcwbr = this.myCreepWrappersByRoom;
+        if (mcwbr[room.name] === undefined) {
+            mcwbr[room.name] = this.getMyCreeps().filter(cw => cw.creep.room.name == room.name);
+        }
+        return mcwbr[room.name];
+    }
+
+    getMyCreepsByRoomAndType(room: Room, creepType: string): CreepWrapper[] {
+        if (this.myCreepWrappersByRoomAndType === undefined) {
+            this.myCreepWrappersByRoomAndType = {};
+        }
+        let mcwbrat = this.myCreepWrappersByRoomAndType;
+        if (mcwbrat[room.name] === undefined) {
+            mcwbrat[room.name] = {};
+        }
+        let mcwbt = mcwbrat[room.name];
+        if (mcwbt[creepType] === undefined) {
+            mcwbt[creepType] = this.getMyCreepsByRoom(room).filter(cw => cw.creepType == creepType);
+        }
+        return mcwbt[creepType];
     }
 
     getMySources(): SourceWrapper[] {
-        return dictionary.getValues<SourceWrapper>(this.sourceWrappers).filter(sw => sw.source.room.controller.my);
+        return this.sourceWrappers.filter(sw => sw.source.room.controller.my);
     }
 
     getSourceMemory(s: Source): SourceMemory {
@@ -229,8 +292,24 @@ class ParaverseImpl implements Paraverse {
         return this.memory.sourceMemories[s.id];
     }
 
-    getHostileCreeps(room: Room): Creep[] {
-        return dictionary.getValues<CreepWrapper>(this.creepWrappers).filter(cw => !cw.creep.my && cw.creep.room.name == room.name).map(cw => cw.creep);
+    getHostileCreepsInRoom(room: Room): Creep[] {
+        if (this.hostileCreepsByRoom === undefined || this.hostileCreepsByRoom == null)
+            this.hostileCreepsByRoom = {};
+        let hcbr = this.hostileCreepsByRoom;
+        if (hcbr[room.name] === undefined) {
+            hcbr[room.name] = [];
+        }
+        return hcbr[room.name];
+    }
+
+    getHostileStructuresInRoom(room: Room): Structure[] {
+        if (this.hostileStructuresByRoom === undefined || this.hostileStructuresByRoom == null)
+            this.hostileStructuresByRoom = {};
+        let hsbr = this.hostileStructuresByRoom;
+        if (hsbr[room.name] === undefined) {
+            hsbr[room.name] = [];
+        }
+        return hsbr[room.name];
     }
 
     getCreepOrders(roomName: string): PQ<CreepOrder> {
@@ -408,16 +487,15 @@ class ParaverseImpl implements Paraverse {
         if (this.possibleMoveSitesCache === undefined) this.possibleMoveSitesCache = {};
         if (this.possibleMoveSitesCache[room.name] === undefined) {
             let result: boolean[][] = this.getTerrain(room).map((row) => row.map((col) => col == this.TERRAIN_CODE_PLAIN || col == this.TERRAIN_CODE_SWAMP));
-            dictionary.forEach<StructureWrapper>(
-                this.structureWrappers,
-                (k, v) => {
-                    if (v.structure.room.name == room.name)
-                        result[v.structure.pos.x][v.structure.pos.y] = false;
+            this.structureWrappers.forEach(
+                sw => {
+                    if (sw.structure.room.name == room.name)
+                        result[sw.structure.pos.x][sw.structure.pos.y] = false;
                 }
             );
             this.getMySources().forEach(sw => { result[sw.source.pos.x][sw.source.pos.y] = false; });
-            this.getMyCreeps().forEach(cw => { if (cw.creep.room.name == room.name) result[cw.creep.pos.x][cw.creep.pos.y] = false; });
-            this.getHostileCreeps(room).forEach(creep => { if (creep.room.name == room.name) result[creep.pos.x][creep.pos.y] = false; });
+            this.getMyCreepsByRoom(room).forEach(cw => { result[cw.creep.pos.x][cw.creep.pos.y] = false; });
+            this.getHostileCreepsInRoom(room).forEach(creep => { if (creep.room.name == room.name) result[creep.pos.x][creep.pos.y] = false; });
             this.possibleMoveSitesCache[room.name] = result;
         }
         return this.possibleMoveSitesCache[room.name];
@@ -428,11 +506,10 @@ class ParaverseImpl implements Paraverse {
         if (this.possibleConstructionSitesCache[room.name] === undefined) {
             let result: boolean[][] = this.getTerrain(room).map((row) => row.map((col) => col == this.TERRAIN_CODE_PLAIN || col == this.TERRAIN_CODE_SWAMP));
             this.getConstructionSitesFromRoom(room).forEach(cs => result[cs.pos.x][cs.pos.y] = false);
-            dictionary.forEach<StructureWrapper>(
-                this.structureWrappers,
-                (k, v) => {
-                    if (v.structure.room.name == room.name)
-                        result[v.structure.pos.x][v.structure.pos.y] = false;
+            this.structureWrappers.forEach(
+                sw => {
+                    if (sw.structure.room.name == room.name)
+                        result[sw.structure.pos.x][sw.structure.pos.y] = false;
                 }
             );
             this.getMySources().forEach(sw => result[sw.source.pos.x][sw.source.pos.y] = false);
@@ -525,7 +602,7 @@ class ParaverseImpl implements Paraverse {
     }
 
     getTransporterEfficiency(room: Room): number {
-        let ts = this.getMyCreeps().filter((cw) => cw.creepType == this.CREEP_TYPE_TRANSPORTER && cw.creep.room.name == room.name);
+        let ts = this.getMyCreepsByRoomAndType(room, this.CREEP_TYPE_TRANSPORTER);
         let efficiencies = ts.map((cw) => this.getEfficiency(cw.creep.memory));
         if (efficiencies.length == 0)
             return 1;

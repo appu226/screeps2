@@ -43,11 +43,7 @@ export class HarvesterCreepWrapper implements CreepWrapper {
     }
 
     roomHasTransporters(pv: Paraverse): boolean {
-        return pv.getMyCreeps().filter(
-            cw =>
-                cw.creepType == pv.CREEP_TYPE_TRANSPORTER &&
-                cw.creep.room.name == this.creep.room.name
-        ).length > 0;
+        return pv.getMyCreepsByRoomAndType(this.creep.room, pv.CREEP_TYPE_TRANSPORTER).length > 0;
     }
 
     process(pv: Paraverse) {

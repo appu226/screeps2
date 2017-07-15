@@ -13,14 +13,14 @@ var TowerWrapper = (function () {
         };
         pv.requestResourceReceive(t.room.name, t.id, false, RESOURCE_ENERGY, t.energyCapacity - t.energy);
         //attack closest and weakest enemy
-        var enemies = pv.getHostileCreeps(t.room);
+        var enemies = pv.getHostileCreepsInRoom(t.room);
         var ce = o.maxBy(enemies, closestAndWeakestFinder);
         if (ce.isPresent) {
             t.attack(ce.get.elem);
             return;
         }
         //heal closest and weakest creep
-        var myCreeps = pv.getMyCreeps().map(function (cw) { return cw.creep; }).filter(function (c) { return c.room.name == t.room.name; });
+        var myCreeps = pv.getMyCreepsByRoom(t.room).map(function (cw) { return cw.creep; });
         var cc = o.maxBy(myCreeps, closestAndWeakestFinder);
         if (cc.isPresent) {
             t.heal(cc.get.elem);

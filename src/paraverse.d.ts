@@ -11,10 +11,13 @@ declare interface Paraverse {
     getMyRooms(): RoomWrapper[];
     getMyStructures(): StructureWrapper[];
     getMyCreeps(): CreepWrapper[];
+    getMyCreepsByRoom(room: Room): CreepWrapper[];
+    getMyCreepsByRoomAndType(room: Room, creepType: string): CreepWrapper[];
     getMySources(): SourceWrapper[];
     getSourceMemory(source: Source): SourceMemory;
 
-    getHostileCreeps(room: Room): Creep[];
+    getHostileCreepsInRoom(room: Room): Creep[];
+    getHostileStructuresInRoom(room: Room): Structure[];
 
     getCreepOrders(roomName: string): PQ<CreepOrder>;
     scheduleCreep(roomName: string, order: CreepOrder, priority: number): void;

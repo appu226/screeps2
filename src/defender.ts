@@ -42,13 +42,19 @@ export class DefenderCreepWrapper implements CreepWrapper {
     process(pv: Paraverse) {
         let defender = this.creep;
         let memory = this.memory;
-        let enemy = pv.game.getObjectById<Creep>(memory.targetId);
-        if (enemy != null && pv.getTotalCollectedDefense(memory.targetId) >= pv.getSoldierCapability(enemy) * .2)
-            pv.moveCreep(this, enemy.pos);
-        else {
-            pv.avoidObstacle(this);
+        let enemy: (Creep | Structure) = pv.game.getObjectById<Creep>(memory.targetId);
+        if (enemy == null) {
+            let hostileCreeps = pv.getHostileCreepsInRoom(defender.room);
+            if (hostileCreeps.length > 0) enemy = hostileCreeps[0];
         }
-        defender.rangedAttack(enemy);
+        if (enemy == null) {
+            let hostileStructures: Structure[] = pv.getHostileStructuresInRoom(defender.room);
+            if (hostileStructures.length > 0) enemy = hostileStructures[0];
+        }
+        let couldMove = pv.moveCreep(this, enemy.pos);
+        let attackResult = defender.rangedAttack(enemy);
+        pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);
+        return;
     }
 }
 
