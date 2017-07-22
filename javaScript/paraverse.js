@@ -285,7 +285,7 @@ var ParaverseImpl = (function () {
                 var freeTransporters = this_1.getMyCreeps().filter(function (cw) { return mtransporter.isFreeTransporter(cw, _this); });
                 var closestTransporter = o.maxBy(freeTransporters, function (cw) { return mterrain.euclidean(cw.creep.pos, destination.pos, _this) * -1; });
                 if (closestTransporter.isPresent) {
-                    var rro = receiveRequests.extract(function (rr) { return rr.resourceType == sr.resourceType; });
+                    var rro = receiveRequests.extract(function (rr) { return rr.resourceType == sr.resourceType && rr.requestorId != sr.requestorId; });
                     if (rro.isPresent) {
                         mtransporter.assignTransporter(closestTransporter.get.elem, sr, rro.get, this_1);
                         isRequestAssigned = true;

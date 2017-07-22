@@ -451,7 +451,7 @@ class ParaverseImpl implements Paraverse {
                 let freeTransporters = this.getMyCreeps().filter((cw: CreepWrapper) => mtransporter.isFreeTransporter(cw, this));
                 let closestTransporter = o.maxBy<CreepWrapper>(freeTransporters, (cw: CreepWrapper) => mterrain.euclidean(cw.creep.pos, destination.pos, this) * -1);
                 if (closestTransporter.isPresent) {
-                    let rro = receiveRequests.extract((rr: ResourceRequest) => rr.resourceType == sr.resourceType);
+                    let rro = receiveRequests.extract((rr: ResourceRequest) => rr.resourceType == sr.resourceType && rr.requestorId != sr.requestorId);
                     if (rro.isPresent) {
                         mtransporter.assignTransporter(closestTransporter.get.elem, sr, rro.get, this);
                         isRequestAssigned = true;
