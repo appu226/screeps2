@@ -7,6 +7,7 @@ var mrampart = require("./rampart");
 var mroad = require("./road");
 var mtower = require("./tower");
 var mwall = require("./wall");
+var mcontainer = require("./container");
 function makeStructureWrapper(structure, pv) {
     switch (structure.structureType) {
         case STRUCTURE_SPAWN:
@@ -23,6 +24,8 @@ function makeStructureWrapper(structure, pv) {
             return mtower.makeTowerWrapper(structure);
         case STRUCTURE_EXTENSION:
             return mextension.makeExtensionWrapper(structure);
+        case STRUCTURE_CONTAINER:
+            return mcontainer.makeContainerWrapper(structure);
         case STRUCTURE_WALL:
             return mwall.makeWallWrapper(structure, pv);
         default: throw new Error("makeStructureWrapper: type " + structure.structureType + " not yet supported.");

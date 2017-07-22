@@ -11,6 +11,7 @@
     },
     "files": [
         "src/builder.ts",
+        "src/container.ts",
         "src/controller.ts",
         "src/defender.ts",
         "src/dictionary.ts",
