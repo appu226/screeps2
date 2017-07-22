@@ -13,6 +13,7 @@ var mlogger = require("./logger");
 var mroom = require("./room");
 var mterrain = require("./terrain");
 var mrr = require("./resourceRequest");
+var mms = require("./mapSearch");
 function makeParaverse(game, map, memory) {
     var paraMemory = memory;
     if (paraMemory.logLevel === undefined)
@@ -21,8 +22,6 @@ function makeParaverse(game, map, memory) {
         paraMemory.creepOrders = {};
     if (paraMemory.terrainMap === undefined)
         paraMemory.terrainMap = {};
-    if (paraMemory.plannedConstructionSites === undefined)
-        paraMemory.plannedConstructionSites = {};
     if (paraMemory.sourceMemories === undefined)
         paraMemory.sourceMemories = {};
     if (paraMemory.uid === undefined)
@@ -76,7 +75,8 @@ var ParaverseImpl = (function () {
         this.bodyPartPriority[RANGED_ATTACK] = 2;
         this.bodyPartPriority[CARRY] = 1;
         this.bodyPartPriority[CLAIM] = 1;
-        this.constructionSiteCache = {};
+        this.constructionSitesByRoom = {};
+        this.constructionSitesByRoomAndType = {};
         this.possibleConstructionSitesCache = {};
         this.possibleMoveSitesCache = {};
         this.collectedDefense = {};
@@ -125,12 +125,14 @@ var ParaverseImpl = (function () {
             dictionary.mapValues(this.myCreepWrappersByRoom, function (cwa) { return dictionary.arrayToDictionary(cwa, function (cw) { return cw.creepType; }); });
         this.hostileCreepsByRoom =
             dictionary.arrayToDictionary(this.creepWrappers.filter(function (cw) { return !cw.creep.my; }).map(function (cw) { return cw.creep; }), function (c) { return c.room.name; });
+        this.myStructures = this.structureWrappers.filter(function (sw) { return sw.my; });
+        this.myStructuresByRoom =
+            dictionary.arrayToDictionary(this.myStructures, function (sw) { return sw.structure.room.name; });
+        this.myStructuresByRoomAndType =
+            dictionary.mapValues(this.myStructuresByRoom, function (rsw) { return dictionary.arrayToDictionary(rsw, function (sw) { return sw.structure.structureType; }); });
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return rw.room.controller.my; });
-    };
-    ParaverseImpl.prototype.getMyStructures = function () {
-        return this.structureWrappers.filter(function (sw) { return sw.my; });
     };
     ParaverseImpl.prototype.getMyCreeps = function () {
         if (this.myCreepWrappers === undefined || this.myCreepWrappers == null) {
@@ -161,6 +163,23 @@ var ParaverseImpl = (function () {
             mcwbt[creepType] = this.getMyCreepsByRoom(room).filter(function (cw) { return cw.creepType == creepType; });
         }
         return mcwbt[creepType];
+    };
+    ParaverseImpl.prototype.getMyStructures = function () {
+        return this.myStructures;
+    };
+    ParaverseImpl.prototype.getMyStructuresByRoom = function (room) {
+        if (this.myStructuresByRoom[room.name] === undefined) {
+            this.myStructuresByRoom[room.name] = [];
+        }
+        return this.myStructuresByRoom[room.name];
+    };
+    ParaverseImpl.prototype.getMyStructuresByRoomAndType = function (room, structureType) {
+        if (this.myStructuresByRoomAndType[room.name] === undefined)
+            this.myStructuresByRoomAndType[room.name] = {};
+        var msbt = this.myStructuresByRoomAndType[room.name];
+        if (msbt[structureType] === undefined)
+            msbt[structureType] = [];
+        return msbt[structureType];
     };
     ParaverseImpl.prototype.getMySources = function () {
         return this.sourceWrappers.filter(function (sw) { return sw.source.room.controller.my; });
@@ -200,10 +219,19 @@ var ParaverseImpl = (function () {
         this.log.setLogLevel(logLevel);
     };
     ParaverseImpl.prototype.getConstructionSitesFromRoom = function (room) {
-        if (this.constructionSiteCache[room.name] === undefined) {
-            this.constructionSiteCache[room.name] = room.find(FIND_CONSTRUCTION_SITES);
+        if (this.constructionSitesByRoom[room.name] === undefined) {
+            this.constructionSitesByRoom[room.name] = room.find(FIND_MY_CONSTRUCTION_SITES);
+            this.constructionSitesByRoomAndType[room.name] =
+                dictionary.arrayToDictionary(this.constructionSitesByRoom[room.name], function (cs) { return cs.structureType; });
         }
-        return this.constructionSiteCache[room.name];
+        return this.constructionSitesByRoom[room.name];
+    };
+    ParaverseImpl.prototype.getConstructionSitesFromRoomOfType = function (room, structureType) {
+        this.getConstructionSitesFromRoom(room);
+        var csbt = this.constructionSitesByRoomAndType[room.name];
+        if (csbt[structureType] === undefined)
+            csbt[structureType] = [];
+        return csbt[structureType];
     };
     ParaverseImpl.prototype.scheduleCreep = function (roomName, order, priority) {
         // call getCreepOrders before looking at the raw entries
@@ -380,26 +408,13 @@ var ParaverseImpl = (function () {
         }
         return this.possibleConstructionSitesCache[room.name];
     };
-    ParaverseImpl.prototype.getPlannedConstructionSites = function (roomName) {
-        if (this.memory.plannedConstructionSites[roomName] === undefined) {
-            this.memory.plannedConstructionSites[roomName] = [];
-        }
-        return this.memory.plannedConstructionSites[roomName];
-    };
-    ParaverseImpl.prototype.constructNextSite = function (room) {
-        var _this = this;
-        if (this.getConstructionSitesFromRoom(room).length > 0)
-            return;
-        var plan = this.getPlannedConstructionSites(room.name);
-        var tws = this.getPossibleConstructionSites(room);
-        var eligiblePlans = plan.filter(function (pcs) { return pcs.roomName == room.name && tws[pcs.x][pcs.y]; });
-        if (eligiblePlans.length == 0)
-            return;
-        var bestPcsO = o.maxBy(eligiblePlans, function (pcs) { return getPlannedConstructionSitePriority(pcs.structureType, _this); });
-        if (bestPcsO.isPresent) {
-            var bestPcs = bestPcsO.get.elem;
-            room.createConstructionSite(bestPcs.x, bestPcs.y, bestPcs.structureType);
-        }
+    ParaverseImpl.prototype.constructNextSite = function (room, structureType) {
+        var possibleConstructionSites = this.getPossibleConstructionSites(room);
+        var optXy = mms.searchForConstructionSite(possibleConstructionSites);
+        if (optXy.isPresent)
+            return room.createConstructionSite(optXy.get.x, optXy.get.y, structureType) == OK;
+        else
+            return false;
     };
     ParaverseImpl.prototype.getTowerMemory = function (towerId) {
         if (this.memory.towerMemory[towerId] === undefined) {
@@ -487,7 +502,7 @@ var ParaverseImpl = (function () {
             var y = creep.pos.y + dy;
             if (x < 0 || x > 49 || y < 0 || y > 49)
                 return true;
-            if (possibleMoveSites[x][y]) {
+            if (!possibleMoveSites[x][y]) {
                 return true;
             }
             validMoves.push({ x: x, y: y });
@@ -503,7 +518,7 @@ var ParaverseImpl = (function () {
         checkForObstacle(1, 1, this);
         var nextToObstacle = upObs || downObs || leftObs || rightObs;
         if (nextToObstacle && validMoves.length > 0) {
-            var randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+            var randomValidMove = validMoves[(Math.floor(Math.random() * validMoves.length) + this.game.time) % validMoves.length];
             var newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);
             this.moveCreep(cw, newPos);
         }
@@ -530,11 +545,3 @@ var ParaverseImpl = (function () {
     };
     return ParaverseImpl;
 }());
-function getPlannedConstructionSitePriority(structureType, pv) {
-    switch (structureType) {
-        case STRUCTURE_TOWER: return 100;
-        case STRUCTURE_WALL: return 99;
-        case STRUCTURE_ROAD: return 98;
-        default: return 0;
-    }
-}

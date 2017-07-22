@@ -9,12 +9,14 @@ declare interface Paraverse {
     bodyPartPriority: Dictionary<number>;
 
     getMyRooms(): RoomWrapper[];
-    getMyStructures(): StructureWrapper[];
     getMyCreeps(): CreepWrapper[];
     getMyCreepsByRoom(room: Room): CreepWrapper[];
     getMyCreepsByRoomAndType(room: Room, creepType: string): CreepWrapper[];
     getMySources(): SourceWrapper[];
     getSourceMemory(source: Source): SourceMemory;
+    getMyStructures(): StructureWrapper[];
+    getMyStructuresByRoom(room: Room): StructureWrapper[];
+    getMyStructuresByRoomAndType(room: Room, structureType: string): StructureWrapper[];
 
     getHostileCreepsInRoom(room: Room): Creep[];
     getHostileStructuresInRoom(room: Room): Structure[];
@@ -37,12 +39,13 @@ declare interface Paraverse {
     getCollectionIntent(sourceId: string, resourceName: string): number;
 
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
+    getConstructionSitesFromRoomOfType(room: Room, structureType: string): ConstructionSite[];
     getTerrain(room: Room): number[][];
     getPossibleMoveSites(room: Room): boolean[][];
     getPossibleConstructionSites(room: Room): boolean[][];
-    getPlannedConstructionSites(roomName: string): PlannedConstructionSite[];
 
-    constructNextSite(room: Room): void;
+    constructNextSite(room: Room, structureType: string): boolean;
+    
 
     moveCreep(cw: CreepWrapper, pos: RoomPosition): boolean;
     makeCreepWrapper(c: Creep): CreepWrapper;

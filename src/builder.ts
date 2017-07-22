@@ -47,9 +47,7 @@ export class BuilderCreepWrapper implements CreepWrapper {
 
         if (cs == null) {
             let constructionSites = pv.getConstructionSitesFromRoom(this.creep.room);
-            if (constructionSites.length == 0) {
-                pv.constructNextSite(this.creep.room);
-            } else {
+            if (constructionSites.length > 0) {
                 cs = constructionSites[0];
             }
         }
@@ -59,16 +57,18 @@ export class BuilderCreepWrapper implements CreepWrapper {
                 pv.moveCreep(this, cs.pos);
                 pv.pushEfficiency(this.memory, 0);
             } else if (buildAttempt == OK) {
+                pv.avoidObstacle(this);
                 pv.pushEfficiency(this.memory, 1);
             } else {
+                pv.avoidObstacle(this);
                 pv.pushEfficiency(this.memory, 0);
             }
             this.memory.constructionSiteId = o.Some<string>(cs.id);
         } else {
+            pv.avoidObstacle(this);
             pv.pushEfficiency(this.memory, 0);
             this.memory.constructionSiteId = o.None<string>();
         }
-
         pv.requestResourceReceive(
             this.creep.room.name,
             this.creep.id,

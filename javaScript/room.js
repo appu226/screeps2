@@ -12,19 +12,26 @@ var RoomWrapperImpl = (function () {
                 pq.pop();
             }
             // check if construction sites already exist
-            var doConstructionSitesExist = pv.getConstructionSitesFromRoom(me).filter(function (cs) { return cs.my; }).length > 0;
-            if (doConstructionSitesExist) {
+            if (pv.getConstructionSitesFromRoom(me).length > 0) {
                 //if construction sites already exist, schedule a builder unless one alread exists
                 scheduleBuilderIfRequired(me, pv);
             }
             else {
-                //if no construction sites, check if we need any
-                var scheduled = scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_ROAD)
-                    || scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_WALL)
-                    || scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_TOWER)
-                    || scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_EXTENSION);
-                if (scheduled) {
-                    pv.log.debug("Scheduled structure in room " + me.name);
+                var bannedStructures = {
+                    "road": true,
+                    "constructedWall": true,
+                    "rampart": true,
+                    "link": true
+                };
+                //schedule next construction site
+                for (var structureType in CONTROLLER_STRUCTURES) {
+                    var numExisting = pv.getMyStructuresByRoomAndType(me, structureType).length;
+                    if (bannedStructures[structureType] != true &&
+                        CONTROLLER_STRUCTURES[structureType][me.controller.level] != undefined &&
+                        CONTROLLER_STRUCTURES[structureType][me.controller.level] > numExisting) {
+                        pv.constructNextSite(me, structureType);
+                        break;
+                    }
                 }
             }
             if (pv.getTransporterEfficiency(me) > .9) {
@@ -33,6 +40,8 @@ var RoomWrapperImpl = (function () {
             var hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (var hci = 0; hci < hostileCreeps.length; ++hci) {
                 var hc = hostileCreeps[hci];
+                if (hc.owner.username == "Source Keeper")
+                    continue;
                 if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
                     pv.scheduleCreep(me.name, pv.makeDefenderOrder("defender_" + me.name + "_" + hc.id, hc.id), 2);
                 }
@@ -45,21 +54,6 @@ function scheduleBuilderIfRequired(me, pv) {
     var builders = pv.getMyCreepsByRoomAndType(me, pv.CREEP_TYPE_BUILDER);
     if (builders.length == 0) {
         pv.scheduleCreep(me.name, pv.makeBuilderOrder(me.name + "_" + pv.CREEP_TYPE_BUILDER), 2);
-    }
-}
-function scheduleConstructionSitesIfRequired(room, pv, structureType) {
-    var alreadyAvailable = pv.getMyStructures().filter(function (sw) { return sw.my && sw.structure.room.name == room.name && sw.structure.structureType == structureType; });
-    var possibleConstructionSites = pv.getPossibleConstructionSites(room);
-    var plannedConstructionSites = pv.getPlannedConstructionSites(room.name).filter(function (pcs) { return pcs.structureType == structureType && possibleConstructionSites[pcs.x][pcs.y]; });
-    if (plannedConstructionSites.length == 0 // nothing planned 
-        || alreadyAvailable.length >= plannedConstructionSites.length // more created than planned
-        || alreadyAvailable.length >= CONTROLLER_STRUCTURES[structureType][room.controller.level] // cannot create more
-    ) {
-        return false;
-    }
-    else {
-        var pcs = plannedConstructionSites[0];
-        return room.createConstructionSite(pcs.x, pcs.y, structureType) == OK;
     }
 }
 function makeRoomWrapper(room) {

@@ -49,6 +49,7 @@ export class UpgraderCreepWrapper implements CreepWrapper {
         switch (upgradeResult) {
             case OK: {
                 pv.pushEfficiency(this.memory, 1);
+                pv.avoidObstacle(this);
                 break;
             }
             case ERR_NOT_IN_RANGE: {
@@ -57,10 +58,12 @@ export class UpgraderCreepWrapper implements CreepWrapper {
             }
             case ERR_NOT_ENOUGH_ENERGY: {
                 pv.pushEfficiency(this.memory, 0);
+                pv.avoidObstacle(this);
                 break;
             }
             default: {
                 pv.pushEfficiency(this.memory, 0);
+                pv.avoidObstacle(this);
                 throw new Error(`${creep.name} upgrading ${roomName} failed with code ${upgradeResult}.`);
             }
         }

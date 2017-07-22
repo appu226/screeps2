@@ -12,12 +12,12 @@ import mlogger = require('./logger');
 import mroom = require('./room');
 import mterrain = require('./terrain');
 import mrr = require('./resourceRequest');
+import mms = require('./mapSearch');
 
 interface ParaMemory extends Memory {
     logLevel: number;
     creepOrders: Dictionary<PQEntry<CreepOrder>[]>;
     terrainMap: Dictionary<number[][]>;
-    plannedConstructionSites: Dictionary<PlannedConstructionSite[]>;
     sourceMemories: Dictionary<SourceMemory>;
     uid: number;
     resourceSendRequests: QueueData<ResourceRequest>;
@@ -35,7 +35,6 @@ export function makeParaverse(
     if (paraMemory.logLevel === undefined) paraMemory.logLevel = 4;
     if (paraMemory.creepOrders === undefined) paraMemory.creepOrders = {};
     if (paraMemory.terrainMap === undefined) paraMemory.terrainMap = {};
-    if (paraMemory.plannedConstructionSites === undefined) paraMemory.plannedConstructionSites = {};
     if (paraMemory.sourceMemories === undefined) paraMemory.sourceMemories = {};
     if (paraMemory.uid === undefined) paraMemory.uid = game.time;
     if (paraMemory.resourceSendRequests === undefined) paraMemory.resourceSendRequests = { pushStack: [], popStack: [] };
@@ -61,12 +60,17 @@ class ParaverseImpl implements Paraverse {
     sourceWrappers: SourceWrapper[];
 
 
-    constructionSiteCache: Dictionary<ConstructionSite[]>;
+    constructionSitesByRoom: Dictionary<ConstructionSite[]>;
+    constructionSitesByRoomAndType: Dictionary<Dictionary<ConstructionSite[]>>;
     possibleConstructionSitesCache: Dictionary<boolean[][]>;
     possibleMoveSitesCache: Dictionary<boolean[][]>;
 
     hostileStructuresByRoom: Dictionary<Structure[]>;
     hostileCreepsByRoom: Dictionary<Creep[]>;
+
+    myStructures: StructureWrapper[];
+    myStructuresByRoom: Dictionary<StructureWrapper[]>;
+    myStructuresByRoomAndType: Dictionary<Dictionary<StructureWrapper[]>>;
 
     myCreepWrappers: CreepWrapper[];
     myCreepWrappersByRoom: Dictionary<CreepWrapper[]>;
@@ -149,7 +153,8 @@ class ParaverseImpl implements Paraverse {
         this.bodyPartPriority[CARRY] = 1;
         this.bodyPartPriority[CLAIM] = 1;
 
-        this.constructionSiteCache = {};
+        this.constructionSitesByRoom = {};
+        this.constructionSitesByRoomAndType = {};
         this.possibleConstructionSitesCache = {};
         this.possibleMoveSitesCache = {};
         this.collectedDefense = {};
@@ -238,14 +243,25 @@ class ParaverseImpl implements Paraverse {
                 this.creepWrappers.filter(cw => !cw.creep.my).map(cw => cw.creep),
                 (c: Creep) => c.room.name
             );
+
+        this.myStructures = this.structureWrappers.filter(sw => sw.my);
+        this.myStructuresByRoom =
+            dictionary.arrayToDictionary<StructureWrapper>(
+                this.myStructures,
+                (sw: StructureWrapper) => sw.structure.room.name
+            );
+        this.myStructuresByRoomAndType =
+            dictionary.mapValues<StructureWrapper[], Dictionary<StructureWrapper[]>>(
+                this.myStructuresByRoom,
+                (rsw: StructureWrapper[]) => dictionary.arrayToDictionary<StructureWrapper>(
+                    rsw,
+                    (sw: StructureWrapper) => sw.structure.structureType
+                )
+            );
     }
 
     getMyRooms(): RoomWrapper[] {
         return dictionary.getValues<RoomWrapper>(this.roomWrappers).filter(rw => rw.room.controller.my);
-    }
-
-    getMyStructures(): StructureWrapper[] {
-        return this.structureWrappers.filter(sw => sw.my);
     }
 
     getMyCreeps(): CreepWrapper[] {
@@ -279,6 +295,26 @@ class ParaverseImpl implements Paraverse {
             mcwbt[creepType] = this.getMyCreepsByRoom(room).filter(cw => cw.creepType == creepType);
         }
         return mcwbt[creepType];
+    }
+
+    getMyStructures(): StructureWrapper[] {
+        return this.myStructures;
+    }
+
+    getMyStructuresByRoom(room: Room): StructureWrapper[] {
+        if (this.myStructuresByRoom[room.name] === undefined) {
+            this.myStructuresByRoom[room.name] = [];
+        }
+        return this.myStructuresByRoom[room.name];
+    }
+
+    getMyStructuresByRoomAndType(room: Room, structureType: string): StructureWrapper[] {
+        if (this.myStructuresByRoomAndType[room.name] === undefined)
+            this.myStructuresByRoomAndType[room.name] = {};
+        let msbt = this.myStructuresByRoomAndType[room.name];
+        if (msbt[structureType] === undefined)
+            msbt[structureType] = [];
+        return msbt[structureType];
     }
 
     getMySources(): SourceWrapper[] {
@@ -325,10 +361,22 @@ class ParaverseImpl implements Paraverse {
     }
 
     getConstructionSitesFromRoom(room: Room): ConstructionSite[] {
-        if (this.constructionSiteCache[room.name] === undefined) {
-            this.constructionSiteCache[room.name] = room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES);
+        if (this.constructionSitesByRoom[room.name] === undefined) {
+            this.constructionSitesByRoom[room.name] = room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+            this.constructionSitesByRoomAndType[room.name] =
+                dictionary.arrayToDictionary<ConstructionSite>(
+                    this.constructionSitesByRoom[room.name],
+                    (cs: ConstructionSite) => cs.structureType
+                );
         }
-        return this.constructionSiteCache[room.name];
+        return this.constructionSitesByRoom[room.name];
+    }
+
+    getConstructionSitesFromRoomOfType(room: Room, structureType: string): ConstructionSite[] {
+        this.getConstructionSitesFromRoom(room);
+        let csbt = this.constructionSitesByRoomAndType[room.name];
+        if (csbt[structureType] === undefined) csbt[structureType] = [];
+        return csbt[structureType];
     }
 
     scheduleCreep(roomName: string, order: CreepOrder, priority: number): void {
@@ -518,27 +566,13 @@ class ParaverseImpl implements Paraverse {
         return this.possibleConstructionSitesCache[room.name];
     }
 
-    getPlannedConstructionSites(roomName: string): PlannedConstructionSite[] {
-        if (this.memory.plannedConstructionSites[roomName] === undefined) {
-            this.memory.plannedConstructionSites[roomName] = [];
-        }
-        return this.memory.plannedConstructionSites[roomName];
-    }
-
-    constructNextSite(room: Room): void {
-        if (this.getConstructionSitesFromRoom(room).length > 0) return;
-        let plan = this.getPlannedConstructionSites(room.name);
-        let tws = this.getPossibleConstructionSites(room);
-        let eligiblePlans = plan.filter(pcs => { return pcs.roomName == room.name && tws[pcs.x][pcs.y]; })
-        if (eligiblePlans.length == 0) return;
-        let bestPcsO = o.maxBy<PlannedConstructionSite>(
-            eligiblePlans,
-            (pcs: PlannedConstructionSite) => getPlannedConstructionSitePriority(pcs.structureType, this)
-        );
-        if (bestPcsO.isPresent) {
-            let bestPcs = bestPcsO.get.elem;
-            room.createConstructionSite(bestPcs.x, bestPcs.y, bestPcs.structureType);
-        }
+    constructNextSite(room: Room, structureType: string): boolean {
+        let possibleConstructionSites = this.getPossibleConstructionSites(room);
+        let optXy = mms.searchForConstructionSite(possibleConstructionSites);
+        if (optXy.isPresent)
+            return room.createConstructionSite(optXy.get.x, optXy.get.y, structureType) == OK;
+        else
+            return false;
     }
 
     getTowerMemory(towerId: string): TowerMemory {
@@ -634,7 +668,7 @@ class ParaverseImpl implements Paraverse {
             let x = creep.pos.x + dx;
             let y = creep.pos.y + dy;
             if (x < 0 || x > 49 || y < 0 || y > 49) return true;
-            if (possibleMoveSites[x][y]) {
+            if (!possibleMoveSites[x][y]) {
                 return true;
             }
             validMoves.push({ x: x, y: y });
@@ -652,7 +686,7 @@ class ParaverseImpl implements Paraverse {
         let nextToObstacle: boolean = upObs || downObs || leftObs || rightObs;
 
         if (nextToObstacle && validMoves.length > 0) {
-            let randomValidMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+            let randomValidMove = validMoves[(Math.floor(Math.random() * validMoves.length) + this.game.time) % validMoves.length];
             let newPos = creep.room.getPositionAt(randomValidMove.x, randomValidMove.y);
             this.moveCreep(cw, newPos);
         }
@@ -681,13 +715,4 @@ class ParaverseImpl implements Paraverse {
     }
 
 
-}
-
-function getPlannedConstructionSitePriority(structureType: string, pv: Paraverse): number {
-    switch (structureType) {
-        case STRUCTURE_TOWER: return 100;
-        case STRUCTURE_WALL: return 99;
-        case STRUCTURE_ROAD: return 98;
-        default: return 0;
-    }
 }

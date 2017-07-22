@@ -36,10 +36,7 @@ var BuilderCreepWrapper = (function () {
         }
         if (cs == null) {
             var constructionSites = pv.getConstructionSitesFromRoom(this.creep.room);
-            if (constructionSites.length == 0) {
-                pv.constructNextSite(this.creep.room);
-            }
-            else {
+            if (constructionSites.length > 0) {
                 cs = constructionSites[0];
             }
         }
@@ -50,14 +47,17 @@ var BuilderCreepWrapper = (function () {
                 pv.pushEfficiency(this.memory, 0);
             }
             else if (buildAttempt == OK) {
+                pv.avoidObstacle(this);
                 pv.pushEfficiency(this.memory, 1);
             }
             else {
+                pv.avoidObstacle(this);
                 pv.pushEfficiency(this.memory, 0);
             }
             this.memory.constructionSiteId = o.Some(cs.id);
         }
         else {
+            pv.avoidObstacle(this);
             pv.pushEfficiency(this.memory, 0);
             this.memory.constructionSiteId = o.None();
         }

@@ -21,6 +21,8 @@
         "src/lodash.min.js",
         "src/logger.ts",
         "src/main.ts",
+        "src/mapSearch.d.ts",
+        "src/mapSearch.ts",
         "src/miscCreep.ts",
         "src/option.ts",
         "src/paraverse.d.ts",

@@ -1,3 +1,5 @@
+import mdict = require('./dictionary')
+
 class RoomWrapperImpl implements RoomWrapper {
     room: Room;
 
@@ -15,22 +17,26 @@ class RoomWrapperImpl implements RoomWrapper {
             }
 
             // check if construction sites already exist
-            let doConstructionSitesExist: boolean =
-                pv.getConstructionSitesFromRoom(me).filter(
-                    (cs: ConstructionSite) => cs.my
-                ).length > 0;
-            if (doConstructionSitesExist) {
+            if (pv.getConstructionSitesFromRoom(me).length > 0) {
                 //if construction sites already exist, schedule a builder unless one alread exists
                 scheduleBuilderIfRequired(me, pv);
             } else {
-                //if no construction sites, check if we need any
-                let scheduled =
-                    scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_ROAD)
-                    || scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_WALL)
-                    || scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_TOWER)
-                    || scheduleConstructionSitesIfRequired(me, pv, STRUCTURE_EXTENSION);
-                if (scheduled) {
-                    pv.log.debug(`Scheduled structure in room ${me.name}`);
+                let bannedStructures: Dictionary<boolean> = {
+                    "road": true,
+                    "constructedWall": true,
+                    "rampart": true,
+                    "link": true
+                };
+                //schedule next construction site
+                for (let structureType in CONTROLLER_STRUCTURES) {
+                    let numExisting = pv.getMyStructuresByRoomAndType(me, structureType).length;
+                    if (bannedStructures[structureType] != true &&
+                        CONTROLLER_STRUCTURES[structureType][me.controller.level] != undefined && 
+                        CONTROLLER_STRUCTURES[structureType][me.controller.level] > numExisting
+                        ) {
+                        pv.constructNextSite(me, structureType);
+                        break;
+                    }
                 }
             }
 
@@ -45,6 +51,7 @@ class RoomWrapperImpl implements RoomWrapper {
             let hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (let hci = 0; hci < hostileCreeps.length; ++hci) {
                 let hc = hostileCreeps[hci];
+                if(hc.owner.username == "Source Keeper") continue;
                 if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
                     pv.scheduleCreep(
                         me.name,
@@ -63,24 +70,6 @@ function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {
         pv.getMyCreepsByRoomAndType(me, pv.CREEP_TYPE_BUILDER);
     if (builders.length == 0) {
         pv.scheduleCreep(me.name, pv.makeBuilderOrder(`${me.name}_${pv.CREEP_TYPE_BUILDER}`), 2);
-    }
-}
-
-function scheduleConstructionSitesIfRequired(room: Room, pv: Paraverse, structureType: string): boolean {
-    let alreadyAvailable =
-        pv.getMyStructures().filter(sw => sw.my && sw.structure.room.name == room.name && sw.structure.structureType == structureType);
-    let possibleConstructionSites =
-        pv.getPossibleConstructionSites(room);
-    let plannedConstructionSites =
-        pv.getPlannedConstructionSites(room.name).filter(pcs => pcs.structureType == structureType && possibleConstructionSites[pcs.x][pcs.y]);
-    if (plannedConstructionSites.length == 0 // nothing planned 
-        || alreadyAvailable.length >= plannedConstructionSites.length // more created than planned
-        || alreadyAvailable.length >= CONTROLLER_STRUCTURES[structureType][room.controller.level] // cannot create more
-    ) {
-        return false;
-    } else {
-        let pcs = plannedConstructionSites[0];
-        return room.createConstructionSite(pcs.x, pcs.y, structureType) == OK;
     }
 }
 
