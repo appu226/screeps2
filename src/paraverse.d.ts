@@ -18,6 +18,8 @@ declare interface Paraverse {
     getMyStructuresByRoom(room: Room): StructureWrapper[];
     getMyStructuresByRoomAndType(room: Room, structureType: string): StructureWrapper[];
 
+    getSpawnMemory(spawn: StructureSpawn): SpawnMemory;
+
     getHostileCreepsInRoom(room: Room): Creep[];
     getHostileStructuresInRoom(room: Room): Structure[];
 
@@ -163,4 +165,9 @@ declare interface ResourceRequest {
 declare interface TowerMemory {
     status: string;
     target: string;
+}
+
+declare interface SpawnMemory {
+    lastTickEnergy: number;
+    ticksSinceLastDonation: number;
 }

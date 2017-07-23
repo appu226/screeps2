@@ -14,19 +14,28 @@ class SpawnWrapper implements StructureWrapper {
         }
         let me = this.structure;
         let orderQueue: PQ<CreepOrder> = pv.getCreepOrders(me.room.name);
+        
+        let memory = pv.getSpawnMemory(me);
+        let avblEnergy = me.room.energyAvailable;
+        if (avblEnergy == memory.lastTickEnergy) {
+            ++memory.ticksSinceLastDonation;
+        }
+        memory.lastTickEnergy = avblEnergy;
 
         let topOrder = orderQueue.peek();
         if (topOrder.isPresent) {
             let order = topOrder.get;
             let minEnergy = order.basicBody.map(bp => BODYPART_COST[bp]).reduce<number>((p, c) => p + c, 0);
-            let avblEnergy = me.room.energyAvailable;
-            if (avblEnergy >= minEnergy) {
+            let maxEnergy = me.room.energyCapacityAvailable;
+            //console.log("minEnergy, maxEnergy, avblEnergy, ticksSinceLastDonation = ", minEnergy, maxEnergy, avblEnergy, memory.ticksSinceLastDonation);
+            if (avblEnergy >= minEnergy && (avblEnergy == maxEnergy || memory.ticksSinceLastDonation >= 20)) {
                 for (
                     let x = 0;
                     minEnergy + BODYPART_COST[order.addOnBody[x]] <= Math.min(order.maxEnergy, avblEnergy);
                     x = (x + 1) % order.addOnBody.length
                 ) {
                     order.basicBody.push(order.addOnBody[x]);
+                    minEnergy += BODYPART_COST[order.addOnBody[x]];
                 }
                 order.basicBody.sort((lbp, rbp) =>
                     pv.bodyPartPriority[lbp] - pv.bodyPartPriority[rbp]

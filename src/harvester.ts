@@ -47,7 +47,7 @@ export class HarvesterCreepWrapper implements CreepWrapper {
     }
 
     process(pv: Paraverse) {
-        if (this.creep.carry.energy < this.creep.carryCapacity) {
+        if (this.creep.carry.energy < this.creep.carryCapacity || this.creep.carry.energy == 0) {
             let source = pv.game.getObjectById<Source>(this.memory.sourceId);
             if (source == null) {
                 pv.pushEfficiency(this.memory, 0);
@@ -60,6 +60,7 @@ export class HarvesterCreepWrapper implements CreepWrapper {
             } else if (source.energy == 0) {
                 pv.pushEfficiency(this.memory, 0)
             } else {
+                pv.log.error(`Harevet attempt by ${this.creep.name} failed with error ${harvestAttempt}.`)
                 pv.pushEfficiency(this.memory, 1);
             }
         } else {

@@ -38,7 +38,7 @@ var HarvesterCreepWrapper = (function () {
     };
     HarvesterCreepWrapper.prototype.process = function (pv) {
         var _this = this;
-        if (this.creep.carry.energy < this.creep.carryCapacity) {
+        if (this.creep.carry.energy < this.creep.carryCapacity || this.creep.carry.energy == 0) {
             var source = pv.game.getObjectById(this.memory.sourceId);
             if (source == null) {
                 pv.pushEfficiency(this.memory, 0);
@@ -53,6 +53,7 @@ var HarvesterCreepWrapper = (function () {
                 pv.pushEfficiency(this.memory, 0);
             }
             else {
+                pv.log.error("Harevet attempt by " + this.creep.name + " failed with error " + harvestAttempt + ".");
                 pv.pushEfficiency(this.memory, 1);
             }
         }

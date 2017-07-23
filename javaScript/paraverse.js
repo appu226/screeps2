@@ -181,6 +181,14 @@ var ParaverseImpl = (function () {
             msbt[structureType] = [];
         return msbt[structureType];
     };
+    ParaverseImpl.prototype.getSpawnMemory = function (spawn) {
+        var mem = spawn.memory;
+        if (mem.lastTickEnergy === undefined)
+            mem.lastTickEnergy = 0;
+        if (mem.ticksSinceLastDonation === undefined)
+            mem.ticksSinceLastDonation = 1;
+        return mem;
+    };
     ParaverseImpl.prototype.getMySources = function () {
         return this.sourceWrappers.filter(function (sw) { return sw.source.room.controller.my; });
     };

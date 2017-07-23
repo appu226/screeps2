@@ -317,6 +317,13 @@ class ParaverseImpl implements Paraverse {
         return msbt[structureType];
     }
 
+    getSpawnMemory(spawn: StructureSpawn): SpawnMemory {
+        let mem = <SpawnMemory>spawn.memory;
+        if (mem.lastTickEnergy === undefined) mem.lastTickEnergy = 0;
+        if (mem.ticksSinceLastDonation === undefined) mem.ticksSinceLastDonation = 1;
+        return mem;
+    }
+
     getMySources(): SourceWrapper[] {
         return this.sourceWrappers.filter(sw => sw.source.room.controller.my);
     }
