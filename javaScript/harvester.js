@@ -9,7 +9,7 @@ function makeHarvesterOrder(orderName, sourceId, pv) {
         creepType: pv.CREEP_TYPE_HARVESTER,
         name: pv.CREEP_TYPE_HARVESTER + "_" + pv.getUid(),
         orderName: orderName,
-        basicBody: [MOVE, CARRY, CARRY, CARRY, WORK],
+        basicBody: [MOVE, CARRY, WORK, WORK],
         addOnBody: [WORK],
         maxEnergy: 1000,
         memory: makeHarvesterMemory(sourceId, pv)
@@ -59,16 +59,14 @@ var HarvesterCreepWrapper = (function () {
         }
         else {
             pv.pushEfficiency(this.memory, 0);
-            if (!this.roomHasTransporters(pv)) {
-                var spawns = pv.getMyStructures().filter(function (sw) {
-                    return sw.structure.structureType == STRUCTURE_SPAWN &&
-                        sw.structure.room.name == _this.creep.room.name;
-                });
-                if (spawns.length > 0) {
-                    var spawn = spawns[0].structure;
-                    if (this.creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                        pv.moveCreep(this, spawn.pos);
-                    }
+            var spawns = pv.getMyStructures().filter(function (sw) {
+                return sw.structure.structureType == STRUCTURE_SPAWN &&
+                    sw.structure.room.name == _this.creep.room.name;
+            });
+            if (spawns.length > 0) {
+                var spawn = spawns[0].structure;
+                if (this.creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, spawn.pos);
                 }
             }
         }

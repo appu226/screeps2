@@ -144,10 +144,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
         let creep = this.creep;
         let memory = this.memory;
         if (creep.carry[memory.resourceType] == 0) {
-            pv.log.debug(`${creep.name} status changing to free.`);
-            memory.status = "free";
-            pv.pushEfficiency(memory, 1);
-            return;
+            return this.succeedAndSetToFree(pv);
         }
         let destination = pv.game.getObjectById<Creep | Structure>(memory.destinationId);
         if (destination == null)
@@ -160,9 +157,18 @@ export class TransporterCreepWrapper implements CreepWrapper {
             pv.pushEfficiency(memory, pv.moveCreep(this, destination.pos) ? 1 : 0);
         } else if (transferResult == OK) {
             pv.pushEfficiency(memory, 1);
-        } else {
+        } else if (transferResult == ERR_FULL) {
+            this.succeedAndSetToFree(pv);
+        }
+        else {
             pv.pushEfficiency(memory, 0);
         }
+    }
+
+    succeedAndSetToFree(pv: Paraverse): void {
+        pv.log.debug(`${this.creep.name} status changing to free.`);
+        this.memory.status = "free";
+        pv.pushEfficiency(this.memory, 1);
     }
 }
 

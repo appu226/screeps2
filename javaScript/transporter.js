@@ -119,10 +119,7 @@ var TransporterCreepWrapper = (function () {
         var creep = this.creep;
         var memory = this.memory;
         if (creep.carry[memory.resourceType] == 0) {
-            pv.log.debug(creep.name + " status changing to free.");
-            memory.status = "free";
-            pv.pushEfficiency(memory, 1);
-            return;
+            return this.succeedAndSetToFree(pv);
         }
         var destination = pv.game.getObjectById(memory.destinationId);
         if (destination == null)
@@ -134,9 +131,17 @@ var TransporterCreepWrapper = (function () {
         else if (transferResult == OK) {
             pv.pushEfficiency(memory, 1);
         }
+        else if (transferResult == ERR_FULL) {
+            this.succeedAndSetToFree(pv);
+        }
         else {
             pv.pushEfficiency(memory, 0);
         }
+    };
+    TransporterCreepWrapper.prototype.succeedAndSetToFree = function (pv) {
+        pv.log.debug(this.creep.name + " status changing to free.");
+        this.memory.status = "free";
+        pv.pushEfficiency(this.memory, 1);
     };
     return TransporterCreepWrapper;
 }());

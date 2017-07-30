@@ -9,7 +9,7 @@ export function makeHarvesterOrder(orderName: string, sourceId: string, pv: Para
         creepType: pv.CREEP_TYPE_HARVESTER,
         name: `${pv.CREEP_TYPE_HARVESTER}_${pv.getUid()}`,
         orderName: orderName,
-        basicBody: [MOVE, CARRY, CARRY, CARRY, WORK],
+        basicBody: [MOVE, CARRY, WORK, WORK],
         addOnBody: [WORK],
         maxEnergy: 1000,
         memory: makeHarvesterMemory(sourceId, pv)
@@ -65,18 +65,16 @@ export class HarvesterCreepWrapper implements CreepWrapper {
             }
         } else {
             pv.pushEfficiency(this.memory, 0);
-            if (!this.roomHasTransporters(pv)) {
-                let spawns =
-                    pv.getMyStructures().filter(
-                        sw =>
-                            sw.structure.structureType == STRUCTURE_SPAWN &&
-                            sw.structure.room.name == this.creep.room.name
-                    );
-                if (spawns.length > 0) {
-                    let spawn = spawns[0].structure;
-                    if (this.creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                        pv.moveCreep(this, spawn.pos);
-                    }
+            let spawns =
+                pv.getMyStructures().filter(
+                    sw =>
+                        sw.structure.structureType == STRUCTURE_SPAWN &&
+                        sw.structure.room.name == this.creep.room.name
+                );
+            if (spawns.length > 0) {
+                let spawn = spawns[0].structure;
+                if (this.creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, spawn.pos);
                 }
             }
         }
