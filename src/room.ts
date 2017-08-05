@@ -24,7 +24,6 @@ class RoomWrapperImpl implements RoomWrapper {
                 pv.constructNextSite(me, STRUCTURE_EXTENSION);
             } else if (canBuild(me, STRUCTURE_ROAD, pv) && pv.mustBuildRoad(me)) {
                 let roadPos = pv.getRoadToBeBuilt(me);
-                pv.log.debug(`creating construction site at ${me.name}[${roadPos.x}][${roadPos.y}]`);
                 me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
             } else if (canBuild(me, STRUCTURE_TOWER, pv)) {
                 pv.constructNextSite(me, STRUCTURE_TOWER);

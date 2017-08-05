@@ -572,10 +572,8 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.mustBuildRoad = function (room) {
         var roomfr = dictionary.getOrElse(this.memory.fatigueRecords, room.name, {});
         for (var frk in roomfr) {
-            this.log.debug("yes");
             return true;
         }
-        this.log.debug("no");
         return false;
     };
     ParaverseImpl.prototype.getRoadToBeBuilt = function (room) {

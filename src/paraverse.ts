@@ -753,10 +753,8 @@ class ParaverseImpl implements Paraverse {
     mustBuildRoad(room: Room): boolean {
         let roomfr = dictionary.getOrElse(this.memory.fatigueRecords, room.name, {});
         for (let frk in roomfr) {
-            this.log.debug("yes");
             return true;
         }
-        this.log.debug("no");
         return false;
     }
 
