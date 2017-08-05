@@ -77,6 +77,9 @@ var TransporterCreepWrapper = (function () {
                 if (sourceCreep == null)
                     return this.failAndResetToFree("Freeing transporter " + creep.name + " because it couldn't find source " + memory.sourceId, pv);
                 collectionStatus = sourceCreep.transfer(creep, memory.resourceType);
+                if (sourceCreep.carry[memory.resourceType] == 0) {
+                    collectionStatus = ERR_NOT_ENOUGH_ENERGY;
+                }
                 sourceObject = sourceCreep;
                 break;
             }

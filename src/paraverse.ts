@@ -14,6 +14,11 @@ import mterrain = require('./terrain');
 import mrr = require('./resourceRequest');
 import mms = require('./mapSearch');
 
+interface FatigueRecord {
+    xy: XY;
+    fatigue: number;
+}
+
 interface ParaMemory extends Memory {
     logLevel: number;
     creepOrders: Dictionary<PQEntry<CreepOrder>[]>;
@@ -24,6 +29,7 @@ interface ParaMemory extends Memory {
     resourceReceiveRequests: QueueData<ResourceRequest>;
     towerMemory: Dictionary<TowerMemory>;
     wallHitPoints: Dictionary<number>;
+    fatigueRecords: Dictionary<Dictionary<FatigueRecord>>;
 }
 
 export function makeParaverse(
@@ -41,6 +47,7 @@ export function makeParaverse(
     if (paraMemory.resourceReceiveRequests === undefined) paraMemory.resourceReceiveRequests = { pushStack: [], popStack: [] };
     if (paraMemory.towerMemory === undefined) paraMemory.towerMemory = {};
     if (paraMemory.wallHitPoints === undefined) paraMemory.wallHitPoints = {};
+    if (paraMemory.fatigueRecords === undefined) paraMemory.fatigueRecords = {};
 
     return new ParaverseImpl(game, map, paraMemory);
 }
@@ -258,6 +265,15 @@ class ParaverseImpl implements Paraverse {
                     (sw: StructureWrapper) => sw.structure.structureType
                 )
             );
+
+        let fatigueRecords = this.memory.fatigueRecords;
+        for (let rn in fatigueRecords) {
+            for (let frk in fatigueRecords[rn]) {
+                fatigueRecords[rn][frk].fatigue -= 1.0 / 20;
+                if (fatigueRecords[rn][frk].fatigue < 0)
+                    delete fatigueRecords[rn][frk];
+            }
+        }
     }
 
     getMyRooms(): RoomWrapper[] {
@@ -615,6 +631,12 @@ class ParaverseImpl implements Paraverse {
     }
 
     moveCreep(cw: CreepWrapper, pos: RoomPosition): boolean {
+        if (cw.creep.fatigue > 0 && this.getPossibleConstructionSites(cw.creep.room)[cw.creep.pos.x][cw.creep.pos.y])
+            this.recordFatigue(
+                cw.creep.pos.x,
+                cw.creep.pos.y,
+                cw.creep.pos.roomName,
+                cw.creep.fatigue * dictionary.sum(cw.creep.carry));
         return cw.creep.moveTo(pos) == OK;
     }
 
@@ -719,6 +741,29 @@ class ParaverseImpl implements Paraverse {
             // + soldier.getActiveBodyparts(ATTACK) * ATTACK_POWER
             + soldier.getActiveBodyparts(HEAL) * HEAL_POWER
         );
+    }
+
+    recordFatigue(x: number, y: number, roomName: string, fatigue: number) {
+        let key = `${x}_${y}`;
+        let roomFr = dictionary.getOrAdd<Dictionary<FatigueRecord>>(this.memory.fatigueRecords, roomName, {});
+        dictionary.getOrAdd<FatigueRecord>(roomFr, key, { xy: { x: x, y: y }, fatigue: 0 });
+        roomFr[key].fatigue += fatigue;
+    }
+
+    mustBuildRoad(room: Room): boolean {
+        let roomfr = dictionary.getOrElse(this.memory.fatigueRecords, room.name, {});
+        for (let frk in roomfr) {
+            this.log.debug("yes");
+            return true;
+        }
+        this.log.debug("no");
+        return false;
+    }
+
+    getRoadToBeBuilt(room: Room): XY {
+        let roomFrs = this.memory.fatigueRecords[room.name];
+        let maxFFr = o.maxBy(dictionary.getValues(roomFrs), (fr: FatigueRecord) => fr.fatigue);
+        return maxFFr.get.elem.xy;
     }
 
 

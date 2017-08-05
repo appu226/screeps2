@@ -66,6 +66,9 @@ declare interface Paraverse {
     getWallHitPoints(room: Room): number;
     setWallHitPoints(room: Room, hitPoints: number): void;
 
+    mustBuildRoad(room: Room): boolean;
+    getRoadToBeBuilt(room: Room): XY;
+
     getUid(): number;
 
     LOG_LEVEL_SILENT: number;
@@ -115,6 +118,7 @@ declare interface CreepWrapper {
 
 declare interface SourceMemory {
     id: string;
+    isCloseToLair: boolean;
 }
 
 declare interface SourceWrapper {

@@ -96,6 +96,9 @@ export class TransporterCreepWrapper implements CreepWrapper {
                         pv
                     );
                 collectionStatus = sourceCreep.transfer(creep, memory.resourceType);
+                if (sourceCreep.carry[memory.resourceType] == 0) {
+                    collectionStatus = ERR_NOT_ENOUGH_ENERGY;
+                }
                 sourceObject = sourceCreep;
                 break;
             }

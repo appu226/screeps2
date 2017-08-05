@@ -34,3 +34,24 @@ function mapValues(dict, mapFunc) {
     return result;
 }
 exports.mapValues = mapValues;
+function getOrElse(dict, key, backup) {
+    var value = dict[key];
+    if (value === undefined)
+        return backup;
+    else
+        return value;
+}
+exports.getOrElse = getOrElse;
+function getOrAdd(dict, key, backup) {
+    if (dict[key] === undefined)
+        dict[key] = backup;
+    return dict[key];
+}
+exports.getOrAdd = getOrAdd;
+function sum(dict) {
+    var x = 0;
+    for (var key in dict)
+        x += dict[key];
+    return x;
+}
+exports.sum = sum;

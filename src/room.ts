@@ -1,4 +1,4 @@
-import mdict = require('./dictionary')
+import mdict = require('./dictionary');
 
 class RoomWrapperImpl implements RoomWrapper {
     room: Room;
@@ -20,24 +20,16 @@ class RoomWrapperImpl implements RoomWrapper {
             if (pv.getConstructionSitesFromRoom(me).length > 0) {
                 //if construction sites already exist, schedule a builder unless one alread exists
                 scheduleBuilderIfRequired(me, pv);
-            } else {
-                let bannedStructures: Dictionary<boolean> = {
-                    "road": true,
-                    "constructedWall": true,
-                    "rampart": true,
-                    "link": true
-                };
-                //schedule next construction site
-                for (let structureType in CONTROLLER_STRUCTURES) {
-                    let numExisting = pv.getMyStructuresByRoomAndType(me, structureType).length;
-                    if (bannedStructures[structureType] != true &&
-                        CONTROLLER_STRUCTURES[structureType][me.controller.level] != undefined && 
-                        CONTROLLER_STRUCTURES[structureType][me.controller.level] > numExisting
-                        ) {
-                        pv.constructNextSite(me, structureType);
-                        break;
-                    }
-                }
+            } else if (canBuild(me, STRUCTURE_EXTENSION, pv)) {
+                pv.constructNextSite(me, STRUCTURE_EXTENSION);
+            } else if (canBuild(me, STRUCTURE_ROAD, pv) && pv.mustBuildRoad(me)) {
+                let roadPos = pv.getRoadToBeBuilt(me);
+                pv.log.debug(`creating construction site at ${me.name}[${roadPos.x}][${roadPos.y}]`);
+                me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
+            } else if (canBuild(me, STRUCTURE_TOWER, pv)) {
+                pv.constructNextSite(me, STRUCTURE_TOWER);
+            } else if (me.controller.level > 1 && canBuild(me, STRUCTURE_CONTAINER, pv)) {
+                pv.constructNextSite(me, STRUCTURE_CONTAINER);
             }
 
             if (pv.getTransporterEfficiency(me) > .9) {
@@ -51,7 +43,7 @@ class RoomWrapperImpl implements RoomWrapper {
             let hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (let hci = 0; hci < hostileCreeps.length; ++hci) {
                 let hc = hostileCreeps[hci];
-                if(hc.owner.username == "Source Keeper") continue;
+                if (hc.owner.username == "Source Keeper") continue;
                 if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
                     pv.scheduleCreep(
                         me.name,
@@ -63,6 +55,15 @@ class RoomWrapperImpl implements RoomWrapper {
         }
     }
 
+}
+
+function canBuild(me: Room, structureType: string, pv: Paraverse): boolean {
+    let numExisting = pv.getMyStructuresByRoomAndType(me, structureType).length;
+    return (
+        CONTROLLER_STRUCTURES[structureType][me.controller.level] !== undefined
+        &&
+        CONTROLLER_STRUCTURES[structureType][me.controller.level] > numExisting
+    );
 }
 
 function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {

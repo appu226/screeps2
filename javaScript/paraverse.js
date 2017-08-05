@@ -34,6 +34,8 @@ function makeParaverse(game, map, memory) {
         paraMemory.towerMemory = {};
     if (paraMemory.wallHitPoints === undefined)
         paraMemory.wallHitPoints = {};
+    if (paraMemory.fatigueRecords === undefined)
+        paraMemory.fatigueRecords = {};
     return new ParaverseImpl(game, map, paraMemory);
 }
 exports.makeParaverse = makeParaverse;
@@ -130,6 +132,14 @@ var ParaverseImpl = (function () {
             dictionary.arrayToDictionary(this.myStructures, function (sw) { return sw.structure.room.name; });
         this.myStructuresByRoomAndType =
             dictionary.mapValues(this.myStructuresByRoom, function (rsw) { return dictionary.arrayToDictionary(rsw, function (sw) { return sw.structure.structureType; }); });
+        var fatigueRecords = this.memory.fatigueRecords;
+        for (var rn in fatigueRecords) {
+            for (var frk in fatigueRecords[rn]) {
+                fatigueRecords[rn][frk].fatigue -= 1.0 / 20;
+                if (fatigueRecords[rn][frk].fatigue < 0)
+                    delete fatigueRecords[rn][frk];
+            }
+        }
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return rw.room.controller.my; });
@@ -452,6 +462,8 @@ var ParaverseImpl = (function () {
         return ++(this.memory.uid);
     };
     ParaverseImpl.prototype.moveCreep = function (cw, pos) {
+        if (cw.creep.fatigue > 0 && this.getPossibleConstructionSites(cw.creep.room)[cw.creep.pos.x][cw.creep.pos.y])
+            this.recordFatigue(cw.creep.pos.x, cw.creep.pos.y, cw.creep.pos.roomName, cw.creep.fatigue * dictionary.sum(cw.creep.carry));
         return cw.creep.moveTo(pos) == OK;
     };
     ParaverseImpl.prototype.makeCreepWrapper = function (c) {
@@ -550,6 +562,26 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.getSoldierCapability = function (soldier) {
         return (soldier.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER
             + soldier.getActiveBodyparts(HEAL) * HEAL_POWER);
+    };
+    ParaverseImpl.prototype.recordFatigue = function (x, y, roomName, fatigue) {
+        var key = x + "_" + y;
+        var roomFr = dictionary.getOrAdd(this.memory.fatigueRecords, roomName, {});
+        dictionary.getOrAdd(roomFr, key, { xy: { x: x, y: y }, fatigue: 0 });
+        roomFr[key].fatigue += fatigue;
+    };
+    ParaverseImpl.prototype.mustBuildRoad = function (room) {
+        var roomfr = dictionary.getOrElse(this.memory.fatigueRecords, room.name, {});
+        for (var frk in roomfr) {
+            this.log.debug("yes");
+            return true;
+        }
+        this.log.debug("no");
+        return false;
+    };
+    ParaverseImpl.prototype.getRoadToBeBuilt = function (room) {
+        var roomFrs = this.memory.fatigueRecords[room.name];
+        var maxFFr = o.maxBy(dictionary.getValues(roomFrs), function (fr) { return fr.fatigue; });
+        return maxFFr.get.elem.xy;
     };
     return ParaverseImpl;
 }());
