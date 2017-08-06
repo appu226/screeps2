@@ -752,6 +752,15 @@ class ParaverseImpl implements Paraverse {
 
     mustBuildRoad(room: Room): boolean {
         let roomfr = dictionary.getOrElse(this.memory.fatigueRecords, room.name, {});
+
+        //delete fatigue records on places which already have construction
+        let cs = this.getPossibleConstructionSites(room);
+        for (let frk in roomfr) {
+            let frxy = roomfr[frk].xy
+            if(!cs[frxy.x][frxy.y])
+                delete roomfr[frk];
+        }
+
         for (let frk in roomfr) {
             return true;
         }

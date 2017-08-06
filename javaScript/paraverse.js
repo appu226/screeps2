@@ -571,6 +571,13 @@ var ParaverseImpl = (function () {
     };
     ParaverseImpl.prototype.mustBuildRoad = function (room) {
         var roomfr = dictionary.getOrElse(this.memory.fatigueRecords, room.name, {});
+        //delete fatigue records on places which already have construction
+        var cs = this.getPossibleConstructionSites(room);
+        for (var frk in roomfr) {
+            var frxy = roomfr[frk].xy;
+            if (!cs[frxy.x][frxy.y])
+                delete roomfr[frk];
+        }
         for (var frk in roomfr) {
             return true;
         }
