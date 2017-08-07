@@ -19,15 +19,12 @@ var RoomWrapperImpl = (function () {
             else if (canBuild(me, STRUCTURE_EXTENSION, pv)) {
                 pv.constructNextSite(me, STRUCTURE_EXTENSION);
             }
-            else if (canBuild(me, STRUCTURE_ROAD, pv) && pv.mustBuildRoad(me)) {
-                var roadPos = pv.getRoadToBeBuilt(me);
-                me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
-            }
             else if (canBuild(me, STRUCTURE_TOWER, pv)) {
                 pv.constructNextSite(me, STRUCTURE_TOWER);
             }
-            else if (me.controller.level > 1 && canBuild(me, STRUCTURE_CONTAINER, pv)) {
-                pv.constructNextSite(me, STRUCTURE_CONTAINER);
+            else if (canBuild(me, STRUCTURE_ROAD, pv) && pv.mustBuildRoad(me)) {
+                var roadPos = pv.getRoadToBeBuilt(me);
+                me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
             }
             if (pv.getTransporterEfficiency(me) > .9) {
                 pv.scheduleCreep(me.name, pv.makeTransporterOrder("Transporter_" + me.name), 4);
