@@ -24,7 +24,8 @@ exports.makeSourceWrapper = makeSourceWrapper;
 function makeSourceMemory(source, pv) {
     return {
         id: source.id,
-        isCloseToLair: isCloseToLair(source, {}, pv)
+        isCloseToLair: isCloseToLair(source, {}, pv),
+        containerId: ""
     };
 }
 exports.makeSourceMemory = makeSourceMemory;

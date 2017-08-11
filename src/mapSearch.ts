@@ -56,12 +56,18 @@ class ConstructionSiteProblem implements MapSearchProblem {
     result: Option<XY>;
     totalRows: number;
     totalCols: number;
+    startX: number;
+    startY: number;
+    checkNeighbors: boolean;
 
-    constructor(possibleConstructionSites: boolean[][]) {
+    constructor(possibleConstructionSites: boolean[][], startX: number, startY: number, checkNeighbors: boolean) {
         this.possibleConstructionSites = possibleConstructionSites;
         this.result = o.None<XY>();
         this.totalRows = possibleConstructionSites.length;
         this.totalCols = possibleConstructionSites[0].length;
+        this.startX = startX;
+        this.startY = startY;
+        this.checkNeighbors = checkNeighbors;
     }
 
     cost(x: number, y: number): number {
@@ -87,17 +93,20 @@ class ConstructionSiteProblem implements MapSearchProblem {
         return x >= 0 && x < this.totalCols && y >= 0 && y < this.totalRows;
     }
     checkForSolution(x: number, y: number): void {
-        if (this.isFree(x, y) &&
-            this.isFree(x + 1, y) && this.isFree(x - 1, y) &&
-            this.isFree(x, y + 1) && this.isFree(x, y - 1)
+        if (this.isFree(x, y) && this.neighborsFree(x, y)
         )
             this.result = o.Some<XY>({ x: x, y: y });
     }
     isFree(x: number, y: number): boolean {
         return this.isXyWithinBounds(x, y) && this.possibleConstructionSites[x][y];
     }
+    neighborsFree(x: number, y: number): boolean {
+        return !this.checkNeighbors || (
+            this.isFree(x + 1, y) && this.isFree(x - 1, y) &&
+            this.isFree(x, y + 1) && this.isFree(x, y - 1));
+    }
     startingPoints(): XY[] {
-        return [{ x: this.totalCols / 2, y: this.totalRows / 2 }];
+        return [{ x: this.startX, y: this.startY }];
     }
     isTerminated(): boolean {
         return this.result.isPresent;
@@ -105,7 +114,18 @@ class ConstructionSiteProblem implements MapSearchProblem {
 }
 
 export function searchForConstructionSite(possibleConstructionSites: boolean[][]): Option<XY> {
-    let problem = new ConstructionSiteProblem(possibleConstructionSites);
+    let problem = new ConstructionSiteProblem(
+        possibleConstructionSites,
+        possibleConstructionSites[0].length / 2,
+        possibleConstructionSites.length / 2,
+        true
+    );
+    searchMap(problem);
+    return problem.result;
+}
+
+export function searchForContainerConstructionSite(possibleConstructionSites: boolean[][], startX: number, startY: number): Option<XY> {
+    let problem = new ConstructionSiteProblem(possibleConstructionSites, startX, startY, false);
     searchMap(problem);
     return problem.result;
 }

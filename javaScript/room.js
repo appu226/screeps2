@@ -1,4 +1,6 @@
 "use strict";
+var mopt = require("./option");
+var mter = require("./terrain");
 var RoomWrapperImpl = (function () {
     function RoomWrapperImpl(room) {
         this.room = room;
@@ -11,10 +13,14 @@ var RoomWrapperImpl = (function () {
             while (!pq.isEmpty && pv.game.creeps[pq.peek().get.name] !== undefined) {
                 pq.pop();
             }
+            var optSource = mopt.None();
             // check if construction sites already exist
             if (pv.getConstructionSitesFromRoom(me).length > 0) {
                 //if construction sites already exist, schedule a builder unless one alread exists
                 scheduleBuilderIfRequired(me, pv);
+            }
+            else if (me.controller.level >= 2 && canBuild(me, STRUCTURE_CONTAINER, pv) && (optSource = findSourceWithoutContainer(me, pv)).isPresent) {
+                pv.constructNextContainer(optSource.get);
             }
             else if (canBuild(me, STRUCTURE_EXTENSION, pv)) {
                 pv.constructNextSite(me, STRUCTURE_EXTENSION);
@@ -53,6 +59,30 @@ function scheduleBuilderIfRequired(me, pv) {
     if (builders.length == 0) {
         pv.scheduleCreep(me.name, pv.makeBuilderOrder(me.name + "_" + pv.CREEP_TYPE_BUILDER), 2);
     }
+}
+function isSourceWithoutContainer(sw, room, pv) {
+    if (sw.source.room.name != room.name)
+        return false;
+    //check memory
+    var cid = pv.getSourceMemory(sw.source).containerId;
+    var inMemory = cid != "" && pv.getStructureById(cid).isPresent;
+    //if not in memory, check map
+    var isClose = inMemory;
+    if (!isClose) {
+        var containers = pv.getMyStructuresByRoomAndType(room, STRUCTURE_CONTAINER);
+        var containersInRange = containers.filter(function (cw) {
+            return mter.euclidean(sw.source.pos, cw.structure.pos, pv) < 3;
+        });
+        isClose = containersInRange.length > 0;
+    }
+    return inMemory || isClose;
+}
+function findSourceWithoutContainer(room, pv) {
+    var sourcesWithoutContainers = pv.getMySources().filter(function (sw) { return isSourceWithoutContainer(sw, room, pv); });
+    if (sourcesWithoutContainers.length == 0)
+        return mopt.None();
+    else
+        return mopt.Some(sourcesWithoutContainers[0].source);
 }
 function makeRoomWrapper(room) {
     return new RoomWrapperImpl(room);

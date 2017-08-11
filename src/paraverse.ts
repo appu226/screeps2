@@ -78,6 +78,7 @@ class ParaverseImpl implements Paraverse {
     myStructures: StructureWrapper[];
     myStructuresByRoom: Dictionary<StructureWrapper[]>;
     myStructuresByRoomAndType: Dictionary<Dictionary<StructureWrapper[]>>;
+    structuresById: Dictionary<StructureWrapper>;
 
     myCreepWrappers: CreepWrapper[];
     myCreepWrappersByRoom: Dictionary<CreepWrapper[]>;
@@ -274,6 +275,12 @@ class ParaverseImpl implements Paraverse {
                     delete fatigueRecords[rn][frk];
             }
         }
+
+        this.structuresById = {};
+        for (let swi = 0; swi < this.structureWrappers.length; ++swi) {
+            let sw = this.structureWrappers[swi];
+            this.structuresById[sw.structure.id] = sw;
+        }
     }
 
     getMyRooms(): RoomWrapper[] {
@@ -331,6 +338,13 @@ class ParaverseImpl implements Paraverse {
         if (msbt[structureType] === undefined)
             msbt[structureType] = [];
         return msbt[structureType];
+    }
+
+    getStructureById(id: string): Option<StructureWrapper> {
+        if (this.structuresById[id] === undefined)
+            return o.None<StructureWrapper>();
+        else
+            return o.Some<StructureWrapper>(this.structuresById[id]);
     }
 
     getSpawnMemory(spawn: StructureSpawn): SpawnMemory {
@@ -598,6 +612,15 @@ class ParaverseImpl implements Paraverse {
             return false;
     }
 
+    constructNextContainer(source: Source): boolean {
+        let possibleConstructionSites = this.getPossibleConstructionSites(source.room);
+        let optXy = mms.searchForContainerConstructionSite(possibleConstructionSites, source.pos.x, source.pos.y);
+        if (optXy.isPresent)
+            return source.room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_CONTAINER) == OK;
+        else
+            return false;
+    }
+
     getTowerMemory(towerId: string): TowerMemory {
         if (this.memory.towerMemory[towerId] === undefined) {
             this.memory.towerMemory[towerId] = {
@@ -757,7 +780,7 @@ class ParaverseImpl implements Paraverse {
         let cs = this.getPossibleConstructionSites(room);
         for (let frk in roomfr) {
             let frxy = roomfr[frk].xy
-            if(!cs[frxy.x][frxy.y])
+            if (!cs[frxy.x][frxy.y])
                 delete roomfr[frk];
         }
 

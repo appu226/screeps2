@@ -1,3 +1,6 @@
+import mopt = require('./option');
+import mter = require('./terrain');
+
 export function isHarvesterWithSource(creepWrapper: CreepWrapper, sourceId: string, pv: Paraverse): boolean {
     return creepWrapper.creepType == pv.CREEP_TYPE_HARVESTER &&
         (<HarvesterCreepWrapper>creepWrapper).memory.sourceId == sourceId;
@@ -47,7 +50,11 @@ export class HarvesterCreepWrapper implements CreepWrapper {
     }
 
     process(pv: Paraverse) {
-        if (this.creep.carry.energy < this.creep.carryCapacity || this.creep.carry.energy == 0) {
+        if (this.creep.carryCapacity == 0) {
+            pv.avoidObstacle(this);
+            return;
+        }
+        if (this.creep.carry.energy < this.creep.carryCapacity) {
             let source = pv.game.getObjectById<Source>(this.memory.sourceId);
             if (source == null) {
                 pv.pushEfficiency(this.memory, 0);
@@ -65,16 +72,21 @@ export class HarvesterCreepWrapper implements CreepWrapper {
             }
         } else {
             pv.pushEfficiency(this.memory, 0);
-            let spawns =
-                pv.getMyStructures().filter(
-                    sw =>
-                        sw.structure.structureType == STRUCTURE_SPAWN &&
-                        sw.structure.room.name == this.creep.room.name
-                );
-            if (spawns.length > 0) {
-                let spawn = spawns[0].structure;
-                if (this.creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, spawn.pos);
+            let targets =
+                pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_SPAWN).concat(
+                    pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_CONTAINER)
+                ).concat(
+                    pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_EXTENSION)
+                    );
+
+            let closest = mopt.maxBy<StructureWrapper>(
+                targets,
+                (sw: StructureWrapper) => -1 * mter.euclidean(sw.structure.pos, this.creep.pos, pv)
+            );
+            if (closest.isPresent) {
+                let target = closest.get.elem;
+                if (this.creep.transfer(target.structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, target.structure.pos);
                 }
             }
         }

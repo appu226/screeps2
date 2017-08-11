@@ -17,6 +17,7 @@ declare interface Paraverse {
     getMyStructures(): StructureWrapper[];
     getMyStructuresByRoom(room: Room): StructureWrapper[];
     getMyStructuresByRoomAndType(room: Room, structureType: string): StructureWrapper[];
+    getStructureById(id: string): Option<StructureWrapper>;
 
     getSpawnMemory(spawn: StructureSpawn): SpawnMemory;
 
@@ -47,6 +48,7 @@ declare interface Paraverse {
     getPossibleConstructionSites(room: Room): boolean[][];
 
     constructNextSite(room: Room, structureType: string): boolean;
+    constructNextContainer(source: Source): boolean;
     
 
     moveCreep(cw: CreepWrapper, pos: RoomPosition): boolean;
@@ -119,6 +121,7 @@ declare interface CreepWrapper {
 declare interface SourceMemory {
     id: string;
     isCloseToLair: boolean;
+    containerId: string;
 }
 
 declare interface SourceWrapper {

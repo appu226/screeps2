@@ -140,6 +140,11 @@ var ParaverseImpl = (function () {
                     delete fatigueRecords[rn][frk];
             }
         }
+        this.structuresById = {};
+        for (var swi = 0; swi < this.structureWrappers.length; ++swi) {
+            var sw = this.structureWrappers[swi];
+            this.structuresById[sw.structure.id] = sw;
+        }
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return rw.room.controller.my; });
@@ -190,6 +195,12 @@ var ParaverseImpl = (function () {
         if (msbt[structureType] === undefined)
             msbt[structureType] = [];
         return msbt[structureType];
+    };
+    ParaverseImpl.prototype.getStructureById = function (id) {
+        if (this.structuresById[id] === undefined)
+            return o.None();
+        else
+            return o.Some(this.structuresById[id]);
     };
     ParaverseImpl.prototype.getSpawnMemory = function (spawn) {
         var mem = spawn.memory;
@@ -431,6 +442,14 @@ var ParaverseImpl = (function () {
         var optXy = mms.searchForConstructionSite(possibleConstructionSites);
         if (optXy.isPresent)
             return room.createConstructionSite(optXy.get.x, optXy.get.y, structureType) == OK;
+        else
+            return false;
+    };
+    ParaverseImpl.prototype.constructNextContainer = function (source) {
+        var possibleConstructionSites = this.getPossibleConstructionSites(source.room);
+        var optXy = mms.searchForContainerConstructionSite(possibleConstructionSites, source.pos.x, source.pos.y);
+        if (optXy.isPresent)
+            return source.room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_CONTAINER) == OK;
         else
             return false;
     };

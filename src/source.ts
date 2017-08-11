@@ -26,7 +26,8 @@ export function makeSourceWrapper(s: Source, pv: Paraverse): SourceWrapper {
 export function makeSourceMemory(source: Source, pv: Paraverse): SourceMemory {
     return {
         id: source.id,
-        isCloseToLair: isCloseToLair(source, <SourceMemory>{}, pv)
+        isCloseToLair: isCloseToLair(source, <SourceMemory>{}, pv),
+        containerId: ""
     }
 }
 

@@ -1,4 +1,6 @@
 "use strict";
+var mopt = require("./option");
+var mter = require("./terrain");
 function isHarvesterWithSource(creepWrapper, sourceId, pv) {
     return creepWrapper.creepType == pv.CREEP_TYPE_HARVESTER &&
         creepWrapper.memory.sourceId == sourceId;
@@ -38,7 +40,11 @@ var HarvesterCreepWrapper = (function () {
     };
     HarvesterCreepWrapper.prototype.process = function (pv) {
         var _this = this;
-        if (this.creep.carry.energy < this.creep.carryCapacity || this.creep.carry.energy == 0) {
+        if (this.creep.carryCapacity == 0) {
+            pv.avoidObstacle(this);
+            return;
+        }
+        if (this.creep.carry.energy < this.creep.carryCapacity) {
             var source = pv.game.getObjectById(this.memory.sourceId);
             if (source == null) {
                 pv.pushEfficiency(this.memory, 0);
@@ -59,14 +65,12 @@ var HarvesterCreepWrapper = (function () {
         }
         else {
             pv.pushEfficiency(this.memory, 0);
-            var spawns = pv.getMyStructures().filter(function (sw) {
-                return sw.structure.structureType == STRUCTURE_SPAWN &&
-                    sw.structure.room.name == _this.creep.room.name;
-            });
-            if (spawns.length > 0) {
-                var spawn = spawns[0].structure;
-                if (this.creep.transfer(spawn, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, spawn.pos);
+            var targets = pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_SPAWN).concat(pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_CONTAINER)).concat(pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_EXTENSION));
+            var closest = mopt.maxBy(targets, function (sw) { return -1 * mter.euclidean(sw.structure.pos, _this.creep.pos, pv); });
+            if (closest.isPresent) {
+                var target = closest.get.elem;
+                if (this.creep.transfer(target.structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, target.structure.pos);
                 }
             }
         }

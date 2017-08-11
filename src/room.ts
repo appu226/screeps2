@@ -1,4 +1,6 @@
 import mdict = require('./dictionary');
+import mopt = require('./option');
+import mter = require('./terrain');
 
 class RoomWrapperImpl implements RoomWrapper {
     room: Room;
@@ -16,10 +18,14 @@ class RoomWrapperImpl implements RoomWrapper {
                 pq.pop();
             }
 
+            let optSource = mopt.None<Source>();
+
             // check if construction sites already exist
             if (pv.getConstructionSitesFromRoom(me).length > 0) {
                 //if construction sites already exist, schedule a builder unless one alread exists
                 scheduleBuilderIfRequired(me, pv);
+            } else if (me.controller.level >= 2 && canBuild(me, STRUCTURE_CONTAINER, pv) && (optSource = findSourceWithoutContainer(me, pv)).isPresent) {
+                pv.constructNextContainer(optSource.get);
             } else if (canBuild(me, STRUCTURE_EXTENSION, pv)) {
                 pv.constructNextSite(me, STRUCTURE_EXTENSION);
             } else if (canBuild(me, STRUCTURE_TOWER, pv)) {
@@ -69,6 +75,38 @@ function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {
     if (builders.length == 0) {
         pv.scheduleCreep(me.name, pv.makeBuilderOrder(`${me.name}_${pv.CREEP_TYPE_BUILDER}`), 2);
     }
+}
+
+function isSourceWithoutContainer(sw: SourceWrapper, room: Room, pv: Paraverse): boolean {
+    if (sw.source.room.name != room.name)
+        return false;
+
+    //check memory
+    let cid = pv.getSourceMemory(sw.source).containerId;
+    let inMemory = cid != "" && pv.getStructureById(cid).isPresent;
+
+    //if not in memory, check map
+    let isClose = inMemory;
+    if (!isClose) {
+        let containers = pv.getMyStructuresByRoomAndType(
+            room,
+            STRUCTURE_CONTAINER
+        );
+        let containersInRange = containers.filter((cw: StructureWrapper) =>
+            mter.euclidean(sw.source.pos, cw.structure.pos, pv) < 3
+        );
+        isClose = containersInRange.length > 0;
+    }
+
+    return inMemory || isClose;
+}
+
+function findSourceWithoutContainer(room: Room, pv: Paraverse): Option<Source> {
+    let sourcesWithoutContainers = pv.getMySources().filter((sw: SourceWrapper) => isSourceWithoutContainer(sw, room, pv));
+    if (sourcesWithoutContainers.length == 0)
+        return mopt.None<Source>();
+    else
+        return mopt.Some<Source>(sourcesWithoutContainers[0].source);
 }
 
 export function makeRoomWrapper(room: Room): RoomWrapper {

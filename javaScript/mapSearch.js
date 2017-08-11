@@ -50,11 +50,14 @@ function searchMap(problem) {
 }
 exports.searchMap = searchMap;
 var ConstructionSiteProblem = (function () {
-    function ConstructionSiteProblem(possibleConstructionSites) {
+    function ConstructionSiteProblem(possibleConstructionSites, startX, startY, checkNeighbors) {
         this.possibleConstructionSites = possibleConstructionSites;
         this.result = o.None();
         this.totalRows = possibleConstructionSites.length;
         this.totalCols = possibleConstructionSites[0].length;
+        this.startX = startX;
+        this.startY = startY;
+        this.checkNeighbors = checkNeighbors;
     }
     ConstructionSiteProblem.prototype.cost = function (x, y) {
         return 1;
@@ -79,16 +82,18 @@ var ConstructionSiteProblem = (function () {
         return x >= 0 && x < this.totalCols && y >= 0 && y < this.totalRows;
     };
     ConstructionSiteProblem.prototype.checkForSolution = function (x, y) {
-        if (this.isFree(x, y) &&
-            this.isFree(x + 1, y) && this.isFree(x - 1, y) &&
-            this.isFree(x, y + 1) && this.isFree(x, y - 1))
+        if (this.isFree(x, y) && this.neighborsFree(x, y))
             this.result = o.Some({ x: x, y: y });
     };
     ConstructionSiteProblem.prototype.isFree = function (x, y) {
         return this.isXyWithinBounds(x, y) && this.possibleConstructionSites[x][y];
     };
+    ConstructionSiteProblem.prototype.neighborsFree = function (x, y) {
+        return !this.checkNeighbors || (this.isFree(x + 1, y) && this.isFree(x - 1, y) &&
+            this.isFree(x, y + 1) && this.isFree(x, y - 1));
+    };
     ConstructionSiteProblem.prototype.startingPoints = function () {
-        return [{ x: this.totalCols / 2, y: this.totalRows / 2 }];
+        return [{ x: this.startX, y: this.startY }];
     };
     ConstructionSiteProblem.prototype.isTerminated = function () {
         return this.result.isPresent;
@@ -96,8 +101,14 @@ var ConstructionSiteProblem = (function () {
     return ConstructionSiteProblem;
 }());
 function searchForConstructionSite(possibleConstructionSites) {
-    var problem = new ConstructionSiteProblem(possibleConstructionSites);
+    var problem = new ConstructionSiteProblem(possibleConstructionSites, possibleConstructionSites[0].length / 2, possibleConstructionSites.length / 2, true);
     searchMap(problem);
     return problem.result;
 }
 exports.searchForConstructionSite = searchForConstructionSite;
+function searchForContainerConstructionSite(possibleConstructionSites, startX, startY) {
+    var problem = new ConstructionSiteProblem(possibleConstructionSites, startX, startY, false);
+    searchMap(problem);
+    return problem.result;
+}
+exports.searchForContainerConstructionSite = searchForContainerConstructionSite;
