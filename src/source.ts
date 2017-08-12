@@ -12,11 +12,23 @@ class SourceWrapperImpl implements SourceWrapper {
             let allCreeps =
                 pv.getMyCreeps() // search all creeps
                     .filter(cw => pv.isHarvesterWithSource(cw, this.source.id)); // that belong to this source
-            if (allCreeps.length == 0 || o.sum(allCreeps.map(cw => pv.getEfficiency(cw.creep.memory))) / allCreeps.length > .9) {
+            let numCollectionSlots = getNumCollectionSlots(this.source, pv);
+            let isCollectionSpotEmpty = allCreeps.length < numCollectionSlots;
+            let fullButCreepAboutToDie = numCollectionSlots == allCreeps.length && allCreeps.filter(cw => cw.creep.ticksToLive < 100).length > 0;
+            if (areSpawnsFree(this.source.room, pv) && (isCollectionSpotEmpty || fullButCreepAboutToDie)) {
                 pv.scheduleCreep(this.source.room.name, pv.makeHarvesterOrder("Harvester_" + this.source.id, this.source.id), 5);
             }
         }
     }
+}
+
+function areSpawnsFree(room: Room, pv: Paraverse): boolean {
+    return pv.getMyStructuresByRoomAndType(
+        room,
+        STRUCTURE_SPAWN
+    ).filter((sw: StructureWrapper) =>
+        (<StructureSpawn>sw.structure).spawning != null
+        ).length == 0;
 }
 
 export function makeSourceWrapper(s: Source, pv: Paraverse): SourceWrapper {
@@ -27,6 +39,25 @@ export function makeSourceMemory(source: Source, pv: Paraverse): SourceMemory {
     return {
         id: source.id,
         isCloseToLair: pv.isCloseToLair(source, <SourceMemory>{}),
-        containerId: ""
+        containerId: "",
+        numCollectionSlots: -1
     }
+}
+
+function getNumCollectionSlots(source: Source, pv: Paraverse): number {
+    let mem = pv.getSourceMemory(source);
+    if (mem.numCollectionSlots === undefined || mem.numCollectionSlots == -1) {
+        let pmp = pv.getPossibleMoveSites(source.room);
+        let xs = [source.pos.x - 1, source.pos.x, source.pos.x + 1];
+        let ys = [source.pos.y - 1, source.pos.y, source.pos.y + 1];
+        let numCollectionSlots = 0;
+        xs.forEach(x => {
+            ys.forEach(y => {
+                if (x >= 0 && x < pmp.length && y >= 0 && y < pmp[x].length && pmp[x][y])
+                    numCollectionSlots++;
+            })
+        })
+        mem.numCollectionSlots = numCollectionSlots;
+    }
+    return mem.numCollectionSlots;
 }

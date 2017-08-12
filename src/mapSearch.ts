@@ -63,8 +63,8 @@ class ConstructionSiteProblem implements MapSearchProblem {
     constructor(possibleConstructionSites: boolean[][], startX: number, startY: number, checkNeighbors: boolean) {
         this.possibleConstructionSites = possibleConstructionSites;
         this.result = o.None<XY>();
-        this.totalRows = possibleConstructionSites.length;
-        this.totalCols = possibleConstructionSites[0].length;
+        this.totalRows = possibleConstructionSites[0].length;
+        this.totalCols = possibleConstructionSites.length;
         this.startX = startX;
         this.startY = startY;
         this.checkNeighbors = checkNeighbors;

@@ -123,6 +123,7 @@ declare interface SourceMemory {
     id: string;
     isCloseToLair: boolean;
     containerId: string;
+    numCollectionSlots: number;
 }
 
 declare interface SourceWrapper {
