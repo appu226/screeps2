@@ -8,7 +8,7 @@ class SourceWrapperImpl implements SourceWrapper {
     source: Source;
     memory: SourceMemory;
     process(pv: Paraverse): void {
-        if (!isCloseToLair(this.source, this.memory, pv) || this.source.room.controller.level >= 4) {
+        if (!pv.isCloseToLair(this.source, this.memory) || this.source.room.controller.level >= 4) {
             let allCreeps =
                 pv.getMyCreeps() // search all creeps
                     .filter(cw => pv.isHarvesterWithSource(cw, this.source.id)); // that belong to this source
@@ -26,17 +26,7 @@ export function makeSourceWrapper(s: Source, pv: Paraverse): SourceWrapper {
 export function makeSourceMemory(source: Source, pv: Paraverse): SourceMemory {
     return {
         id: source.id,
-        isCloseToLair: isCloseToLair(source, <SourceMemory>{}, pv),
+        isCloseToLair: pv.isCloseToLair(source, <SourceMemory>{}),
         containerId: ""
     }
-}
-
-function isCloseToLair(source: Source, sourceMemory: SourceMemory, pv: Paraverse): boolean {
-    if (sourceMemory.isCloseToLair === undefined)
-        sourceMemory.isCloseToLair = source.pos.findInRange<Structure>(
-            FIND_STRUCTURES, 10
-        ).filter(
-            (s: Structure) => s.structureType == STRUCTURE_KEEPER_LAIR
-            ).length > 0;
-    return sourceMemory.isCloseToLair;
 }

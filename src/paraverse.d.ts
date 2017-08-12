@@ -49,7 +49,8 @@ declare interface Paraverse {
 
     constructNextSite(room: Room, structureType: string): boolean;
     constructNextContainer(source: Source): boolean;
-    
+
+    isCloseToLair(source: Source, sourceMemory: SourceMemory): boolean;
 
     moveCreep(cw: CreepWrapper, pos: RoomPosition): boolean;
     makeCreepWrapper(c: Creep): CreepWrapper;

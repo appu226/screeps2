@@ -81,8 +81,13 @@ function isSourceWithoutContainer(sw: SourceWrapper, room: Room, pv: Paraverse):
     if (sw.source.room.name != room.name)
         return false;
 
+    //skip sources close to lair before until you reach level 4
+    let sourceMemory = pv.getSourceMemory(sw.source);
+    if (sw.source.room.controller.level < 4 && pv.isCloseToLair(sw.source, sourceMemory))
+        return false;
+    
     //check memory
-    let cid = pv.getSourceMemory(sw.source).containerId;
+    let cid = sourceMemory.containerId;
     let inMemory = cid != "" && pv.getStructureById(cid).isPresent;
 
     //if not in memory, check map
@@ -98,15 +103,18 @@ function isSourceWithoutContainer(sw: SourceWrapper, room: Room, pv: Paraverse):
         isClose = containersInRange.length > 0;
     }
 
-    return inMemory || isClose;
+    return !inMemory && !isClose;
 }
 
 function findSourceWithoutContainer(room: Room, pv: Paraverse): Option<Source> {
     let sourcesWithoutContainers = pv.getMySources().filter((sw: SourceWrapper) => isSourceWithoutContainer(sw, room, pv));
-    if (sourcesWithoutContainers.length == 0)
+    if (sourcesWithoutContainers.length == 0) {
+        pv.log.debug(`All sources have containers in room ${room.name}.`);
         return mopt.None<Source>();
-    else
+    } else {
+        pv.log.debug(`Source ${sourcesWithoutContainers[0].source.id} is without container in room ${room.name}`);
         return mopt.Some<Source>(sourcesWithoutContainers[0].source);
+    }
 }
 
 export function makeRoomWrapper(room: Room): RoomWrapper {

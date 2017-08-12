@@ -448,10 +448,19 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.constructNextContainer = function (source) {
         var possibleConstructionSites = this.getPossibleConstructionSites(source.room);
         var optXy = mms.searchForContainerConstructionSite(possibleConstructionSites, source.pos.x, source.pos.y);
-        if (optXy.isPresent)
+        if (optXy.isPresent) {
+            this.log.debug("Creating container at " + source.room.name + "[" + optXy.get.x + "][" + optXy.get.y + "].");
             return source.room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_CONTAINER) == OK;
-        else
+        }
+        else {
+            this.log.debug("Failed to create container for source " + source.id + " in room " + source.room.name);
             return false;
+        }
+    };
+    ParaverseImpl.prototype.isCloseToLair = function (source, sourceMemory) {
+        if (sourceMemory.isCloseToLair === undefined)
+            sourceMemory.isCloseToLair = source.pos.findInRange(FIND_STRUCTURES, 10).filter(function (s) { return s.structureType == STRUCTURE_KEEPER_LAIR; }).length > 0;
+        return sourceMemory.isCloseToLair;
     };
     ParaverseImpl.prototype.getTowerMemory = function (towerId) {
         if (this.memory.towerMemory[towerId] === undefined) {

@@ -615,10 +615,23 @@ class ParaverseImpl implements Paraverse {
     constructNextContainer(source: Source): boolean {
         let possibleConstructionSites = this.getPossibleConstructionSites(source.room);
         let optXy = mms.searchForContainerConstructionSite(possibleConstructionSites, source.pos.x, source.pos.y);
-        if (optXy.isPresent)
+        if (optXy.isPresent) {
+            this.log.debug(`Creating container at ${source.room.name}[${optXy.get.x}][${optXy.get.y}].`);
             return source.room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_CONTAINER) == OK;
-        else
+        } else {
+            this.log.debug(`Failed to create container for source ${source.id} in room ${source.room.name}`);
             return false;
+        }
+    }
+
+    isCloseToLair(source: Source, sourceMemory: SourceMemory): boolean {
+        if (sourceMemory.isCloseToLair === undefined)
+            sourceMemory.isCloseToLair = source.pos.findInRange<Structure>(
+                FIND_STRUCTURES, 10
+            ).filter(
+                (s: Structure) => s.structureType == STRUCTURE_KEEPER_LAIR
+                ).length > 0;
+        return sourceMemory.isCloseToLair;
     }
 
     getTowerMemory(towerId: string): TowerMemory {
