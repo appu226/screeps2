@@ -53,8 +53,8 @@ var ConstructionSiteProblem = (function () {
     function ConstructionSiteProblem(possibleConstructionSites, startX, startY, checkNeighbors) {
         this.possibleConstructionSites = possibleConstructionSites;
         this.result = o.None();
-        this.totalRows = possibleConstructionSites.length;
-        this.totalCols = possibleConstructionSites[0].length;
+        this.totalRows = possibleConstructionSites[0].length;
+        this.totalCols = possibleConstructionSites.length;
         this.startX = startX;
         this.startY = startY;
         this.checkNeighbors = checkNeighbors;
