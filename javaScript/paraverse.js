@@ -81,6 +81,7 @@ var ParaverseImpl = (function () {
         this.constructionSitesByRoomAndType = {};
         this.possibleConstructionSitesCache = {};
         this.possibleMoveSitesCache = {};
+        this.possibleCollectionSitesCache = {};
         this.collectedDefense = {};
         this.roomWrappers = {};
         this.structureWrappers = [];
@@ -410,7 +411,7 @@ var ParaverseImpl = (function () {
         if (this.possibleMoveSitesCache[room.name] === undefined) {
             var result_2 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
             this.structureWrappers.forEach(function (sw) {
-                if (sw.structure.room.name == room.name)
+                if (sw.structure.room.name == room.name && _this.isMovementBlocking(sw.structure.structureType))
                     result_2[sw.structure.pos.x][sw.structure.pos.y] = false;
             });
             this.getMySources().forEach(function (sw) { result_2[sw.source.pos.x][sw.source.pos.y] = false; });
@@ -421,19 +422,43 @@ var ParaverseImpl = (function () {
         }
         return this.possibleMoveSitesCache[room.name];
     };
+    ParaverseImpl.prototype.getPossibleCollectionSites = function (room) {
+        var _this = this;
+        if (this.possibleCollectionSitesCache === undefined)
+            this.possibleCollectionSitesCache = {};
+        if (this.possibleCollectionSitesCache[room.name] === undefined) {
+            var result_3 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
+            this.structureWrappers.forEach(function (sw) {
+                if (sw.structure.room.name == room.name && _this.isMovementBlocking(sw.structure.structureType))
+                    result_3[sw.structure.pos.x][sw.structure.pos.y] = false;
+            });
+            this.getMySources().forEach(function (sw) { result_3[sw.source.pos.x][sw.source.pos.y] = false; });
+            this.possibleCollectionSitesCache[room.name] = result_3;
+        }
+        return this.possibleCollectionSitesCache[room.name];
+    };
+    ParaverseImpl.prototype.isMovementBlocking = function (structureType) {
+        switch (structureType) {
+            case STRUCTURE_RAMPART:
+            case STRUCTURE_CONTAINER:
+                return false;
+            default:
+                return true;
+        }
+    };
     ParaverseImpl.prototype.getPossibleConstructionSites = function (room) {
         var _this = this;
         if (this.possibleConstructionSitesCache === undefined)
             this.possibleConstructionSitesCache = {};
         if (this.possibleConstructionSitesCache[room.name] === undefined) {
-            var result_3 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
-            this.getConstructionSitesFromRoom(room).forEach(function (cs) { return result_3[cs.pos.x][cs.pos.y] = false; });
+            var result_4 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
+            this.getConstructionSitesFromRoom(room).forEach(function (cs) { return result_4[cs.pos.x][cs.pos.y] = false; });
             this.structureWrappers.forEach(function (sw) {
                 if (sw.structure.room.name == room.name)
-                    result_3[sw.structure.pos.x][sw.structure.pos.y] = false;
+                    result_4[sw.structure.pos.x][sw.structure.pos.y] = false;
             });
-            this.getMySources().forEach(function (sw) { return result_3[sw.source.pos.x][sw.source.pos.y] = false; });
-            this.possibleConstructionSitesCache[room.name] = result_3;
+            this.getMySources().forEach(function (sw) { return result_4[sw.source.pos.x][sw.source.pos.y] = false; });
+            this.possibleConstructionSitesCache[room.name] = result_4;
         }
         return this.possibleConstructionSitesCache[room.name];
     };

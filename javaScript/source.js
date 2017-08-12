@@ -40,13 +40,13 @@ exports.makeSourceMemory = makeSourceMemory;
 function getNumCollectionSlots(source, pv) {
     var mem = pv.getSourceMemory(source);
     if (mem.numCollectionSlots === undefined || mem.numCollectionSlots == -1) {
-        var pmp_1 = pv.getPossibleMoveSites(source.room);
+        var pcs_1 = pv.getPossibleCollectionSites(source.room);
         var xs = [source.pos.x - 1, source.pos.x, source.pos.x + 1];
         var ys_1 = [source.pos.y - 1, source.pos.y, source.pos.y + 1];
         var numCollectionSlots_1 = 0;
         xs.forEach(function (x) {
             ys_1.forEach(function (y) {
-                if (x >= 0 && x < pmp_1.length && y >= 0 && y < pmp_1[x].length && pmp_1[x][y])
+                if (x >= 0 && x < pcs_1.length && y >= 0 && y < pcs_1[x].length && pcs_1[x][y])
                     numCollectionSlots_1++;
             });
         });

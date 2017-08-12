@@ -47,13 +47,13 @@ export function makeSourceMemory(source: Source, pv: Paraverse): SourceMemory {
 function getNumCollectionSlots(source: Source, pv: Paraverse): number {
     let mem = pv.getSourceMemory(source);
     if (mem.numCollectionSlots === undefined || mem.numCollectionSlots == -1) {
-        let pmp = pv.getPossibleMoveSites(source.room);
+        let pcs = pv.getPossibleCollectionSites(source.room);
         let xs = [source.pos.x - 1, source.pos.x, source.pos.x + 1];
         let ys = [source.pos.y - 1, source.pos.y, source.pos.y + 1];
         let numCollectionSlots = 0;
         xs.forEach(x => {
             ys.forEach(y => {
-                if (x >= 0 && x < pmp.length && y >= 0 && y < pmp[x].length && pmp[x][y])
+                if (x >= 0 && x < pcs.length && y >= 0 && y < pcs[x].length && pcs[x][y])
                     numCollectionSlots++;
             })
         })

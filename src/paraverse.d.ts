@@ -46,6 +46,7 @@ declare interface Paraverse {
     getTerrain(room: Room): number[][];
     getPossibleMoveSites(room: Room): boolean[][];
     getPossibleConstructionSites(room: Room): boolean[][];
+    getPossibleCollectionSites(room: Room): boolean[][];
 
     constructNextSite(room: Room, structureType: string): boolean;
     constructNextContainer(source: Source): boolean;

@@ -71,6 +71,7 @@ class ParaverseImpl implements Paraverse {
     constructionSitesByRoomAndType: Dictionary<Dictionary<ConstructionSite[]>>;
     possibleConstructionSitesCache: Dictionary<boolean[][]>;
     possibleMoveSitesCache: Dictionary<boolean[][]>;
+    possibleCollectionSitesCache: Dictionary<boolean[][]>;
 
     hostileStructuresByRoom: Dictionary<Structure[]>;
     hostileCreepsByRoom: Dictionary<Creep[]>;
@@ -165,6 +166,7 @@ class ParaverseImpl implements Paraverse {
         this.constructionSitesByRoomAndType = {};
         this.possibleConstructionSitesCache = {};
         this.possibleMoveSitesCache = {};
+        this.possibleCollectionSitesCache = {};
         this.collectedDefense = {};
 
 
@@ -574,7 +576,7 @@ class ParaverseImpl implements Paraverse {
             let result: boolean[][] = this.getTerrain(room).map((row) => row.map((col) => col == this.TERRAIN_CODE_PLAIN || col == this.TERRAIN_CODE_SWAMP));
             this.structureWrappers.forEach(
                 sw => {
-                    if (sw.structure.room.name == room.name)
+                    if (sw.structure.room.name == room.name && this.isMovementBlocking(sw.structure.structureType))
                         result[sw.structure.pos.x][sw.structure.pos.y] = false;
                 }
             );
@@ -584,6 +586,32 @@ class ParaverseImpl implements Paraverse {
             this.possibleMoveSitesCache[room.name] = result;
         }
         return this.possibleMoveSitesCache[room.name];
+    }
+
+    getPossibleCollectionSites(room: Room): boolean[][] {
+        if (this.possibleCollectionSitesCache === undefined) this.possibleCollectionSitesCache = {};
+        if (this.possibleCollectionSitesCache[room.name] === undefined) {
+            let result: boolean[][] = this.getTerrain(room).map((row) => row.map((col) => col == this.TERRAIN_CODE_PLAIN || col == this.TERRAIN_CODE_SWAMP));
+            this.structureWrappers.forEach(
+                sw => {
+                    if (sw.structure.room.name == room.name && this.isMovementBlocking(sw.structure.structureType))
+                        result[sw.structure.pos.x][sw.structure.pos.y] = false;
+                }
+            );
+            this.getMySources().forEach(sw => { result[sw.source.pos.x][sw.source.pos.y] = false; });
+            this.possibleCollectionSitesCache[room.name] = result;
+        }
+        return this.possibleCollectionSitesCache[room.name];
+    }
+
+    isMovementBlocking(structureType: string): boolean {
+        switch (structureType) {
+            case STRUCTURE_RAMPART:
+            case STRUCTURE_CONTAINER:
+                return false;
+            default:
+                return true;
+        }
     }
 
     getPossibleConstructionSites(room: Room): boolean[][] {
