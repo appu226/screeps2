@@ -30,7 +30,7 @@ class TowerWrapper implements StructureWrapper {
         }
 
         //heal closest and weakest creep
-        let myCreeps = pv.getMyCreepsByRoom(t.room).map(cw => cw.creep);
+        let myCreeps = pv.getMyCreepsByRoom(t.room).map(cw => cw.creep).filter(c => c.hits < c.hitsMax);
         let cc = //closest creep
             o.maxBy<Creep>(myCreeps, closestAndWeakestFinder);
         if (cc.isPresent) {

@@ -20,7 +20,7 @@ var TowerWrapper = (function () {
             return;
         }
         //heal closest and weakest creep
-        var myCreeps = pv.getMyCreepsByRoom(t.room).map(function (cw) { return cw.creep; });
+        var myCreeps = pv.getMyCreepsByRoom(t.room).map(function (cw) { return cw.creep; }).filter(function (c) { return c.hits < c.hitsMax; });
         var cc = o.maxBy(myCreeps, closestAndWeakestFinder);
         if (cc.isPresent) {
             t.heal(cc.get.elem);
