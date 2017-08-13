@@ -73,11 +73,15 @@ export class HarvesterCreepWrapper implements CreepWrapper {
         } else {
             pv.pushEfficiency(this.memory, 0);
             let targets =
-                pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_SPAWN).concat(
-                    pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_CONTAINER)
+                pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_SPAWN).filter(
+                    sw => isFreeSpawn(sw)
                 ).concat(
-                    pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_EXTENSION)
-                    );
+                    pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_CONTAINER).filter(
+                        sw => isFreeContainer(sw)
+                    )).concat(
+                    pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_EXTENSION).filter(
+                        sw => isFreeExtension(sw)
+                    ));
 
             let closest = mopt.maxBy<StructureWrapper>(
                 targets,
@@ -98,4 +102,25 @@ export class HarvesterCreepWrapper implements CreepWrapper {
             this.creep.carry.energy
         );
     }
+}
+
+function isFreeSpawn(sw: StructureWrapper) {
+    let s = sw.structure;
+    if (s.structureType != STRUCTURE_SPAWN) return false;
+    let ss = <StructureSpawn>s;
+    return ss.energy < ss.energyCapacity;
+}
+
+function isFreeContainer(sw: StructureWrapper) {
+    let s = sw.structure;
+    if (s.structureType != STRUCTURE_CONTAINER) return false;
+    let ss = <StructureContainer>s;
+    return ss.store.energy < ss.storeCapacity;
+}
+
+function isFreeExtension(sw: StructureWrapper) {
+    let s = sw.structure;
+    if (s.structureType != STRUCTURE_EXTENSION) return false;
+    let ss = <StructureExtension>s;
+    return ss.energy < ss.energyCapacity;
 }
