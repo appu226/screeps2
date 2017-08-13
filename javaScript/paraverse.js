@@ -136,7 +136,7 @@ var ParaverseImpl = (function () {
         var fatigueRecords = this.memory.fatigueRecords;
         for (var rn in fatigueRecords) {
             for (var frk in fatigueRecords[rn]) {
-                fatigueRecords[rn][frk].fatigue -= 1.0 / 20;
+                fatigueRecords[rn][frk].fatigue -= 1.0;
                 if (fatigueRecords[rn][frk].fatigue < 0)
                     delete fatigueRecords[rn][frk];
             }

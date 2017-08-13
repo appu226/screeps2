@@ -272,7 +272,7 @@ class ParaverseImpl implements Paraverse {
         let fatigueRecords = this.memory.fatigueRecords;
         for (let rn in fatigueRecords) {
             for (let frk in fatigueRecords[rn]) {
-                fatigueRecords[rn][frk].fatigue -= 1.0 / 20;
+                fatigueRecords[rn][frk].fatigue -= 1.0;
                 if (fatigueRecords[rn][frk].fatigue < 0)
                     delete fatigueRecords[rn][frk];
             }
