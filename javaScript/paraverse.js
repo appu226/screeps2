@@ -632,7 +632,8 @@ var ParaverseImpl = (function () {
                 delete roomfr[frk];
         }
         for (var frk in roomfr) {
-            return true;
+            if (roomfr[frk].fatigue > 1000)
+                return true;
         }
         return false;
     };
