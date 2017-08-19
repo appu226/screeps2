@@ -161,7 +161,10 @@ export class TransporterCreepWrapper implements CreepWrapper {
         } else if (transferResult == OK) {
             pv.pushEfficiency(memory, 1);
         } else if (transferResult == ERR_FULL) {
-            this.succeedAndSetToFree(pv);
+            if (creep.carry[memory.resourceType] >= 50) {
+                this.giveToClosestExtension(creep, memory, pv);
+            } else
+                this.succeedAndSetToFree(pv);
         }
         else {
             pv.pushEfficiency(memory, 0);
@@ -172,6 +175,26 @@ export class TransporterCreepWrapper implements CreepWrapper {
         pv.log.debug(`${this.creep.name} status changing to free.`);
         this.memory.status = "free";
         pv.pushEfficiency(this.memory, 1);
+    }
+
+    giveToClosestExtension(creep: Creep, memory: TransporterMemory, pv: Paraverse) {
+        let emptyExtensions = pv.getMyStructuresByRoomAndType(
+            creep.room,
+            STRUCTURE_EXTENSION
+        ).map(
+            sw => <StructureExtension>sw.structure
+            ).filter(
+            se => se.energy < se.energyCapacity
+            );
+        if (emptyExtensions.length == 0)
+            this.succeedAndSetToFree(pv);
+        else {
+            let closestEmptyExtension = creep.pos.findClosestByRange<StructureExtension>(emptyExtensions);
+            memory.destinationType = "structure";
+            memory.destinationId = closestEmptyExtension.id;
+            pv.log.debug(`${this.creep.name} status changing destination to extension ${closestEmptyExtension.id}.`);
+            pv.pushEfficiency(memory, 1);
+        }
     }
 }
 

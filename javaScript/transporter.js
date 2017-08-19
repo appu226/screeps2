@@ -135,7 +135,11 @@ var TransporterCreepWrapper = (function () {
             pv.pushEfficiency(memory, 1);
         }
         else if (transferResult == ERR_FULL) {
-            this.succeedAndSetToFree(pv);
+            if (creep.carry[memory.resourceType] >= 50) {
+                this.giveToClosestExtension(creep, memory, pv);
+            }
+            else
+                this.succeedAndSetToFree(pv);
         }
         else {
             pv.pushEfficiency(memory, 0);
@@ -145,6 +149,18 @@ var TransporterCreepWrapper = (function () {
         pv.log.debug(this.creep.name + " status changing to free.");
         this.memory.status = "free";
         pv.pushEfficiency(this.memory, 1);
+    };
+    TransporterCreepWrapper.prototype.giveToClosestExtension = function (creep, memory, pv) {
+        var emptyExtensions = pv.getMyStructuresByRoomAndType(creep.room, STRUCTURE_EXTENSION).map(function (sw) { return sw.structure; }).filter(function (se) { return se.energy < se.energyCapacity; });
+        if (emptyExtensions.length == 0)
+            this.succeedAndSetToFree(pv);
+        else {
+            var closestEmptyExtension = creep.pos.findClosestByRange(emptyExtensions);
+            memory.destinationType = "structure";
+            memory.destinationId = closestEmptyExtension.id;
+            pv.log.debug(this.creep.name + " status changing destination to extension " + closestEmptyExtension.id + ".");
+            pv.pushEfficiency(memory, 1);
+        }
     };
     return TransporterCreepWrapper;
 }());
