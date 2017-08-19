@@ -24,8 +24,14 @@ var SpawnWrapper = (function () {
             if (sources.length > 0) {
                 var source = sources[0].source;
                 var order = pv.makeHarvesterOrder("emergencyHarvester", source.id);
+                order.maxEnergy = avblEnergy;
                 topOrder = mopt.Some(order);
             }
+        }
+        if (!topOrder.isPresent && avblEnergy >= 300 && pv.getMyCreepsByRoomAndType(me.room, pv.CREEP_TYPE_TRANSPORTER).length == 0) {
+            var order = pv.makeTransporterOrder("emergencyTransporter");
+            order.maxEnergy = avblEnergy;
+            topOrder = mopt.Some(order);
         }
         if (!topOrder.isPresent)
             topOrder = orderQueue.peek();

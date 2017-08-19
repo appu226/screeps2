@@ -16,7 +16,7 @@ class SpawnWrapper implements StructureWrapper {
         }
         let me = this.structure;
         let orderQueue: PQ<CreepOrder> = pv.getCreepOrders(me.room.name);
-        
+
         let memory = pv.getSpawnMemory(me);
         let avblEnergy = me.room.energyAvailable;
         if (avblEnergy == memory.lastTickEnergy) {
@@ -30,12 +30,18 @@ class SpawnWrapper implements StructureWrapper {
             if (sources.length > 0) {
                 let source = sources[0].source;
                 let order = pv.makeHarvesterOrder("emergencyHarvester", source.id);
+                order.maxEnergy = avblEnergy;
                 topOrder = mopt.Some<CreepOrder>(order);
             }
         }
+        if (!topOrder.isPresent && avblEnergy >= 300 && pv.getMyCreepsByRoomAndType(me.room, pv.CREEP_TYPE_TRANSPORTER).length == 0) {
+            let order = pv.makeTransporterOrder("emergencyTransporter");
+            order.maxEnergy = avblEnergy;
+            topOrder = mopt.Some<CreepOrder>(order);
+        }
 
-        if(!topOrder.isPresent) topOrder = orderQueue.peek();
-        
+        if (!topOrder.isPresent) topOrder = orderQueue.peek();
+
         if (topOrder.isPresent && me.spawning == null) {
             let order = topOrder.get;
             let minEnergy = order.basicBody.map(bp => BODYPART_COST[bp]).reduce<number>((p, c) => p + c, 0);
