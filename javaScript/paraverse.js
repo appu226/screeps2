@@ -516,7 +516,7 @@ var ParaverseImpl = (function () {
     };
     ParaverseImpl.prototype.moveCreep = function (cw, pos) {
         if (cw.creep.fatigue > 0 && this.getPossibleConstructionSites(cw.creep.room)[cw.creep.pos.x][cw.creep.pos.y])
-            this.recordFatigue(cw.creep.pos.x, cw.creep.pos.y, cw.creep.pos.roomName, cw.creep.fatigue * dictionary.sum(cw.creep.carry));
+            this.recordFatigue(cw.creep.pos.x, cw.creep.pos.y, cw.creep.pos.roomName);
         return cw.creep.moveTo(pos) == OK;
     };
     ParaverseImpl.prototype.makeCreepWrapper = function (c) {
@@ -616,11 +616,11 @@ var ParaverseImpl = (function () {
         return (soldier.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER
             + soldier.getActiveBodyparts(HEAL) * HEAL_POWER);
     };
-    ParaverseImpl.prototype.recordFatigue = function (x, y, roomName, fatigue) {
+    ParaverseImpl.prototype.recordFatigue = function (x, y, roomName) {
         var key = x + "_" + y;
         var roomFr = dictionary.getOrAdd(this.memory.fatigueRecords, roomName, {});
         dictionary.getOrAdd(roomFr, key, { xy: { x: x, y: y }, fatigue: 0 });
-        roomFr[key].fatigue += fatigue;
+        roomFr[key].fatigue += 20;
     };
     ParaverseImpl.prototype.mustBuildRoad = function (room) {
         var roomfr = dictionary.getOrElse(this.memory.fatigueRecords, room.name, {});

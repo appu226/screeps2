@@ -699,8 +699,7 @@ class ParaverseImpl implements Paraverse {
             this.recordFatigue(
                 cw.creep.pos.x,
                 cw.creep.pos.y,
-                cw.creep.pos.roomName,
-                cw.creep.fatigue * dictionary.sum(cw.creep.carry));
+                cw.creep.pos.roomName);
         return cw.creep.moveTo(pos) == OK;
     }
 
@@ -807,11 +806,11 @@ class ParaverseImpl implements Paraverse {
         );
     }
 
-    recordFatigue(x: number, y: number, roomName: string, fatigue: number) {
+    recordFatigue(x: number, y: number, roomName: string) {
         let key = `${x}_${y}`;
         let roomFr = dictionary.getOrAdd<Dictionary<FatigueRecord>>(this.memory.fatigueRecords, roomName, {});
         dictionary.getOrAdd<FatigueRecord>(roomFr, key, { xy: { x: x, y: y }, fatigue: 0 });
-        roomFr[key].fatigue += fatigue;
+        roomFr[key].fatigue += 20;
     }
 
     mustBuildRoad(room: Room): boolean {
