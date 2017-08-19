@@ -37,7 +37,7 @@ class RoomWrapperImpl implements RoomWrapper {
 
             if (pv.getTransporterEfficiency(me) > .9) {
                 pv.scheduleCreep(
-                    me.name,
+                    me,
                     pv.makeTransporterOrder(`Transporter_${me.name}`),
                     4
                 );
@@ -49,7 +49,7 @@ class RoomWrapperImpl implements RoomWrapper {
                 if (hc.owner.username == "Source Keeper") continue;
                 if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
                     pv.scheduleCreep(
-                        me.name,
+                        me,
                         pv.makeDefenderOrder(`defender_${me.name}_${hc.id}`, hc.id),
                         2
                     );
@@ -73,7 +73,7 @@ function scheduleBuilderIfRequired(me: Room, pv: Paraverse): void {
     let builders =
         pv.getMyCreepsByRoomAndType(me, pv.CREEP_TYPE_BUILDER);
     if (builders.length == 0) {
-        pv.scheduleCreep(me.name, pv.makeBuilderOrder(`${me.name}_${pv.CREEP_TYPE_BUILDER}`), 2);
+        pv.scheduleCreep(me, pv.makeBuilderOrder(`${me.name}_${pv.CREEP_TYPE_BUILDER}`), 2);
     }
 }
 

@@ -14,7 +14,7 @@ export function makeHarvesterOrder(orderName: string, sourceId: string, pv: Para
         orderName: orderName,
         basicBody: [MOVE, CARRY, WORK, WORK],
         addOnBody: [WORK, CARRY, WORK],
-        maxEnergy: 1000,
+        maxEnergy: 1550,
         memory: makeHarvesterMemory(sourceId, pv)
     };
 }

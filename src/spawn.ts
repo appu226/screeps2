@@ -1,3 +1,5 @@
+import mopt = require('./option');
+
 class SpawnWrapper implements StructureWrapper {
     structure: StructureSpawn;
     my: boolean;
@@ -22,13 +24,24 @@ class SpawnWrapper implements StructureWrapper {
         }
         memory.lastTickEnergy = avblEnergy;
 
-        let topOrder = orderQueue.peek();
-        if (topOrder.isPresent) {
+        let topOrder = mopt.None<CreepOrder>();
+        if (avblEnergy >= 300 && pv.getMyCreepsByRoomAndType(me.room, pv.CREEP_TYPE_HARVESTER).length == 0) {
+            let sources = pv.getMySources().filter(sw => sw.source.room.name == me.room.name);
+            if (sources.length > 0) {
+                let source = sources[0].source;
+                let order = pv.makeHarvesterOrder("emergencyHarvester", source.id);
+                topOrder = mopt.Some<CreepOrder>(order);
+            }
+        }
+
+        if(!topOrder.isPresent) topOrder = orderQueue.peek();
+        
+        if (topOrder.isPresent && me.spawning == null) {
             let order = topOrder.get;
             let minEnergy = order.basicBody.map(bp => BODYPART_COST[bp]).reduce<number>((p, c) => p + c, 0);
-            let maxEnergy = me.room.energyCapacityAvailable;
+            let maxEnergy = Math.min(me.room.energyCapacityAvailable, order.maxEnergy);
             //console.log("minEnergy, maxEnergy, avblEnergy, ticksSinceLastDonation = ", minEnergy, maxEnergy, avblEnergy, memory.ticksSinceLastDonation);
-            if (avblEnergy >= minEnergy && (avblEnergy == maxEnergy || memory.ticksSinceLastDonation >= 20)) {
+            if (avblEnergy >= minEnergy && avblEnergy >= maxEnergy) {
                 for (
                     let x = 0;
                     minEnergy + BODYPART_COST[order.addOnBody[x]] <= Math.min(order.maxEnergy, avblEnergy);

@@ -418,10 +418,19 @@ class ParaverseImpl implements Paraverse {
         return csbt[structureType];
     }
 
-    scheduleCreep(roomName: string, order: CreepOrder, priority: number): void {
+    scheduleCreep(room: Room, order: CreepOrder, priority: number): void {
         // call getCreepOrders before looking at the raw entries
-        let pq = this.getCreepOrders(roomName);
-        if (this.memory.creepOrders[roomName].filter((pqe) => pqe.elem.orderName == order.orderName).length > 0) {
+        let pq = this.getCreepOrders(room.name);
+        let alreadySpawning =
+            this.getMyStructuresByRoomAndType(room, STRUCTURE_SPAWN).filter(sw => {
+                let spawning = (<StructureSpawn>sw.structure).spawning;
+                return spawning != null;
+            }).length > 0;
+        let alreadySpawningOrScheduled =
+            alreadySpawning || this.memory.creepOrders[room.name].filter(
+                (pqe) => pqe.elem.orderName == order.orderName
+            ).length > 0;
+        if (alreadySpawningOrScheduled) {
             return;
         } else {
             pq.push(order, priority - this.game.time / 20.0);

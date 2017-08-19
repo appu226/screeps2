@@ -25,7 +25,7 @@ declare interface Paraverse {
     getHostileStructuresInRoom(room: Room): Structure[];
 
     getCreepOrders(roomName: string): PQ<CreepOrder>;
-    scheduleCreep(roomName: string, order: CreepOrder, priority: number): void;
+    scheduleCreep(room: Room, order: CreepOrder, priority: number): void;
     removeCreepOrder(roomName: string, orderName: string): void;
     makeBuilderOrder(orderName: string): CreepOrder;
     makeHarvesterOrder(orderName: string, sourceId: string): CreepOrder;

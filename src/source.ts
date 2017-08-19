@@ -11,24 +11,18 @@ class SourceWrapperImpl implements SourceWrapper {
         if (!pv.isCloseToLair(this.source, this.memory) || this.source.room.controller.level >= 4) {
             let allCreeps =
                 pv.getMyCreeps() // search all creeps
-                    .filter(cw => pv.isHarvesterWithSource(cw, this.source.id)); // that belong to this source
+                    .filter(cw => pv.isHarvesterWithSource(cw, this.source.id) && cw.creep.ticksToLive > 50); // that belong to this source
             let numCollectionSlots = getNumCollectionSlots(this.source, pv);
             let isCollectionSpotEmpty = allCreeps.length < numCollectionSlots;
-            let fullButCreepAboutToDie = numCollectionSlots == allCreeps.length && allCreeps.filter(cw => cw.creep.ticksToLive < 100).length > 0;
-            if (areSpawnsFree(this.source.room, pv) && (isCollectionSpotEmpty || fullButCreepAboutToDie)) {
-                pv.scheduleCreep(this.source.room.name, pv.makeHarvesterOrder("Harvester_" + this.source.id, this.source.id), 5);
+            let harvestingCapacity = allCreeps.reduce<number>(
+                (acc: number, cw: CreepWrapper) => acc + cw.creep.getActiveBodyparts(WORK),
+                0
+            );
+            if (isCollectionSpotEmpty && harvestingCapacity < 12) {
+                pv.scheduleCreep(this.source.room, pv.makeHarvesterOrder("Harvester_" + this.source.id, this.source.id), 5);
             }
         }
     }
-}
-
-function areSpawnsFree(room: Room, pv: Paraverse): boolean {
-    return pv.getMyStructuresByRoomAndType(
-        room,
-        STRUCTURE_SPAWN
-    ).filter((sw: StructureWrapper) =>
-        (<StructureSpawn>sw.structure).spawning != null
-        ).length == 0;
 }
 
 export function makeSourceWrapper(s: Source, pv: Paraverse): SourceWrapper {

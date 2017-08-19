@@ -263,10 +263,15 @@ var ParaverseImpl = (function () {
             csbt[structureType] = [];
         return csbt[structureType];
     };
-    ParaverseImpl.prototype.scheduleCreep = function (roomName, order, priority) {
+    ParaverseImpl.prototype.scheduleCreep = function (room, order, priority) {
         // call getCreepOrders before looking at the raw entries
-        var pq = this.getCreepOrders(roomName);
-        if (this.memory.creepOrders[roomName].filter(function (pqe) { return pqe.elem.orderName == order.orderName; }).length > 0) {
+        var pq = this.getCreepOrders(room.name);
+        var alreadySpawning = this.getMyStructuresByRoomAndType(room, STRUCTURE_SPAWN).filter(function (sw) {
+            var spawning = sw.structure.spawning;
+            return spawning != null;
+        }).length > 0;
+        var alreadySpawningOrScheduled = alreadySpawning || this.memory.creepOrders[room.name].filter(function (pqe) { return pqe.elem.orderName == order.orderName; }).length > 0;
+        if (alreadySpawningOrScheduled) {
             return;
         }
         else {

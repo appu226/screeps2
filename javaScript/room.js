@@ -33,7 +33,7 @@ var RoomWrapperImpl = (function () {
                 me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
             }
             if (pv.getTransporterEfficiency(me) > .9) {
-                pv.scheduleCreep(me.name, pv.makeTransporterOrder("Transporter_" + me.name), 4);
+                pv.scheduleCreep(me, pv.makeTransporterOrder("Transporter_" + me.name), 4);
             }
             var hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (var hci = 0; hci < hostileCreeps.length; ++hci) {
@@ -41,7 +41,7 @@ var RoomWrapperImpl = (function () {
                 if (hc.owner.username == "Source Keeper")
                     continue;
                 if (pv.getTotalCollectedDefense(hc.id) < pv.getSoldierCapability(hc)) {
-                    pv.scheduleCreep(me.name, pv.makeDefenderOrder("defender_" + me.name + "_" + hc.id, hc.id), 2);
+                    pv.scheduleCreep(me, pv.makeDefenderOrder("defender_" + me.name + "_" + hc.id, hc.id), 2);
                 }
             }
         }
@@ -57,7 +57,7 @@ function canBuild(me, structureType, pv) {
 function scheduleBuilderIfRequired(me, pv) {
     var builders = pv.getMyCreepsByRoomAndType(me, pv.CREEP_TYPE_BUILDER);
     if (builders.length == 0) {
-        pv.scheduleCreep(me.name, pv.makeBuilderOrder(me.name + "_" + pv.CREEP_TYPE_BUILDER), 2);
+        pv.scheduleCreep(me, pv.makeBuilderOrder(me.name + "_" + pv.CREEP_TYPE_BUILDER), 2);
     }
 }
 function isSourceWithoutContainer(sw, room, pv) {
