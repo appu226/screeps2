@@ -8,11 +8,6 @@ class ContainerWrapper implements StructureWrapper {
     }
 
     process(pv: Paraverse): void {
-        let container = this.structure;
-        let storedEnergy = container.store[RESOURCE_ENERGY];
-        if (storedEnergy > 0) {
-            pv.requestResourceSend(container.room.name, container.id, false, RESOURCE_ENERGY, storedEnergy);
-        }
     }
 }
 

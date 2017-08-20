@@ -18,8 +18,6 @@ class TowerWrapper implements StructureWrapper {
                 return 1.0 / mterrain.euclidean(t.pos, c.pos, pv) / c.hits
             };
 
-        pv.requestResourceReceive(t.room.name, t.id, false, RESOURCE_ENERGY, t.energyCapacity - t.energy);
-
         //attack closest and weakest enemy
         let enemies = pv.getHostileCreepsInRoom(t.room);
         let ce = //closest enemy

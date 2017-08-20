@@ -44,17 +44,6 @@ export class TransporterCreepWrapper implements CreepWrapper {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = <TransporterMemory>creep.memory;
-        switch (this.memory.status) {
-            case "collecting":
-                pv.recordCollectionIntent(this.memory.sourceId, this.memory.resourceType);
-                pv.recordDeliveryIntent(this.memory.destinationId, this.memory.resourceType);
-                break;
-            case "transporting":
-                pv.recordDeliveryIntent(this.memory.destinationId, this.memory.resourceType);
-                break;
-            default:
-                break;
-        }
     }
 
     process(pv: Paraverse) {
@@ -203,17 +192,5 @@ export function isFreeTransporter(creepWrapper: CreepWrapper, pv: Paraverse): bo
         return false;
     let tcw = <TransporterCreepWrapper>creepWrapper;
     return tcw.memory.status == "free";
-}
-
-export function assignTransporter(creepWrapper: CreepWrapper, sourceRequest: ResourceRequest, destinationRequest: ResourceRequest, pv: Paraverse): void {
-    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
-        throw new Error(`assignTransporter: expected creep wrapper with type CREEP_TYPE_TRANSPORTER (${pv.CREEP_TYPE_TRANSPORTER}), got ${creepWrapper.creepType}`);
-    let tcw = <TransporterCreepWrapper>creepWrapper;
-    tcw.memory.destinationId = destinationRequest.requestorId;
-    tcw.memory.destinationType = destinationRequest.isRequestorCreep ? "creep" : "structure";
-    tcw.memory.resourceType = sourceRequest.resourceType;
-    tcw.memory.sourceId = sourceRequest.requestorId;
-    tcw.memory.sourceType = sourceRequest.isRequestorCreep ? "creep" : "structure";
-    tcw.memory.status = "collecting";
 }
 

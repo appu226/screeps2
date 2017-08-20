@@ -67,12 +67,5 @@ export class UpgraderCreepWrapper implements CreepWrapper {
                 throw new Error(`${creep.name} upgrading ${roomName} failed with code ${upgradeResult}.`);
             }
         }
-        pv.requestResourceReceive(
-            this.creep.room.name,
-            this.creep.id,
-            true,
-            RESOURCE_ENERGY,
-            this.creep.carryCapacity - this.creep.carry.energy
-        );
     }
 }

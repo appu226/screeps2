@@ -5,11 +5,6 @@ var ContainerWrapper = (function () {
         this.my = container.room.controller.my;
     }
     ContainerWrapper.prototype.process = function (pv) {
-        var container = this.structure;
-        var storedEnergy = container.store[RESOURCE_ENERGY];
-        if (storedEnergy > 0) {
-            pv.requestResourceSend(container.room.name, container.id, false, RESOURCE_ENERGY, storedEnergy);
-        }
     };
     return ContainerWrapper;
 }());

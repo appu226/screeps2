@@ -53,7 +53,6 @@ var SpawnWrapper = (function () {
                 pv.log.debug("with result " + result);
             }
         }
-        pv.requestResourceReceive(this.structure.room.name, this.structure.id, false, RESOURCE_ENERGY, this.structure.energyCapacity - this.structure.energy);
     };
     return SpawnWrapper;
 }());

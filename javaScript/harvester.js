@@ -74,7 +74,6 @@ var HarvesterCreepWrapper = (function () {
                 }
             }
         }
-        pv.requestResourceSend(this.creep.room.name, this.creep.id, true, RESOURCE_ENERGY, this.creep.carry.energy);
     };
     return HarvesterCreepWrapper;
 }());

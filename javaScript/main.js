@@ -11,7 +11,6 @@ function loop() {
     structures.forEach(function (s) { return o.tryCatch(function () { return s.process(pv); }, "processing structure " + s.structure.id); });
     var creeps = pv.getMyCreeps();
     creeps.forEach(function (c) { return o.tryCatch(function () { return c.process(pv); }, "processing structure " + c.creep.name); });
-    o.tryCatch(function () { return pv.manageSupplyAndDemand(); }, "managing supply and demand.");
     pv.log.debug("Completed main loop.");
 }
 exports.loop = loop;

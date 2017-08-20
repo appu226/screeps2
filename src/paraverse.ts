@@ -11,7 +11,6 @@ import o = require('./option');
 import mlogger = require('./logger');
 import mroom = require('./room');
 import mterrain = require('./terrain');
-import mrr = require('./resourceRequest');
 import mms = require('./mapSearch');
 
 interface FatigueRecord {
@@ -25,8 +24,6 @@ interface ParaMemory extends Memory {
     terrainMap: Dictionary<number[][]>;
     sourceMemories: Dictionary<SourceMemory>;
     uid: number;
-    resourceSendRequests: QueueData<ResourceRequest>;
-    resourceReceiveRequests: QueueData<ResourceRequest>;
     towerMemory: Dictionary<TowerMemory>;
     wallHitPoints: Dictionary<number>;
     fatigueRecords: Dictionary<Dictionary<FatigueRecord>>;
@@ -43,8 +40,6 @@ export function makeParaverse(
     if (paraMemory.terrainMap === undefined) paraMemory.terrainMap = {};
     if (paraMemory.sourceMemories === undefined) paraMemory.sourceMemories = {};
     if (paraMemory.uid === undefined) paraMemory.uid = game.time;
-    if (paraMemory.resourceSendRequests === undefined) paraMemory.resourceSendRequests = { pushStack: [], popStack: [] };
-    if (paraMemory.resourceReceiveRequests === undefined) paraMemory.resourceReceiveRequests = { pushStack: [], popStack: [] };
     if (paraMemory.towerMemory === undefined) paraMemory.towerMemory = {};
     if (paraMemory.wallHitPoints === undefined) paraMemory.wallHitPoints = {};
     if (paraMemory.fatigueRecords === undefined) paraMemory.fatigueRecords = {};
@@ -454,104 +449,6 @@ class ParaverseImpl implements Paraverse {
     makeTransporterOrder(orderName: string): CreepOrder { return mtransporter.makeTransporterOrder(orderName, this); }
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder { return mupgrader.makeUpgraderOrder(orderName, roomName, this); }
     makeDefenderOrder(orderName: string, targetId: string): CreepOrder { return mdefender.makeDefenderOrder(orderName, targetId, this); }
-
-    requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void {
-        mrr.pushResourceRequest(
-            this.memory.resourceReceiveRequests,
-            roomName,
-            requestorId, isRequestorCreep,
-            resourceType, amount,
-            this.getDeliveryIntent(requestorId, resourceType),
-            this);
-    }
-
-    requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void {
-        mrr.pushResourceRequest(
-            this.memory.resourceSendRequests,
-            roomName,
-            requestorId, isRequestorCreep,
-            resourceType, amount,
-            this.getCollectionIntent(requestorId, resourceType),
-            this);
-    }
-
-    getReceiveRequests(): Queue<ResourceRequest> {
-        let queueData = this.memory.resourceReceiveRequests;
-        return o.makeQueue<ResourceRequest>(queueData.pushStack, queueData.popStack);
-    }
-
-    getSendRequests(): Queue<ResourceRequest> {
-        let queueData = this.memory.resourceSendRequests;
-        return o.makeQueue<ResourceRequest>(queueData.pushStack, queueData.popStack);
-    }
-
-    manageSupplyAndDemand(): void {
-        let receiveRequests = this.getReceiveRequests();
-        let sendRequests = this.getSendRequests();
-        //go through the entire sendRequest queue, popping every request
-        //requests that cannot be satisfied get pushed back into the queue
-        //FIFO behavior guarantees that order of unsatisfied requests is preserved
-        for (let isr = sendRequests.length(); isr > 0; --isr) {
-            let sr = sendRequests.pop().get;
-            let isRequestAssigned = false; // parameter to track whether request has been assigned to a transporter
-            let destination = this.game.getObjectById<RoomObject>(sr.requestorId);
-            if (destination != null) {
-                let freeTransporters = this.getMyCreeps().filter((cw: CreepWrapper) => mtransporter.isFreeTransporter(cw, this));
-                let closestTransporter = o.maxBy<CreepWrapper>(freeTransporters, (cw: CreepWrapper) => mterrain.euclidean(cw.creep.pos, destination.pos, this) * -1);
-                if (closestTransporter.isPresent) {
-                    let rro = receiveRequests.extract((rr: ResourceRequest) => rr.resourceType == sr.resourceType && rr.requestorId != sr.requestorId);
-                    if (rro.isPresent) {
-                        mtransporter.assignTransporter(closestTransporter.get.elem, sr, rro.get, this);
-                        isRequestAssigned = true;
-                    }
-                }
-
-                //if request could not be assigned, push it back into the queue
-                if (!isRequestAssigned)
-                    sendRequests.push(sr);
-            }
-        }
-
-    }
-
-    recordDeliveryIntent(destinationId: string, resourceName: string): void {
-        if (this.deliveryIntent === undefined)
-            this.deliveryIntent = {};
-        let di = this.deliveryIntent;
-        if (di[destinationId] === undefined)
-            di[destinationId] = {};
-        let ddi = di[destinationId];
-        if (ddi[resourceName] === undefined)
-            ddi[resourceName] = 0;
-        ddi[resourceName] += 1;
-    }
-    recordCollectionIntent(sourceId: string, resourceName: string): void {
-        if (this.collectionIntent === undefined)
-            this.collectionIntent = {};
-        let ci = this.collectionIntent;
-        if (ci[sourceId] === undefined)
-            ci[sourceId] = {};
-        let sci = ci[sourceId];
-        if (sci[resourceName] === undefined)
-            sci[resourceName] = 0;
-        sci[resourceName] += 1;
-    }
-    getDeliveryIntent(destinationId: string, resourceName: string): number {
-        if (this.deliveryIntent === undefined) this.deliveryIntent = {};
-        let di = this.deliveryIntent;
-        if (di[destinationId] === undefined) di[destinationId] = {};
-        let ddi = di[destinationId];
-        if (ddi[resourceName] === undefined) ddi[resourceName] = 0;
-        return ddi[resourceName];
-    }
-    getCollectionIntent(sourceId: string, resourceName: string): number {
-        if (this.collectionIntent === undefined) this.collectionIntent = {};
-        let ci = this.collectionIntent;
-        if (ci[sourceId] === undefined) ci[sourceId] = {};
-        let sci = ci[sourceId];
-        if (sci[resourceName] === undefined) sci[resourceName] = 0;
-        return sci[resourceName];
-    }
 
     getTerrain(room: Room): number[][] {
         if (this.memory.terrainMap[room.name] === undefined) {

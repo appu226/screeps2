@@ -12,7 +12,6 @@ var o = require("./option");
 var mlogger = require("./logger");
 var mroom = require("./room");
 var mterrain = require("./terrain");
-var mrr = require("./resourceRequest");
 var mms = require("./mapSearch");
 function makeParaverse(game, map, memory) {
     var paraMemory = memory;
@@ -26,10 +25,6 @@ function makeParaverse(game, map, memory) {
         paraMemory.sourceMemories = {};
     if (paraMemory.uid === undefined)
         paraMemory.uid = game.time;
-    if (paraMemory.resourceSendRequests === undefined)
-        paraMemory.resourceSendRequests = { pushStack: [], popStack: [] };
-    if (paraMemory.resourceReceiveRequests === undefined)
-        paraMemory.resourceReceiveRequests = { pushStack: [], popStack: [] };
     if (paraMemory.towerMemory === undefined)
         paraMemory.towerMemory = {};
     if (paraMemory.wallHitPoints === undefined)
@@ -294,95 +289,6 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.makeTransporterOrder = function (orderName) { return mtransporter.makeTransporterOrder(orderName, this); };
     ParaverseImpl.prototype.makeUpgraderOrder = function (orderName, roomName) { return mupgrader.makeUpgraderOrder(orderName, roomName, this); };
     ParaverseImpl.prototype.makeDefenderOrder = function (orderName, targetId) { return mdefender.makeDefenderOrder(orderName, targetId, this); };
-    ParaverseImpl.prototype.requestResourceReceive = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
-        mrr.pushResourceRequest(this.memory.resourceReceiveRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.getDeliveryIntent(requestorId, resourceType), this);
-    };
-    ParaverseImpl.prototype.requestResourceSend = function (roomName, requestorId, isRequestorCreep, resourceType, amount) {
-        mrr.pushResourceRequest(this.memory.resourceSendRequests, roomName, requestorId, isRequestorCreep, resourceType, amount, this.getCollectionIntent(requestorId, resourceType), this);
-    };
-    ParaverseImpl.prototype.getReceiveRequests = function () {
-        var queueData = this.memory.resourceReceiveRequests;
-        return o.makeQueue(queueData.pushStack, queueData.popStack);
-    };
-    ParaverseImpl.prototype.getSendRequests = function () {
-        var queueData = this.memory.resourceSendRequests;
-        return o.makeQueue(queueData.pushStack, queueData.popStack);
-    };
-    ParaverseImpl.prototype.manageSupplyAndDemand = function () {
-        var _this = this;
-        var receiveRequests = this.getReceiveRequests();
-        var sendRequests = this.getSendRequests();
-        var _loop_1 = function (isr) {
-            var sr = sendRequests.pop().get;
-            var isRequestAssigned = false; // parameter to track whether request has been assigned to a transporter
-            var destination = this_1.game.getObjectById(sr.requestorId);
-            if (destination != null) {
-                var freeTransporters = this_1.getMyCreeps().filter(function (cw) { return mtransporter.isFreeTransporter(cw, _this); });
-                var closestTransporter = o.maxBy(freeTransporters, function (cw) { return mterrain.euclidean(cw.creep.pos, destination.pos, _this) * -1; });
-                if (closestTransporter.isPresent) {
-                    var rro = receiveRequests.extract(function (rr) { return rr.resourceType == sr.resourceType && rr.requestorId != sr.requestorId; });
-                    if (rro.isPresent) {
-                        mtransporter.assignTransporter(closestTransporter.get.elem, sr, rro.get, this_1);
-                        isRequestAssigned = true;
-                    }
-                }
-                //if request could not be assigned, push it back into the queue
-                if (!isRequestAssigned)
-                    sendRequests.push(sr);
-            }
-        };
-        var this_1 = this;
-        //go through the entire sendRequest queue, popping every request
-        //requests that cannot be satisfied get pushed back into the queue
-        //FIFO behavior guarantees that order of unsatisfied requests is preserved
-        for (var isr = sendRequests.length(); isr > 0; --isr) {
-            _loop_1(isr);
-        }
-    };
-    ParaverseImpl.prototype.recordDeliveryIntent = function (destinationId, resourceName) {
-        if (this.deliveryIntent === undefined)
-            this.deliveryIntent = {};
-        var di = this.deliveryIntent;
-        if (di[destinationId] === undefined)
-            di[destinationId] = {};
-        var ddi = di[destinationId];
-        if (ddi[resourceName] === undefined)
-            ddi[resourceName] = 0;
-        ddi[resourceName] += 1;
-    };
-    ParaverseImpl.prototype.recordCollectionIntent = function (sourceId, resourceName) {
-        if (this.collectionIntent === undefined)
-            this.collectionIntent = {};
-        var ci = this.collectionIntent;
-        if (ci[sourceId] === undefined)
-            ci[sourceId] = {};
-        var sci = ci[sourceId];
-        if (sci[resourceName] === undefined)
-            sci[resourceName] = 0;
-        sci[resourceName] += 1;
-    };
-    ParaverseImpl.prototype.getDeliveryIntent = function (destinationId, resourceName) {
-        if (this.deliveryIntent === undefined)
-            this.deliveryIntent = {};
-        var di = this.deliveryIntent;
-        if (di[destinationId] === undefined)
-            di[destinationId] = {};
-        var ddi = di[destinationId];
-        if (ddi[resourceName] === undefined)
-            ddi[resourceName] = 0;
-        return ddi[resourceName];
-    };
-    ParaverseImpl.prototype.getCollectionIntent = function (sourceId, resourceName) {
-        if (this.collectionIntent === undefined)
-            this.collectionIntent = {};
-        var ci = this.collectionIntent;
-        if (ci[sourceId] === undefined)
-            ci[sourceId] = {};
-        var sci = ci[sourceId];
-        if (sci[resourceName] === undefined)
-            sci[resourceName] = 0;
-        return sci[resourceName];
-    };
     ParaverseImpl.prototype.getTerrain = function (room) {
         var _this = this;
         if (this.memory.terrainMap[room.name] === undefined) {

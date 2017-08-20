@@ -61,7 +61,6 @@ var BuilderCreepWrapper = (function () {
             pv.pushEfficiency(this.memory, 0);
             this.memory.constructionSiteId = o.None();
         }
-        pv.requestResourceReceive(this.creep.room.name, this.creep.id, true, RESOURCE_ENERGY, this.creep.carryCapacity - this.creep.carry.energy);
     };
     return BuilderCreepWrapper;
 }());

@@ -69,13 +69,6 @@ export class BuilderCreepWrapper implements CreepWrapper {
             pv.pushEfficiency(this.memory, 0);
             this.memory.constructionSiteId = o.None<string>();
         }
-        pv.requestResourceReceive(
-            this.creep.room.name,
-            this.creep.id,
-            true,
-            RESOURCE_ENERGY,
-            this.creep.carryCapacity - this.creep.carry.energy
-        );
     }
 }
 

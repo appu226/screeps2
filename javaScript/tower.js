@@ -11,7 +11,6 @@ var TowerWrapper = (function () {
         var closestAndWeakestFinder = function (c) {
             return 1.0 / mterrain.euclidean(t.pos, c.pos, pv) / c.hits;
         };
-        pv.requestResourceReceive(t.room.name, t.id, false, RESOURCE_ENERGY, t.energyCapacity - t.energy);
         //attack closest and weakest enemy
         var enemies = pv.getHostileCreepsInRoom(t.room);
         var ce = o.maxBy(enemies, closestAndWeakestFinder);

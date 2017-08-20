@@ -94,13 +94,6 @@ export class HarvesterCreepWrapper implements CreepWrapper {
                 }
             }
         }
-        pv.requestResourceSend(
-            this.creep.room.name,
-            this.creep.id,
-            true,
-            RESOURCE_ENERGY,
-            this.creep.carry.energy
-        );
     }
 }
 

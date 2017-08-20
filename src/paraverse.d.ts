@@ -33,14 +33,6 @@ declare interface Paraverse {
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder;
     makeDefenderOrder(orderName: string, targetId: string): CreepOrder;
 
-    requestResourceReceive(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
-    requestResourceSend(roomName: string, requestorId: string, isRequestorCreep: boolean, resourceType: string, amount: number): void;
-    manageSupplyAndDemand(): void;
-    recordDeliveryIntent(destinationId: string, resourceName: string): void;
-    recordCollectionIntent(sourceId: string, resourceName: string): void;
-    getDeliveryIntent(destinationId: string, resourceName: string): number;
-    getCollectionIntent(sourceId: string, resourceName: string): number;
-
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
     getConstructionSitesFromRoomOfType(room: Room, structureType: string): ConstructionSite[];
     getTerrain(room: Room): number[][];
@@ -163,13 +155,6 @@ declare interface PlannedConstructionSite {
 declare interface XY{
     x: number;
     y: number;
-}
-
-declare interface ResourceRequest {
-    roomName: string;
-    requestorId: string;
-    isRequestorCreep: boolean;
-    resourceType: string;
 }
 
 declare interface TowerMemory {
