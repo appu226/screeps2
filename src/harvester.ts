@@ -39,10 +39,21 @@ export class HarvesterCreepWrapper implements CreepWrapper {
     creep: Creep;
     creepType: string;
     memory: HarvesterMemory;
+    resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_HARVESTER;
         this.memory = <HarvesterMemory>creep.memory;
+        let demand = creep.carryCapacity - creep.carry[RESOURCE_ENERGY];
+        this.resourceRequests = demand > 0
+            ? [{
+                roomName: creep.room.name,
+                resourceType: RESOURCE_ENERGY,
+                amount: demand,
+                requestorId: creep.id,
+                resourceRequestType: pv.PULL_REQUEST
+            }]
+            : [];
     }
 
     roomHasTransporters(pv: Paraverse): boolean {

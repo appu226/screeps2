@@ -19,15 +19,15 @@ export function makeStructureWrapper(structure: Structure, pv: Paraverse): Struc
         case STRUCTURE_ROAD:
             return mroad.makeRoadWrapper(<StructureRoad>structure);
         case STRUCTURE_RAMPART:
-            return mrampart.makeRampartWrapper(<StructureRampart>structure, pv);
+            return mrampart.makeRampartWrapper(<StructureRampart>structure);
         case STRUCTURE_TOWER:
-            return mtower.makeTowerWrapper(<StructureTower>structure);
+            return mtower.makeTowerWrapper(<StructureTower>structure, pv);
         case STRUCTURE_EXTENSION:
-            return mextension.makeExtensionWrapper(<StructureExtension>structure);
+            return mextension.makeExtensionWrapper(<StructureExtension>structure, pv);
         case STRUCTURE_CONTAINER:
-            return mcontainer.makeContainerWrapper(<StructureContainer>structure);
+            return mcontainer.makeContainerWrapper(<StructureContainer>structure, pv);
         case STRUCTURE_WALL:
-            return mwall.makeWallWrapper(<StructureWall>structure, pv);
+            return mwall.makeWallWrapper(<StructureWall>structure);
         default: throw new Error(`makeStructureWrapper: type ${structure.structureType} not yet supported.`)
     }
 }

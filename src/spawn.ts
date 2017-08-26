@@ -3,10 +3,12 @@ import mopt = require('./option');
 class SpawnWrapper implements StructureWrapper {
     structure: StructureSpawn;
     my: boolean;
+    resourceRequests: ResourceRequest[];
 
     constructor(spawn: StructureSpawn) {
         this.structure = spawn;
         this.my = spawn.my;
+        this.resourceRequests = [];
     }
 
     process(pv: Paraverse): void {

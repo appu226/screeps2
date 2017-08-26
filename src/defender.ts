@@ -32,10 +32,12 @@ export class DefenderCreepWrapper implements CreepWrapper {
     creep: Creep;
     creepType: string;
     memory: DefenderMemory;
+    resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_DEFENDER;
         this.memory = <DefenderMemory>creep.memory;
+        this.resourceRequests = [];
         pv.recordDefense(creep, this.memory.targetId);
     }
 

@@ -4,10 +4,21 @@ import mterrain = require('./terrain');
 class TowerWrapper implements StructureWrapper {
     structure: StructureTower;
     my: boolean;
+    resourceRequests: ResourceRequest[];
 
-    constructor(tower: StructureTower) {
+    constructor(tower: StructureTower, pv: Paraverse) {
         this.structure = tower;
         this.my = tower.my;
+        let demand = tower.energyCapacity - tower.energy;
+        this.resourceRequests = demand > 0
+            ? [{
+                roomName: tower.room.name,
+                resourceType: RESOURCE_ENERGY,
+                amount: demand,
+                requestorId: tower.id,
+                resourceRequestType: pv.PULL_REQUEST
+            }]
+            : [];
     }
 
     process(pv: Paraverse): void {
@@ -54,6 +65,6 @@ class TowerWrapper implements StructureWrapper {
 
 }
 
-export function makeTowerWrapper(tower: StructureTower): StructureWrapper {
-    return new TowerWrapper(tower);
+export function makeTowerWrapper(tower: StructureTower, pv: Paraverse): StructureWrapper {
+    return new TowerWrapper(tower, pv);
 }

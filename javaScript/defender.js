@@ -27,6 +27,7 @@ var DefenderCreepWrapper = (function () {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_DEFENDER;
         this.memory = creep.memory;
+        this.resourceRequests = [];
         pv.recordDefense(creep, this.memory.targetId);
     }
     DefenderCreepWrapper.prototype.process = function (pv) {

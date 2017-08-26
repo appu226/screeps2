@@ -4,6 +4,7 @@ var SpawnWrapper = (function () {
     function SpawnWrapper(spawn) {
         this.structure = spawn;
         this.my = spawn.my;
+        this.resourceRequests = [];
     }
     SpawnWrapper.prototype.process = function (pv) {
         if (!this.my) {

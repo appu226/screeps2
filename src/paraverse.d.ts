@@ -90,6 +90,9 @@ declare interface Paraverse {
     TERRAIN_CODE_CONSTRUCTION_SITE: number;
 
     DELIVERY_AMOUNT: number;
+
+    PULL_REQUEST: number;
+    PUSH_REQUEST: number;
 }
 
 declare interface Logger {
@@ -100,13 +103,25 @@ declare interface Logger {
     setLogLevel(logLevel: number): void;
 }
 
-declare interface StructureWrapper {
+declare interface ResourceRequest {
+    roomName: string;
+    resourceType: string;
+    amount: number;
+    requestorId: string;
+    resourceRequestType: number;
+}
+
+declare interface ResourceRequestor {
+    resourceRequests: ResourceRequest[];
+}
+
+declare interface StructureWrapper extends ResourceRequestor {
     structure: Structure;
     process(pv: Paraverse): void;
     my: boolean;
 }
 
-declare interface CreepWrapper {
+declare interface CreepWrapper extends ResourceRequestor {
     creep: Creep;
     creepType: string;
     process(pv: Paraverse): void;

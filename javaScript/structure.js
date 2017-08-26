@@ -19,15 +19,15 @@ function makeStructureWrapper(structure, pv) {
         case STRUCTURE_ROAD:
             return mroad.makeRoadWrapper(structure);
         case STRUCTURE_RAMPART:
-            return mrampart.makeRampartWrapper(structure, pv);
+            return mrampart.makeRampartWrapper(structure);
         case STRUCTURE_TOWER:
-            return mtower.makeTowerWrapper(structure);
+            return mtower.makeTowerWrapper(structure, pv);
         case STRUCTURE_EXTENSION:
-            return mextension.makeExtensionWrapper(structure);
+            return mextension.makeExtensionWrapper(structure, pv);
         case STRUCTURE_CONTAINER:
-            return mcontainer.makeContainerWrapper(structure);
+            return mcontainer.makeContainerWrapper(structure, pv);
         case STRUCTURE_WALL:
-            return mwall.makeWallWrapper(structure, pv);
+            return mwall.makeWallWrapper(structure);
         default: throw new Error("makeStructureWrapper: type " + structure.structureType + " not yet supported.");
     }
 }

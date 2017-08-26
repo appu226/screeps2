@@ -110,6 +110,9 @@ class ParaverseImpl implements Paraverse {
 
     DELIVERY_AMOUNT: number;
 
+    PUSH_REQUEST: number;
+    PULL_REQUEST: number;
+
     constructor(
         game: Game,
         map: GameMap,
@@ -143,6 +146,10 @@ class ParaverseImpl implements Paraverse {
         this.TERRAIN_CODE_CONSTRUCTION_SITE = 64;
 
         this.DELIVERY_AMOUNT = 150;
+
+        this.PUSH_REQUEST = 0;
+        this.PULL_REQUEST = 1;
+
         this.deliveryIntent = {};
         this.collectionIntent = {};
 

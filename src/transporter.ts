@@ -40,10 +40,12 @@ export class TransporterCreepWrapper implements CreepWrapper {
     creep: Creep;
     creepType: string;
     memory: TransporterMemory;
+    resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = <TransporterMemory>creep.memory;
+        this.resourceRequests = [];
     }
 
     process(pv: Paraverse) {

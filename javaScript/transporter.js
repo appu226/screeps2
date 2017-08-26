@@ -32,6 +32,7 @@ var TransporterCreepWrapper = (function () {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = creep.memory;
+        this.resourceRequests = [];
     }
     TransporterCreepWrapper.prototype.process = function (pv) {
         switch (this.memory.status) {

@@ -30,10 +30,12 @@ export class UpgraderCreepWrapper implements CreepWrapper {
     creep: Creep;
     creepType: string;
     memory: UpgraderMemory;
+    resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_UPGRADER;
         this.memory = <UpgraderMemory>creep.memory;
+        this.resourceRequests = [];
     }
 
     process(pv: Paraverse) {

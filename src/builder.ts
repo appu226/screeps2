@@ -32,10 +32,22 @@ export class BuilderCreepWrapper implements CreepWrapper {
     creep: Creep;
     creepType: string;
     memory: BuilderMemory;
+    resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_BUILDER;
         this.memory = <BuilderMemory>creep.memory;
+        let demand = this.creep.carryCapacity - this.creep.carry[RESOURCE_ENERGY];
+        this.resourceRequests =
+            (demand > 0
+                ? [{
+                    roomName: this.creep.room.name,
+                    resourceType: RESOURCE_ENERGY,
+                    amount: demand,
+                    requestorId: this.creep.id,
+                    resourceRequestType: pv.PULL_REQUEST
+                }]
+                : []);
     }
 
     process(pv: Paraverse) {

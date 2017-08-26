@@ -2,9 +2,19 @@
 var o = require("./option");
 var mterrain = require("./terrain");
 var TowerWrapper = (function () {
-    function TowerWrapper(tower) {
+    function TowerWrapper(tower, pv) {
         this.structure = tower;
         this.my = tower.my;
+        var demand = tower.energyCapacity - tower.energy;
+        this.resourceRequests = demand > 0
+            ? [{
+                    roomName: tower.room.name,
+                    resourceType: RESOURCE_ENERGY,
+                    amount: demand,
+                    requestorId: tower.id,
+                    resourceRequestType: pv.PULL_REQUEST
+                }]
+            : [];
     }
     TowerWrapper.prototype.process = function (pv) {
         var t = this.structure;
@@ -38,7 +48,7 @@ var TowerWrapper = (function () {
     };
     return TowerWrapper;
 }());
-function makeTowerWrapper(tower) {
-    return new TowerWrapper(tower);
+function makeTowerWrapper(tower, pv) {
+    return new TowerWrapper(tower, pv);
 }
 exports.makeTowerWrapper = makeTowerWrapper;

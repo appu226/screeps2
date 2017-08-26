@@ -3,6 +3,7 @@ var RoadWrapper = (function () {
     function RoadWrapper(road) {
         this.structure = road;
         this.my = road.room.controller.my;
+        this.resourceRequests = [];
     }
     RoadWrapper.prototype.process = function (pv) {
     };

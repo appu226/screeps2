@@ -4,6 +4,7 @@ var ControllerWrapper = (function () {
     function ControllerWrapper(controller) {
         this.structure = controller;
         this.my = controller.my;
+        this.resourceRequests = [];
     }
     ControllerWrapper.prototype.process = function (pv) {
         if (!this.my)

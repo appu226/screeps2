@@ -27,6 +27,7 @@ var UpgraderCreepWrapper = (function () {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_UPGRADER;
         this.memory = creep.memory;
+        this.resourceRequests = [];
     }
     UpgraderCreepWrapper.prototype.process = function (pv) {
         var roomName = this.memory.roomName;

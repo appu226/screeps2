@@ -3,6 +3,7 @@ var MiscCreepWrapper = (function () {
     function MiscCreepWrapper(creep, creepType) {
         this.creep = creep;
         this.creepType = creepType;
+        this.resourceRequests = [];
     }
     MiscCreepWrapper.prototype.process = function (pv) {
         this.creep.say("creep/MiscCreepWrapper/process: processing creep " + this.creep.name + " of type " + this.creepType + ".");

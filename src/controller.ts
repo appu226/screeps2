@@ -3,9 +3,11 @@ import o = require('./option');
 class ControllerWrapper implements StructureWrapper {
     structure: StructureController;
     my: boolean;
+    resourceRequests: ResourceRequest[];
     constructor(controller: StructureController) {
         this.structure = controller;
         this.my = controller.my;
+        this.resourceRequests = [];
     }
     process(pv: Paraverse): void {
         if (!this.my) return;

@@ -28,6 +28,17 @@ var BuilderCreepWrapper = (function () {
         this.creep = creep;
         this.creepType = pv.CREEP_TYPE_BUILDER;
         this.memory = creep.memory;
+        var demand = this.creep.carryCapacity - this.creep.carry[RESOURCE_ENERGY];
+        this.resourceRequests =
+            (demand > 0
+                ? [{
+                        roomName: this.creep.room.name,
+                        resourceType: RESOURCE_ENERGY,
+                        amount: demand,
+                        requestorId: this.creep.id,
+                        resourceRequestType: pv.PULL_REQUEST
+                    }]
+                : []);
     }
     BuilderCreepWrapper.prototype.process = function (pv) {
         var cs = null;
