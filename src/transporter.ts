@@ -210,7 +210,9 @@ export class TransporterCreepWrapper implements CreepWrapper {
 function getLatestRequests(room: Room, pv: Paraverse): ResourceRequest[] {
     let crr = pv.getMyCreepsByRoom(room).map(cw => cw.resourceRequests);
     let srr = pv.getMyStructuresByRoom(room).map(sw => sw.resourceRequests);
-    let result: ResourceRequest[] = [].concat(crr, srr);
+    let result: ResourceRequest[] = [];
+    crr.forEach(crr2 => crr2.forEach(rr => result.push(rr)));
+    srr.forEach(srr2 => srr2.forEach(rr => result.push(rr)));
     return result;
 }
 
@@ -219,7 +221,7 @@ class ResourceRequestMapping {
     map: Dictionary<Dictionary<Dictionary<ResourceRequest>>>;
     constructor(rrs: ResourceRequest[]) {
         this.map = {};
-        rrs.forEach(this.add);
+        rrs.forEach(rr => this.add(rr));
     }
     add(rr: ResourceRequest): void {
         mdict.getOrAdd(

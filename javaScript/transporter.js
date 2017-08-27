@@ -184,13 +184,16 @@ exports.TransporterCreepWrapper = TransporterCreepWrapper;
 function getLatestRequests(room, pv) {
     var crr = pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; });
     var srr = pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; });
-    var result = [].concat(crr, srr);
+    var result = [];
+    crr.forEach(function (crr2) { return crr2.forEach(function (rr) { return result.push(rr); }); });
+    srr.forEach(function (srr2) { return srr2.forEach(function (rr) { return result.push(rr); }); });
     return result;
 }
 var ResourceRequestMapping = (function () {
     function ResourceRequestMapping(rrs) {
+        var _this = this;
         this.map = {};
-        rrs.forEach(this.add);
+        rrs.forEach(function (rr) { return _this.add(rr); });
     }
     ResourceRequestMapping.prototype.add = function (rr) {
         mdict.getOrAdd(mdict.getOrAdd(this.map, rr.requestorId, {}), rr.resourceType, {})[rr.resourceRequestType.toString()] = rr;

@@ -289,7 +289,7 @@ class ParaverseImpl implements Paraverse {
         }
 
         this.creepsById = {};
-        for (let cwi = 0; cwi = this.creepWrappers.length; ++cwi) {
+        for (let cwi = 0; cwi < this.creepWrappers.length; ++cwi) {
             let cw = this.creepWrappers[cwi];
             this.creepsById[cw.element.id] = cw;
         }

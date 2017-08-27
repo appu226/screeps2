@@ -144,7 +144,7 @@ var ParaverseImpl = (function () {
             this.structuresById[sw.element.id] = sw;
         }
         this.creepsById = {};
-        for (var cwi = 0; cwi = this.creepWrappers.length; ++cwi) {
+        for (var cwi = 0; cwi < this.creepWrappers.length; ++cwi) {
             var cw = this.creepWrappers[cwi];
             this.creepsById[cw.element.id] = cw;
         }
