@@ -27,15 +27,22 @@ interface UpgraderMemory extends CreepMemory {
 }
 
 export class UpgraderCreepWrapper implements CreepWrapper {
-    creep: Creep;
+    element: Creep;
     creepType: string;
     memory: UpgraderMemory;
     resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = pv.CREEP_TYPE_UPGRADER;
         this.memory = <UpgraderMemory>creep.memory;
         this.resourceRequests = [];
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        return this.element.transfer(creep, resourceType, amount);
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 
     process(pv: Paraverse) {
@@ -43,9 +50,9 @@ export class UpgraderCreepWrapper implements CreepWrapper {
         let room = Game.rooms[roomName];
         if (room === undefined) {
             pv.pushEfficiency(this.memory, 0);
-            throw new Error(`${this.creep.name} could not find room ${roomName}`);
+            throw new Error(`${this.element.name} could not find room ${roomName}`);
         }
-        let creep = this.creep;
+        let creep = this.element;
         let controller = room.controller;
         let upgradeResult = creep.upgradeController(controller);
         switch (upgradeResult) {

@@ -8,9 +8,9 @@ function loop() {
     var sources = pv.getMySources();
     sources.forEach(function (s) { return o.tryCatch(function () { return s.process(pv); }, "processing source " + s.source.id); });
     var structures = pv.getMyStructures();
-    structures.forEach(function (s) { return o.tryCatch(function () { return s.process(pv); }, "processing structure " + s.structure.id); });
+    structures.forEach(function (s) { return o.tryCatch(function () { return s.process(pv); }, "processing structure " + s.element.id); });
     var creeps = pv.getMyCreeps();
-    creeps.forEach(function (c) { return o.tryCatch(function () { return c.process(pv); }, "processing structure " + c.creep.name); });
+    creeps.forEach(function (c) { return o.tryCatch(function () { return c.process(pv); }, "processing structure " + c.element.name); });
     pv.log.debug("Completed main loop.");
 }
 exports.loop = loop;

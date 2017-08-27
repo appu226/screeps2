@@ -31,7 +31,7 @@ function makeHarvesterMemory(sourceId, pv) {
 }
 var HarvesterCreepWrapper = (function () {
     function HarvesterCreepWrapper(creep, pv) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = pv.CREEP_TYPE_HARVESTER;
         this.memory = creep.memory;
         var demand = creep.carryCapacity - creep.carry[RESOURCE_ENERGY];
@@ -46,21 +46,21 @@ var HarvesterCreepWrapper = (function () {
             : [];
     }
     HarvesterCreepWrapper.prototype.roomHasTransporters = function (pv) {
-        return pv.getMyCreepsByRoomAndType(this.creep.room, pv.CREEP_TYPE_TRANSPORTER).length > 0;
+        return pv.getMyCreepsByRoomAndType(this.element.room, pv.CREEP_TYPE_TRANSPORTER).length > 0;
     };
     HarvesterCreepWrapper.prototype.process = function (pv) {
         var _this = this;
-        if (this.creep.carryCapacity == 0) {
+        if (this.element.carryCapacity == 0) {
             pv.avoidObstacle(this);
             return;
         }
-        if (this.creep.carry.energy < this.creep.carryCapacity) {
+        if (this.element.carry.energy < this.element.carryCapacity) {
             var source = pv.game.getObjectById(this.memory.sourceId);
             if (source == null) {
                 pv.pushEfficiency(this.memory, 0);
                 return;
             }
-            var harvestAttempt = this.creep.harvest(source);
+            var harvestAttempt = this.element.harvest(source);
             if (harvestAttempt == ERR_NOT_IN_RANGE) {
                 pv.pushEfficiency(this.memory, 0);
                 pv.moveCreep(this, source.pos);
@@ -69,41 +69,47 @@ var HarvesterCreepWrapper = (function () {
                 pv.pushEfficiency(this.memory, 0);
             }
             else {
-                pv.log.error("Harevet attempt by " + this.creep.name + " failed with error " + harvestAttempt + ".");
+                pv.log.error("Harevet attempt by " + this.element.name + " failed with error " + harvestAttempt + ".");
                 pv.pushEfficiency(this.memory, 1);
             }
         }
         else {
             pv.pushEfficiency(this.memory, 0);
-            var targets = pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_SPAWN).filter(function (sw) { return isFreeSpawn(sw); }).concat(pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_CONTAINER).filter(function (sw) { return isFreeContainer(sw); })).concat(pv.getMyStructuresByRoomAndType(this.creep.room, STRUCTURE_EXTENSION).filter(function (sw) { return isFreeExtension(sw); }));
-            var closest = mopt.maxBy(targets, function (sw) { return -1 * mter.euclidean(sw.structure.pos, _this.creep.pos, pv); });
+            var targets = pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_SPAWN).filter(function (sw) { return isFreeSpawn(sw); }).concat(pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_CONTAINER).filter(function (sw) { return isFreeContainer(sw); })).concat(pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_EXTENSION).filter(function (sw) { return isFreeExtension(sw); }));
+            var closest = mopt.maxBy(targets, function (sw) { return -1 * mter.euclidean(sw.element.pos, _this.element.pos, pv); });
             if (closest.isPresent) {
                 var target = closest.get.elem;
-                if (this.creep.transfer(target.structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, target.structure.pos);
+                if (this.element.transfer(target.element, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, target.element.pos);
                 }
             }
         }
+    };
+    HarvesterCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
+        return this.element.transfer(creep, resourceType, amount);
+    };
+    HarvesterCreepWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
+        return creep.transfer(this.element, resourceType, amount);
     };
     return HarvesterCreepWrapper;
 }());
 exports.HarvesterCreepWrapper = HarvesterCreepWrapper;
 function isFreeSpawn(sw) {
-    var s = sw.structure;
+    var s = sw.element;
     if (s.structureType != STRUCTURE_SPAWN)
         return false;
     var ss = s;
     return ss.energy < ss.energyCapacity;
 }
 function isFreeContainer(sw) {
-    var s = sw.structure;
+    var s = sw.element;
     if (s.structureType != STRUCTURE_CONTAINER)
         return false;
     var ss = s;
     return ss.store.energy < ss.storeCapacity;
 }
 function isFreeExtension(sw) {
-    var s = sw.structure;
+    var s = sw.element;
     if (s.structureType != STRUCTURE_EXTENSION)
         return false;
     var ss = s;

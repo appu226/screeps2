@@ -12,12 +12,16 @@ declare interface Paraverse {
     getMyCreeps(): CreepWrapper[];
     getMyCreepsByRoom(room: Room): CreepWrapper[];
     getMyCreepsByRoomAndType(room: Room, creepType: string): CreepWrapper[];
+    getCreepById(id: string): Option<CreepWrapper>;
     getMySources(): SourceWrapper[];
     getSourceMemory(source: Source): SourceMemory;
     getMyStructures(): StructureWrapper[];
     getMyStructuresByRoom(room: Room): StructureWrapper[];
     getMyStructuresByRoomAndType(room: Room, structureType: string): StructureWrapper[];
     getStructureById(id: string): Option<StructureWrapper>;
+    getRequestorById(id: string): Option<ResourceRequestor>;
+
+    getRequestQueue(room: Room): Queue<ResourceRequest>;
 
     getSpawnMemory(spawn: StructureSpawn): SpawnMemory;
 
@@ -113,16 +117,19 @@ declare interface ResourceRequest {
 
 declare interface ResourceRequestor {
     resourceRequests: ResourceRequest[];
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number;
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number;
+    element: Creep | Structure;
 }
 
 declare interface StructureWrapper extends ResourceRequestor {
-    structure: Structure;
+    element: Structure;
     process(pv: Paraverse): void;
     my: boolean;
 }
 
 declare interface CreepWrapper extends ResourceRequestor {
-    creep: Creep;
+    element: Creep;
     creepType: string;
     process(pv: Paraverse): void;
 }
@@ -180,4 +187,8 @@ declare interface TowerMemory {
 declare interface SpawnMemory {
     lastTickEnergy: number;
     ticksSinceLastDonation: number;
+}
+
+declare interface RoomMemory {
+    resourceRequestData: QueueData<ResourceRequest>;
 }

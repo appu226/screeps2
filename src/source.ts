@@ -11,11 +11,11 @@ class SourceWrapperImpl implements SourceWrapper {
         if (!pv.isCloseToLair(this.source, this.memory) || this.source.room.controller.level >= 4) {
             let allCreeps =
                 pv.getMyCreeps() // search all creeps
-                    .filter(cw => pv.isHarvesterWithSource(cw, this.source.id) && cw.creep.ticksToLive > 50); // that belong to this source
+                    .filter(cw => pv.isHarvesterWithSource(cw, this.source.id) && cw.element.ticksToLive > 50); // that belong to this source
             let numCollectionSlots = getNumCollectionSlots(this.source, pv);
             let isCollectionSpotEmpty = allCreeps.length < numCollectionSlots;
             let harvestingCapacity = allCreeps.reduce<number>(
-                (acc: number, cw: CreepWrapper) => acc + cw.creep.getActiveBodyparts(WORK),
+                (acc: number, cw: CreepWrapper) => acc + cw.element.getActiveBodyparts(WORK),
                 0
             );
             if (isCollectionSpotEmpty && harvestingCapacity < 12) {

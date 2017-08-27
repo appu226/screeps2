@@ -2,23 +2,29 @@
 var o = require("./option");
 var ControllerWrapper = (function () {
     function ControllerWrapper(controller) {
-        this.structure = controller;
+        this.element = controller;
         this.my = controller.my;
         this.resourceRequests = [];
     }
     ControllerWrapper.prototype.process = function (pv) {
         if (!this.my)
             return;
-        var roomName = this.structure.room.name;
-        var upgraders = pv.getMyCreepsByRoomAndType(this.structure.room, pv.CREEP_TYPE_UPGRADER);
-        var totalEfficiency = o.sum(upgraders.map(function (cw) { return pv.getEfficiency(cw.creep.memory); }));
+        var roomName = this.element.room.name;
+        var upgraders = pv.getMyCreepsByRoomAndType(this.element.room, pv.CREEP_TYPE_UPGRADER);
+        var totalEfficiency = o.sum(upgraders.map(function (cw) { return pv.getEfficiency(cw.element.memory); }));
         if (totalEfficiency >= upgraders.length * 90.0 / 100.0) {
             pv.log.debug("Scheduling upgrader for room " + roomName);
-            pv.scheduleCreep(this.structure.room, pv.makeUpgraderOrder("Upgrader_" + roomName, roomName), 2);
+            pv.scheduleCreep(this.element.room, pv.makeUpgraderOrder("Upgrader_" + roomName, roomName), 2);
         }
         else {
             pv.removeCreepOrder(roomName, "Upgrader_" + roomName);
         }
+    };
+    ControllerWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
+        throw new Error("Controller " + this.element.id + " cannot give resource to creep.");
+    };
+    ControllerWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
+        return creep.transfer(this.element, resourceType, amount);
     };
     return ControllerWrapper;
 }());

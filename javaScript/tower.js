@@ -3,7 +3,7 @@ var o = require("./option");
 var mterrain = require("./terrain");
 var TowerWrapper = (function () {
     function TowerWrapper(tower, pv) {
-        this.structure = tower;
+        this.element = tower;
         this.my = tower.my;
         var demand = tower.energyCapacity - tower.energy;
         this.resourceRequests = demand > 0
@@ -17,7 +17,7 @@ var TowerWrapper = (function () {
             : [];
     }
     TowerWrapper.prototype.process = function (pv) {
-        var t = this.structure;
+        var t = this.element;
         var closestAndWeakestFinder = function (c) {
             return 1.0 / mterrain.euclidean(t.pos, c.pos, pv) / c.hits;
         };
@@ -29,7 +29,7 @@ var TowerWrapper = (function () {
             return;
         }
         //heal closest and weakest creep
-        var myCreeps = pv.getMyCreepsByRoom(t.room).map(function (cw) { return cw.creep; }).filter(function (c) { return c.hits < c.hitsMax; });
+        var myCreeps = pv.getMyCreepsByRoom(t.room).map(function (cw) { return cw.element; }).filter(function (c) { return c.hits < c.hitsMax; });
         var cc = o.maxBy(myCreeps, closestAndWeakestFinder);
         if (cc.isPresent) {
             t.heal(cc.get.elem);
@@ -39,12 +39,18 @@ var TowerWrapper = (function () {
         var fullNess = t.energy / t.energyCapacity;
         if (fullNess < .75)
             return;
-        var structures = pv.getMyStructuresByRoom(t.room).map(function (sw) { return sw.structure; }).filter(function (s) { return s.hits < s.hitsMax; });
+        var structures = pv.getMyStructuresByRoom(t.room).map(function (sw) { return sw.element; }).filter(function (s) { return s.hits < s.hitsMax; });
         var ss = o.maxBy(structures, closestAndWeakestFinder);
         if (ss.isPresent) {
             t.repair(ss.get.elem);
         }
         return;
+    };
+    TowerWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
+        throw new Error("Cannot take energy from Tower.");
+    };
+    TowerWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
+        return creep.transfer(this.element, resourceType, amount);
     };
     return TowerWrapper;
 }());

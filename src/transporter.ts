@@ -1,3 +1,6 @@
+import mopt = require('./option');
+import mdict = require('./dictionary');
+
 export function makeTransporterOrder(orderName: string, pv: Paraverse): CreepOrder {
     return {
         creepType: pv.CREEP_TYPE_TRANSPORTER,
@@ -18,181 +21,388 @@ function makeTransporterMemory(pv: Paraverse): TransporterMemory {
             popStack: []
         },
         totalEfficiency: 0,
-        sourceId: "",
-        sourceType: "",
-        destinationId: "",
-        destinationType: "",
-        resourceType: "",
-        status: "free"
+        job: mopt.None<ResourceRequest>(),
+        amountWhenFree: 0
     };
 }
 
 interface TransporterMemory extends CreepMemory {
-    sourceId: string;
-    sourceType: string;
-    destinationId: string;
-    destinationType: string;
-    resourceType: string;
-    status: string;
+    job: Option<ResourceRequest>;
+    amountWhenFree: number;
 }
 
 export class TransporterCreepWrapper implements CreepWrapper {
-    creep: Creep;
+    element: Creep;
     creepType: string;
     memory: TransporterMemory;
     resourceRequests: ResourceRequest[];
+    private statusCache: number;
     constructor(creep: Creep, pv: Paraverse) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = <TransporterMemory>creep.memory;
         this.resourceRequests = [];
+        this.statusCache = -1;
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        return this.element.transfer(creep, resourceType, amount);
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 
     process(pv: Paraverse) {
-        switch (this.memory.status) {
-            case "free": return this.free(pv);
-            case "collecting": return this.collecting(pv);
-            case "transporting": return this.transporting(pv);
-            default: {
-                pv.log.error(`Creep ${this.creep.name} has unrecognized status ${this.memory.status}`);
-                this.memory.status = "free";
-                pv.pushEfficiency(this.memory, 0);
+        let status = this.getStatus(pv);
+        if (!this.memory.job.isPresent)
+            return;
+        let job = this.memory.job.get;
+        let requestorOpt = pv.getRequestorById(job.requestorId);
+        if (!requestorOpt.isPresent)
+            return;
+        let requestor = requestorOpt.get;
+        switch (status) {
+            case TransporterCreepWrapper.FREE:
                 return;
-            }
-        }
-    }
-
-    free(pv: Paraverse): void {
-        pv.avoidObstacle(this);
-        pv.pushEfficiency(this.memory, 0);
-    }
-
-    failAndResetToFree(reason: string, pv: Paraverse): void {
-        this.memory.status = "free";
-        pv.log.debug(reason);
-        pv.pushEfficiency(this.memory, 0);
-    }
-
-    collecting(pv: Paraverse): void {
-        let creep = this.creep;
-        let memory = this.memory;
-        let collectionStatus: number = 0;
-        let sourceObject: Creep | Structure = null;
-        switch (memory.sourceType) {
-            case "creep": {
-                let sourceCreep = pv.game.getObjectById<Creep>(memory.sourceId);
-                if (sourceCreep == null)
-                    return this.failAndResetToFree(
-                        `Freeing transporter ${creep.name} because it couldn't find source ${memory.sourceId}`,
-                        pv
-                    );
-                collectionStatus = sourceCreep.transfer(creep, memory.resourceType);
-                if (sourceCreep.carry[memory.resourceType] == 0) {
-                    collectionStatus = ERR_NOT_ENOUGH_ENERGY;
+            case TransporterCreepWrapper.PULL:
+                if (requestor.giveResourceToCreep(this.element, job.resourceType, job.amount) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, requestor.element.pos);
                 }
-                sourceObject = sourceCreep;
-                break;
-            }
-            case "structure": {
-                let sourceStructure = pv.game.getObjectById<Structure>(memory.sourceId);
-                if (sourceStructure == null)
-                    return this.failAndResetToFree(
-                        `Freeing transporter ${creep.name} because it couldn't find source ${memory.sourceId}`,
-                        pv
-                    );
-                collectionStatus = creep.withdraw(sourceStructure, memory.resourceType);
-                sourceObject = sourceStructure;
-                break;
-            }
-            default: {
-                pv.pushEfficiency(memory, 0)
-                throw new Error(`Unexpected sourceType "${memory.sourceType}", expecting "creep" or "structure"`);
+                return;
+            case TransporterCreepWrapper.PUSH:
+                if (requestor.takeResourceFromCreep(this.element, job.resourceType, job.amount) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, requestor.element.pos);
+                }
+                return;
+            default:
+                throw new Error(`Transporter ${this.element.name} has unexpected status ${status}.`);
+        }
+
+    }
+
+    resourceAmount(resourceType: string): number {
+        if (this.element.carry[resourceType] === undefined)
+            return 0;
+        else
+            return this.element.carry[resourceType];
+    }
+
+    assignRequest(request: ResourceRequest, pv: Paraverse): void {
+        this.memory.amountWhenFree = this.resourceAmount(request.resourceType);
+        let assignedAmount: number = 0;
+        if (request.resourceRequestType == pv.PUSH_REQUEST)
+            assignedAmount = Math.min(this.emptyStorage(), request.amount);
+        else
+            assignedAmount = Math.min(this.resourceAmount(request.resourceType), request.amount);
+        this.memory.job = mopt.Some<ResourceRequest>({
+            roomName: request.roomName,
+            resourceType: request.resourceType,
+            amount: assignedAmount,
+            requestorId: request.requestorId,
+            resourceRequestType: request.resourceRequestType
+        });
+        request.amount -= assignedAmount;
+        if (request.resourceRequestType == pv.PUSH_REQUEST)
+            this.statusCache = TransporterCreepWrapper.PULL;
+        else
+            this.statusCache = TransporterCreepWrapper.PUSH;
+    }
+
+    emptyStorage(): number {
+        return this.element.carryCapacity - mdict.sum(this.element.carry);
+    }
+
+    //Warning: this function depends on the resourceRequests of the target
+    // which is set only after the constructor of the target has been called.
+    // So, for example, do not cache this function in the constructor.
+    getStatus(pv: Paraverse): number {
+        if (this.statusCache == -1) {
+            if (!this.memory.job.isPresent) {
+                this.statusCache = TransporterCreepWrapper.FREE;
+            } else {
+                let rr = this.memory.job.get;
+                if (rr.resourceRequestType == pv.PULL_REQUEST) {
+                    this.statusCache = this.getPullStatus(rr, pv);
+                } else if (rr.resourceRequestType == pv.PUSH_REQUEST) {
+                    this.statusCache = this.getPushStatus(rr, pv);
+                } else {
+                    throw new Error(`creep ${this.element.name} has unexpected resourceRequestType ${rr.resourceRequestType}`);
+                }
             }
         }
-        switch (collectionStatus) {
-            case ERR_NOT_IN_RANGE: {
-                pv.pushEfficiency(
-                    memory, pv.moveCreep(this, sourceObject.pos) ? 1 : 0
+        return this.statusCache;
+    }
+
+    private getPushStatus(job: ResourceRequest, pv: Paraverse): number {
+        let result: number = TransporterCreepWrapper.PUSH;
+        let carry = this.element.carry[job.resourceType];
+        if (carry == 0 // if empty
+            || carry < this.memory.amountWhenFree // or delivered some amount already
+        ) {
+            result = TransporterCreepWrapper.FREE; // set to FREE
+        } else {
+            let optRequestor = pv.getRequestorById(job.requestorId);
+            if (!optRequestor.isPresent) {  // if requestor has died
+                result = TransporterCreepWrapper.FREE; // set to FREE
+            } else {
+                let requestorResourceRequests =
+                    optRequestor.get.resourceRequests.filter(
+                        rrr => rrr.resourceType == job.resourceType && rrr.amount > 0 && rrr.resourceRequestType == pv.PULL_REQUEST
+                    );
+                if (requestorResourceRequests.length == 0) // if requestor is no longer requesting
+                    result = TransporterCreepWrapper.FREE; // set to free
+                else
+                    result = TransporterCreepWrapper.PUSH; // else if all is good, set to PUSH
+            }
+        }
+
+        // if free status, then reset job to free
+        if (result == TransporterCreepWrapper.FREE) {
+            this.memory.job = mopt.None<ResourceRequest>();
+        }
+
+        return result;
+
+    }
+
+    private getPullStatus(job: ResourceRequest, pv: Paraverse): number {
+        let result: number = TransporterCreepWrapper.PULL;
+        let space = this.element.carryCapacity - mdict.sum(this.element.carry);
+        let carry = this.element.carry[job.resourceType];
+        if (space == 0 // if already full 
+            || carry > this.memory.amountWhenFree // or collected some amount already
+        ) {
+            result = TransporterCreepWrapper.FREE;
+        } else {
+            let optRequestor = pv.getRequestorById(job.requestorId);
+            if (!optRequestor.isPresent) { // if requestor has died
+                result = TransporterCreepWrapper.FREE;
+            } else {
+                let requestorResourceRequests =
+                    optRequestor.get.resourceRequests.filter(
+                        rrr => rrr.resourceType == job.resourceType && rrr.amount > 0 && rrr.resourceRequestType == pv.PUSH_REQUEST
+                    );
+                if (requestorResourceRequests.length == 0) // if requestor is no longer requesting
+                    result = TransporterCreepWrapper.FREE;
+                else
+                    result = TransporterCreepWrapper.PULL;
+            }
+        }
+
+        // if free, then reset job to free
+        if (result == TransporterCreepWrapper.FREE) {
+            this.memory.job = mopt.None<ResourceRequest>();
+        }
+
+        return result;
+    }
+
+    static FREE: number = 0;
+    static PUSH: number = 1;
+    static PULL: number = 2;
+
+    isFree(pv: Paraverse): boolean {
+        return this.getStatus(pv) == TransporterCreepWrapper.FREE || !this.memory.job.isPresent;
+    }
+
+}
+
+
+
+export function manageResources(pv: Paraverse): void {
+    for (let roomName in pv.game.rooms) {
+        manageResourcesForRoom(pv.game.rooms[roomName], pv);
+    }
+}
+
+function getLatestRequests(room: Room, pv: Paraverse): ResourceRequest[] {
+    let crr = pv.getMyCreepsByRoom(room).map(cw => cw.resourceRequests);
+    let srr = pv.getMyStructuresByRoom(room).map(sw => sw.resourceRequests);
+    let result: ResourceRequest[] = [].concat(crr, srr);
+    return result;
+}
+
+class ResourceRequestMapping {
+    // map from requestorId -> resourceType -> resourceRequestType -> latest ResourceRequest[]
+    map: Dictionary<Dictionary<Dictionary<ResourceRequest>>>;
+    constructor(rrs: ResourceRequest[]) {
+        this.map = {};
+        rrs.forEach(this.add);
+    }
+    add(rr: ResourceRequest): void {
+        mdict.getOrAdd(
+            mdict.getOrAdd(
+                this.map,
+                rr.requestorId,
+                {}),
+            rr.resourceType,
+            {}
+        )[rr.resourceRequestType.toString()] = rr;
+    }
+    get(requestorId: string, resourceType: string, resourceRequestType: string): Option<ResourceRequest> {
+        let res =
+            mdict.getOrElse(
+                mdict.getOrElse(
+                    mdict.getOrElse(
+                        this.map,
+                        requestorId,
+                        {}
+                    ),
+                    resourceType,
+                    {}
+                ),
+                resourceRequestType,
+                null
+            );
+        if (res == null)
+            return mopt.None<ResourceRequest>();
+        else
+            return mopt.Some(res);
+    }
+}
+
+
+// If latest requests have amount x and queue has amount y,
+// replace y with min(x, y), and get rid of x
+function adjustQueueWithLatest(
+    requestQueue: Queue<ResourceRequest>,
+    latestRequests: ResourceRequest[],
+    pv: Paraverse
+): void {
+
+    let lrMapping = new ResourceRequestMapping(latestRequests);
+    let rqMapping = new ResourceRequestMapping([]);
+
+    for (let rqi = requestQueue.length(); rqi > 0; --rqi) {
+        let top = requestQueue.pop().get;
+        let olr = lrMapping.get(top.requestorId, top.resourceType, top.resourceRequestType.toString());
+        if (olr.isPresent) {
+            top.amount = Math.min(top.amount, olr.get.amount);
+        }
+        if (top.amount >= 0) {
+            requestQueue.push(top);
+            rqMapping.add(top);
+        }
+    }
+    let unqueuedRequests = latestRequests.filter(rr =>
+        !rqMapping.get(
+            rr.requestorId,
+            rr.resourceType,
+            rr.resourceRequestType.toString()
+        ).isPresent
+    );
+    unqueuedRequests.forEach(rr => {
+        requestQueue.push(rr)
+    });
+}
+
+function partitionTransporters(
+    transporters: TransporterCreepWrapper[],
+    freeTransporters: TransporterCreepWrapper[],
+    unfreeTransporters: TransporterCreepWrapper[],
+    pv: Paraverse
+): void {
+    for (let ti = 0; ti < transporters.length; ++ti) {
+        let tr = transporters[ti];
+        if (tr.isFree(pv)) {
+            freeTransporters.push(tr);
+        } else {
+            unfreeTransporters.push(tr);
+        }
+    }
+}
+
+// remove transports in progress from request list.
+function adjustLatestWithTransporters(latestRequests: ResourceRequest[], unfreeTransporters: TransporterCreepWrapper[]): ResourceRequest[] {
+    let utMap = new ResourceRequestMapping(unfreeTransporters.map(tcw => tcw.memory.job.get));
+    latestRequests.forEach(lr => {
+        let uto = utMap.get(lr.requestorId, lr.resourceType, lr.resourceRequestType.toString());
+        if (uto.isPresent)
+            lr.amount -= uto.get.amount;
+    });
+    return latestRequests.filter(lr => lr.amount > 0);
+}
+
+function manageResourcesForRoom(room: Room, pv: Paraverse): void {
+    let requestQueue: Queue<ResourceRequest> = pv.getRequestQueue(room);
+    let transporters =
+        pv.getMyCreepsByRoomAndType(
+            room, pv.CREEP_TYPE_TRANSPORTER
+        ).map(cw => <TransporterCreepWrapper>cw);
+    let latestRequests: ResourceRequest[] = getLatestRequests(room, pv);
+
+    let freeTransporters: TransporterCreepWrapper[] = [];
+    let unfreeTransporters: TransporterCreepWrapper[] = [];
+
+    partitionTransporters(transporters, freeTransporters, unfreeTransporters, pv);
+
+    // filter away (or reduce amount of) requests that are already in progress
+    latestRequests = adjustLatestWithTransporters(latestRequests, unfreeTransporters);
+
+    // reduce queued amount to latest requested amount
+    // add unqueued requests to the queue
+    adjustQueueWithLatest(requestQueue, latestRequests, pv);
+
+    let topRequestSatisfied: boolean = false;
+    do {
+        topRequestSatisfied = false;
+        let topRequestOpt = requestQueue.peek();
+        if (topRequestOpt.isPresent) {
+            let topRequest = topRequestOpt.get;
+            if (topRequest.resourceRequestType == pv.PULL_REQUEST) {
+                topRequestSatisfied = trySatisfyPull(topRequest, freeTransporters, latestRequests, pv);
+            } else if (topRequest.resourceRequestType == pv.PUSH_REQUEST) {
+                topRequestSatisfied = trySatisfyPush(topRequest, freeTransporters, pv);
+            } else {
+                throw new Error(`Invalid resourceRequestType ${topRequest.resourceRequestType} for ${topRequest.requestorId}`);
+            }
+        }
+        if (topRequestSatisfied) {
+            requestQueue.pop();
+        }
+    } while (topRequestSatisfied);
+}
+
+function trySatisfyPull(job: ResourceRequest, transporters: TransporterCreepWrapper[], otherRequests: ResourceRequest[], pv: Paraverse): boolean {
+    let transportersWithResource = transporters.filter(tcw => tcw.isFree(pv) && tcw.resourceAmount(job.resourceType) > 0);
+    while (job.amount >= 0 && transportersWithResource.length > 0) {
+        let tr = transportersWithResource.pop();
+        tr.assignRequest(job, pv);
+    }
+    if (job.amount <= 0) return true;
+    let matchingPushes =
+        otherRequests.filter(
+            rr => rr.resourceType == job.resourceType
+                && rr.resourceRequestType == TransporterCreepWrapper.PUSH
+        );
+    if (matchingPushes.length > 0) {
+        trySatisfyPush(matchingPushes[0], transporters, pv);
+    } else {
+        if (pv.game.rooms[job.roomName] !== undefined && pv.game.rooms[job.roomName].storage !== undefined) {
+            let storage = pv.game.rooms[job.roomName].storage;
+            if (storage.store[job.resourceType] !== undefined && storage.store[job.resourceType] > 0) {
+                trySatisfyPush(
+                    {
+                        roomName: job.roomName,
+                        resourceType: job.resourceType,
+                        resourceRequestType: pv.PUSH_REQUEST,
+                        amount: Math.min(job.amount, storage.store[job.resourceType]),
+                        requestorId: storage.id
+                    },
+                    transporters,
+                    pv
                 );
-                break;
-            }
-            case ERR_NOT_ENOUGH_ENERGY:
-            case ERR_NOT_ENOUGH_RESOURCES:
-            case ERR_FULL:
-            case OK: {
-                if (creep.carry[memory.resourceType] > 0) {
-                    pv.log.debug(`${creep.name} status changing to transporting.`);
-                    memory.status = "transporting";
-                    pv.pushEfficiency(memory, 1);
-                }
-                break;
-            }
-            default: {
-                pv.pushEfficiency(memory, 0);
-                break;
             }
         }
     }
-
-    transporting(pv: Paraverse): void {
-        let creep = this.creep;
-        let memory = this.memory;
-        if (creep.carry[memory.resourceType] == 0) {
-            return this.succeedAndSetToFree(pv);
-        }
-        let destination = pv.game.getObjectById<Creep | Structure>(memory.destinationId);
-        if (destination == null)
-            return this.failAndResetToFree(
-                `Freeing transporter ${this.creep.name} because it couldn't find destination ${memory.destinationId}`,
-                pv
-            );
-        let transferResult = creep.transfer(destination, memory.resourceType);
-        if (transferResult == ERR_NOT_IN_RANGE) {
-            pv.pushEfficiency(memory, pv.moveCreep(this, destination.pos) ? 1 : 0);
-        } else if (transferResult == OK) {
-            pv.pushEfficiency(memory, 1);
-        } else if (transferResult == ERR_FULL) {
-            if (creep.carry[memory.resourceType] >= 50) {
-                this.giveToClosestExtension(creep, memory, pv);
-            } else
-                this.succeedAndSetToFree(pv);
-        }
-        else {
-            pv.pushEfficiency(memory, 0);
-        }
-    }
-
-    succeedAndSetToFree(pv: Paraverse): void {
-        pv.log.debug(`${this.creep.name} status changing to free.`);
-        this.memory.status = "free";
-        pv.pushEfficiency(this.memory, 1);
-    }
-
-    giveToClosestExtension(creep: Creep, memory: TransporterMemory, pv: Paraverse) {
-        let emptyExtensions = pv.getMyStructuresByRoomAndType(
-            creep.room,
-            STRUCTURE_EXTENSION
-        ).map(
-            sw => <StructureExtension>sw.structure
-            ).filter(
-            se => se.energy < se.energyCapacity
-            );
-        if (emptyExtensions.length == 0)
-            this.succeedAndSetToFree(pv);
-        else {
-            let closestEmptyExtension = creep.pos.findClosestByRange<StructureExtension>(emptyExtensions);
-            memory.destinationType = "structure";
-            memory.destinationId = closestEmptyExtension.id;
-            pv.log.debug(`${this.creep.name} status changing destination to extension ${closestEmptyExtension.id}.`);
-            pv.pushEfficiency(memory, 1);
-        }
-    }
+    return false;
 }
 
-export function isFreeTransporter(creepWrapper: CreepWrapper, pv: Paraverse): boolean {
-    if (creepWrapper.creepType != pv.CREEP_TYPE_TRANSPORTER)
-        return false;
-    let tcw = <TransporterCreepWrapper>creepWrapper;
-    return tcw.memory.status == "free";
+function trySatisfyPush(job: ResourceRequest, transporters: TransporterCreepWrapper[], pv: Paraverse): boolean {
+    let validTransporters = transporters.filter(tcw => tcw.isFree(pv) && tcw.emptyStorage() > 0);
+    while (job.amount > 0 && validTransporters.length > 0) {
+        let vt = validTransporters.pop();
+        vt.assignRequest(job, pv);
+    }
+    return job.amount <= 0;
 }
-

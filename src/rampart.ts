@@ -1,16 +1,23 @@
 class RampartWrapper implements StructureWrapper {
-    structure: StructureRampart;
+    element: StructureRampart;
     my: boolean;
     resourceRequests: ResourceRequest[];
 
     constructor(rampart: StructureRampart) {
-        this.structure = rampart;
+        this.element = rampart;
         this.my = rampart.my;
         this.resourceRequests = [];
     }
 
     process(pv: Paraverse): void {
 
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        throw new Error("Cannot transfer energy to Rampart");
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        throw new Error("Cannot take energy from Rampart");
     }
 }
 

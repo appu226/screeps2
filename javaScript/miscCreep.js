@@ -1,12 +1,18 @@
 "use strict";
 var MiscCreepWrapper = (function () {
     function MiscCreepWrapper(creep, creepType) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = creepType;
         this.resourceRequests = [];
     }
+    MiscCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
+        return this.element.transfer(creep, resourceType, amount);
+    };
+    MiscCreepWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
+        return creep.transfer(this.element, resourceType, amount);
+    };
     MiscCreepWrapper.prototype.process = function (pv) {
-        this.creep.say("creep/MiscCreepWrapper/process: processing creep " + this.creep.name + " of type " + this.creepType + ".");
+        this.element.say("creep/MiscCreepWrapper/process: processing creep " + this.element.name + " of type " + this.creepType + ".");
     };
     MiscCreepWrapper.prototype.pushEfficiency = function (efficiency) { };
     MiscCreepWrapper.prototype.getEfficiency = function () { return 0; };

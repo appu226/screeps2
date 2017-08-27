@@ -29,12 +29,12 @@ interface DefenderMemory extends CreepMemory {
 }
 
 export class DefenderCreepWrapper implements CreepWrapper {
-    creep: Creep;
+    element: Creep;
     creepType: string;
     memory: DefenderMemory;
     resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = pv.CREEP_TYPE_DEFENDER;
         this.memory = <DefenderMemory>creep.memory;
         this.resourceRequests = [];
@@ -42,7 +42,7 @@ export class DefenderCreepWrapper implements CreepWrapper {
     }
 
     process(pv: Paraverse) {
-        let defender = this.creep;
+        let defender = this.element;
         let memory = this.memory;
         let enemy: (Creep | Structure) = pv.game.getObjectById<Creep>(memory.targetId);
         if (enemy == null) {
@@ -57,6 +57,13 @@ export class DefenderCreepWrapper implements CreepWrapper {
         let attackResult = defender.rangedAttack(enemy);
         pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);
         return;
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        return this.element.transfer(creep, resourceType, amount);
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 }
 

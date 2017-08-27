@@ -1,22 +1,22 @@
 import mopt = require('./option');
 
 class SpawnWrapper implements StructureWrapper {
-    structure: StructureSpawn;
+    element: StructureSpawn;
     my: boolean;
     resourceRequests: ResourceRequest[];
 
     constructor(spawn: StructureSpawn) {
-        this.structure = spawn;
+        this.element = spawn;
         this.my = spawn.my;
         this.resourceRequests = [];
     }
 
     process(pv: Paraverse): void {
         if (!this.my) {
-            pv.log.debug(`spawn.ts: Skipping spawn ${this.structure.id}`)
+            pv.log.debug(`spawn.ts: Skipping spawn ${this.element.id}`)
             return;
         }
-        let me = this.structure;
+        let me = this.element;
         let orderQueue: PQ<CreepOrder> = pv.getCreepOrders(me.room.name);
 
         let memory = pv.getSpawnMemory(me);
@@ -66,6 +66,13 @@ class SpawnWrapper implements StructureWrapper {
                 pv.log.debug(`with result ${result}`);
             }
         }
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        throw new Error("Cannot take energy from Spawn.");
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 }
 

@@ -24,19 +24,25 @@ function makeUpgraderMemory(roomName, pv) {
 }
 var UpgraderCreepWrapper = (function () {
     function UpgraderCreepWrapper(creep, pv) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = pv.CREEP_TYPE_UPGRADER;
         this.memory = creep.memory;
         this.resourceRequests = [];
     }
+    UpgraderCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
+        return this.element.transfer(creep, resourceType, amount);
+    };
+    UpgraderCreepWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
+        return creep.transfer(this.element, resourceType, amount);
+    };
     UpgraderCreepWrapper.prototype.process = function (pv) {
         var roomName = this.memory.roomName;
         var room = Game.rooms[roomName];
         if (room === undefined) {
             pv.pushEfficiency(this.memory, 0);
-            throw new Error(this.creep.name + " could not find room " + roomName);
+            throw new Error(this.element.name + " could not find room " + roomName);
         }
-        var creep = this.creep;
+        var creep = this.element;
         var controller = room.controller;
         var upgradeResult = creep.upgradeController(controller);
         switch (upgradeResult) {

@@ -75,7 +75,7 @@ function isSourceWithoutContainer(sw, room, pv) {
     if (!isClose) {
         var containers = pv.getMyStructuresByRoomAndType(room, STRUCTURE_CONTAINER);
         var containersInRange = containers.filter(function (cw) {
-            return mter.euclidean(sw.source.pos, cw.structure.pos, pv) < 3;
+            return mter.euclidean(sw.source.pos, cw.element.pos, pv) < 3;
         });
         isClose = containersInRange.length > 0;
     }

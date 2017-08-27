@@ -1,21 +1,28 @@
 class ContainerWrapper implements StructureWrapper {
-    structure: StructureContainer;
+    element: StructureContainer;
     my: boolean;
     resourceRequests: ResourceRequest[];
 
     constructor(container: StructureContainer, pv: Paraverse) {
-        this.structure = container;
+        this.element = container;
         this.my = container.room.controller.my;
         let supply = container.store[RESOURCE_ENERGY];
         this.resourceRequests = supply > 0
             ? [{
-                roomName: this.structure.room.name,
+                roomName: this.element.room.name,
                 resourceType: RESOURCE_ENERGY,
                 amount: supply,
-                requestorId: this.structure.id,
+                requestorId: this.element.id,
                 resourceRequestType: pv.PUSH_REQUEST
             }]
             : [];
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        return this.element.transfer(creep, resourceType, amount);
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 
     process(pv: Paraverse): void {

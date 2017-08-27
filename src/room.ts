@@ -98,7 +98,7 @@ function isSourceWithoutContainer(sw: SourceWrapper, room: Room, pv: Paraverse):
             STRUCTURE_CONTAINER
         );
         let containersInRange = containers.filter((cw: StructureWrapper) =>
-            mter.euclidean(sw.source.pos, cw.structure.pos, pv) < 3
+            mter.euclidean(sw.source.pos, cw.element.pos, pv) < 3
         );
         isClose = containersInRange.length > 0;
     }

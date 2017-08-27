@@ -8,10 +8,10 @@ var SourceWrapperImpl = (function () {
         var _this = this;
         if (!pv.isCloseToLair(this.source, this.memory) || this.source.room.controller.level >= 4) {
             var allCreeps = pv.getMyCreeps() // search all creeps
-                .filter(function (cw) { return pv.isHarvesterWithSource(cw, _this.source.id) && cw.creep.ticksToLive > 50; }); // that belong to this source
+                .filter(function (cw) { return pv.isHarvesterWithSource(cw, _this.source.id) && cw.element.ticksToLive > 50; }); // that belong to this source
             var numCollectionSlots = getNumCollectionSlots(this.source, pv);
             var isCollectionSpotEmpty = allCreeps.length < numCollectionSlots;
-            var harvestingCapacity = allCreeps.reduce(function (acc, cw) { return acc + cw.creep.getActiveBodyparts(WORK); }, 0);
+            var harvestingCapacity = allCreeps.reduce(function (acc, cw) { return acc + cw.element.getActiveBodyparts(WORK); }, 0);
             if (isCollectionSpotEmpty && harvestingCapacity < 12) {
                 pv.scheduleCreep(this.source.room, pv.makeHarvesterOrder("Harvester_" + this.source.id, this.source.id), 5);
             }

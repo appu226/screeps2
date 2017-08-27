@@ -1,10 +1,10 @@
 class ExtensionWrapper implements StructureWrapper {
-    structure: StructureExtension;
+    element: StructureExtension;
     my: boolean;
     resourceRequests: ResourceRequest[];
 
     constructor(extension: StructureExtension, pv: Paraverse) {
-        this.structure = extension;
+        this.element = extension;
         this.my = extension.my;
         let demand = extension.energyCapacity - extension.energy;
         this.resourceRequests =
@@ -20,6 +20,13 @@ class ExtensionWrapper implements StructureWrapper {
     }
 
     process(pv: Paraverse): void {
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        throw new Error(`Extension (${this.element.id}) cannot be asked to give resource.`);
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 }
 

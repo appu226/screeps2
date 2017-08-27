@@ -24,14 +24,14 @@ function makeDefenderMemory(targetId, pv) {
 }
 var DefenderCreepWrapper = (function () {
     function DefenderCreepWrapper(creep, pv) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = pv.CREEP_TYPE_DEFENDER;
         this.memory = creep.memory;
         this.resourceRequests = [];
         pv.recordDefense(creep, this.memory.targetId);
     }
     DefenderCreepWrapper.prototype.process = function (pv) {
-        var defender = this.creep;
+        var defender = this.element;
         var memory = this.memory;
         var enemy = pv.game.getObjectById(memory.targetId);
         if (enemy == null) {
@@ -48,6 +48,12 @@ var DefenderCreepWrapper = (function () {
         var attackResult = defender.rangedAttack(enemy);
         pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);
         return;
+    };
+    DefenderCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
+        return this.element.transfer(creep, resourceType, amount);
+    };
+    DefenderCreepWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
+        return creep.transfer(this.element, resourceType, amount);
     };
     return DefenderCreepWrapper;
 }());

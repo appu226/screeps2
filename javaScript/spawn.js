@@ -2,16 +2,16 @@
 var mopt = require("./option");
 var SpawnWrapper = (function () {
     function SpawnWrapper(spawn) {
-        this.structure = spawn;
+        this.element = spawn;
         this.my = spawn.my;
         this.resourceRequests = [];
     }
     SpawnWrapper.prototype.process = function (pv) {
         if (!this.my) {
-            pv.log.debug("spawn.ts: Skipping spawn " + this.structure.id);
+            pv.log.debug("spawn.ts: Skipping spawn " + this.element.id);
             return;
         }
-        var me = this.structure;
+        var me = this.element;
         var orderQueue = pv.getCreepOrders(me.room.name);
         var memory = pv.getSpawnMemory(me);
         var avblEnergy = me.room.energyAvailable;
@@ -54,6 +54,12 @@ var SpawnWrapper = (function () {
                 pv.log.debug("with result " + result);
             }
         }
+    };
+    SpawnWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
+        throw new Error("Cannot take energy from Spawn.");
+    };
+    SpawnWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
+        return creep.transfer(this.element, resourceType, amount);
     };
     return SpawnWrapper;
 }());

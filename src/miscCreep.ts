@@ -1,14 +1,20 @@
 export class MiscCreepWrapper implements CreepWrapper {
     constructor(creep: Creep, creepType: string) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = creepType
         this.resourceRequests = [];
     }
-    creep: Creep;
+    element: Creep;
     creepType: string;
     resourceRequests: ResourceRequest[];
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        return this.element.transfer(creep, resourceType, amount);
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
+    }
     process(pv: Paraverse) {
-        this.creep.say(`creep/MiscCreepWrapper/process: processing creep ${this.creep.name} of type ${this.creepType}.`);
+        this.element.say(`creep/MiscCreepWrapper/process: processing creep ${this.element.name} of type ${this.creepType}.`);
     }
     pushEfficiency(efficiency: number): void { }
     getEfficiency(): number { return 0; }

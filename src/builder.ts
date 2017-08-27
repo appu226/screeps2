@@ -29,25 +29,32 @@ interface BuilderMemory extends CreepMemory {
 }
 
 export class BuilderCreepWrapper implements CreepWrapper {
-    creep: Creep;
+    element: Creep;
     creepType: string;
     memory: BuilderMemory;
     resourceRequests: ResourceRequest[];
     constructor(creep: Creep, pv: Paraverse) {
-        this.creep = creep;
+        this.element = creep;
         this.creepType = pv.CREEP_TYPE_BUILDER;
         this.memory = <BuilderMemory>creep.memory;
-        let demand = this.creep.carryCapacity - this.creep.carry[RESOURCE_ENERGY];
+        let demand = this.element.carryCapacity - this.element.carry[RESOURCE_ENERGY];
         this.resourceRequests =
             (demand > 0
                 ? [{
-                    roomName: this.creep.room.name,
+                    roomName: this.element.room.name,
                     resourceType: RESOURCE_ENERGY,
                     amount: demand,
-                    requestorId: this.creep.id,
+                    requestorId: this.element.id,
                     resourceRequestType: pv.PULL_REQUEST
                 }]
                 : []);
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        return this.element.transfer(creep, resourceType, amount);
+    }
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 
     process(pv: Paraverse) {
@@ -58,13 +65,13 @@ export class BuilderCreepWrapper implements CreepWrapper {
         }
 
         if (cs == null) {
-            let constructionSites = pv.getConstructionSitesFromRoom(this.creep.room);
+            let constructionSites = pv.getConstructionSitesFromRoom(this.element.room);
             if (constructionSites.length > 0) {
                 cs = constructionSites[0];
             }
         }
         if (cs != null) {
-            let buildAttempt = this.creep.build(cs);
+            let buildAttempt = this.element.build(cs);
             if (buildAttempt == ERR_NOT_IN_RANGE) {
                 pv.moveCreep(this, cs.pos);
                 pv.pushEfficiency(this.memory, 0);

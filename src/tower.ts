@@ -2,12 +2,12 @@ import o = require('./option');
 import mterrain = require('./terrain');
 
 class TowerWrapper implements StructureWrapper {
-    structure: StructureTower;
+    element: StructureTower;
     my: boolean;
     resourceRequests: ResourceRequest[];
 
     constructor(tower: StructureTower, pv: Paraverse) {
-        this.structure = tower;
+        this.element = tower;
         this.my = tower.my;
         let demand = tower.energyCapacity - tower.energy;
         this.resourceRequests = demand > 0
@@ -23,7 +23,7 @@ class TowerWrapper implements StructureWrapper {
 
     process(pv: Paraverse): void {
 
-        let t = this.structure;
+        let t = this.element;
         let closestAndWeakestFinder =
             function (c: Creep | Structure): number {
                 return 1.0 / mterrain.euclidean(t.pos, c.pos, pv) / c.hits
@@ -39,7 +39,7 @@ class TowerWrapper implements StructureWrapper {
         }
 
         //heal closest and weakest creep
-        let myCreeps = pv.getMyCreepsByRoom(t.room).map(cw => cw.creep).filter(c => c.hits < c.hitsMax);
+        let myCreeps = pv.getMyCreepsByRoom(t.room).map(cw => cw.element).filter(c => c.hits < c.hitsMax);
         let cc = //closest creep
             o.maxBy<Creep>(myCreeps, closestAndWeakestFinder);
         if (cc.isPresent) {
@@ -55,12 +55,20 @@ class TowerWrapper implements StructureWrapper {
         let structures =
             pv.getMyStructuresByRoom(
                 t.room
-            ).map(sw => sw.structure).filter(s => s.hits < s.hitsMax);
+            ).map(sw => sw.element).filter(s => s.hits < s.hitsMax);
         let ss = o.maxBy<Structure>(structures, closestAndWeakestFinder);
         if (ss.isPresent) {
             t.repair(ss.get.elem);
         }
         return;
+    }
+
+    giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
+        throw new Error("Cannot take energy from Tower.");
+    }
+
+    takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
+        return creep.transfer(this.element, resourceType, amount);
     }
 
 }
