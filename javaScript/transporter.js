@@ -181,12 +181,6 @@ TransporterCreepWrapper.FREE = 0;
 TransporterCreepWrapper.PUSH = 1;
 TransporterCreepWrapper.PULL = 2;
 exports.TransporterCreepWrapper = TransporterCreepWrapper;
-function manageResources(pv) {
-    for (var roomName in pv.game.rooms) {
-        manageResourcesForRoom(pv.game.rooms[roomName], pv);
-    }
-}
-exports.manageResources = manageResources;
 function getLatestRequests(room, pv) {
     var crr = pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; });
     var srr = pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; });
@@ -287,6 +281,7 @@ function manageResourcesForRoom(room, pv) {
         }
     } while (topRequestSatisfied);
 }
+exports.manageResourcesForRoom = manageResourcesForRoom;
 function trySatisfyPull(job, transporters, otherRequests, pv) {
     var transportersWithResource = transporters.filter(function (tcw) { return tcw.isFree(pv) && tcw.resourceAmount(job.resourceType) > 0; });
     while (job.amount >= 0 && transportersWithResource.length > 0) {

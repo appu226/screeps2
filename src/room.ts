@@ -56,6 +56,7 @@ class RoomWrapperImpl implements RoomWrapper {
                 }
             }
         }
+        pv.manageResources(me);
     }
 
 }

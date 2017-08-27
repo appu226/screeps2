@@ -379,6 +379,10 @@ class ParaverseImpl implements Paraverse {
         return o.makeQueue(data.pushStack, data.popStack);
     }
 
+    manageResources(room: Room): void {
+        mtransporter.manageResourcesForRoom(room, this);
+    }
+
     getRoomMemory(room: Room): RoomMemory {
         if (this.memory.roomMemories === undefined)
             this.memory.roomMemories = {};

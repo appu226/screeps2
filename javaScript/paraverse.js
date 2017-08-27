@@ -222,6 +222,9 @@ var ParaverseImpl = (function () {
         var data = this.getRoomMemory(room).resourceRequestData;
         return o.makeQueue(data.pushStack, data.popStack);
     };
+    ParaverseImpl.prototype.manageResources = function (room) {
+        mtransporter.manageResourcesForRoom(room, this);
+    };
     ParaverseImpl.prototype.getRoomMemory = function (room) {
         if (this.memory.roomMemories === undefined)
             this.memory.roomMemories = {};

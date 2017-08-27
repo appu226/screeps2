@@ -207,14 +207,6 @@ export class TransporterCreepWrapper implements CreepWrapper {
 
 }
 
-
-
-export function manageResources(pv: Paraverse): void {
-    for (let roomName in pv.game.rooms) {
-        manageResourcesForRoom(pv.game.rooms[roomName], pv);
-    }
-}
-
 function getLatestRequests(room: Room, pv: Paraverse): ResourceRequest[] {
     let crr = pv.getMyCreepsByRoom(room).map(cw => cw.resourceRequests);
     let srr = pv.getMyStructuresByRoom(room).map(sw => sw.resourceRequests);
@@ -323,7 +315,7 @@ function adjustLatestWithTransporters(latestRequests: ResourceRequest[], unfreeT
     return latestRequests.filter(lr => lr.amount > 0);
 }
 
-function manageResourcesForRoom(room: Room, pv: Paraverse): void {
+export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     let requestQueue: Queue<ResourceRequest> = pv.getRequestQueue(room);
     let transporters =
         pv.getMyCreepsByRoomAndType(

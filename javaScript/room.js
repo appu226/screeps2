@@ -45,6 +45,7 @@ var RoomWrapperImpl = (function () {
                 }
             }
         }
+        pv.manageResources(me);
     };
     return RoomWrapperImpl;
 }());

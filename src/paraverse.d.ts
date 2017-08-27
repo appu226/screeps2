@@ -22,6 +22,7 @@ declare interface Paraverse {
     getRequestorById(id: string): Option<ResourceRequestor>;
 
     getRequestQueue(room: Room): Queue<ResourceRequest>;
+    manageResources(room: Room): void;
 
     getSpawnMemory(spawn: StructureSpawn): SpawnMemory;
 
