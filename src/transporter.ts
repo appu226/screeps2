@@ -1,5 +1,6 @@
 import mopt = require('./option');
 import mdict = require('./dictionary');
+import mterr = require('./terrain');
 
 export function makeTransporterOrder(orderName: string, pv: Paraverse): CreepOrder {
     return {
@@ -21,14 +22,18 @@ function makeTransporterMemory(pv: Paraverse): TransporterMemory {
             popStack: []
         },
         totalEfficiency: 0,
-        job: mopt.None<ResourceRequest>(),
-        amountWhenFree: 0
+        collection: [],
+        delivery: [],
+        currentAmount: 0,
+        currentRequest: mopt.None<ResourceRequest>()
     };
 }
 
 interface TransporterMemory extends CreepMemory {
-    job: Option<ResourceRequest>;
-    amountWhenFree: number;
+    collection: ResourceRequest[];
+    delivery: ResourceRequest[];
+    currentAmount: number;
+    currentRequest: Option<ResourceRequest>;
 }
 
 export class TransporterCreepWrapper implements CreepWrapper {
@@ -36,13 +41,11 @@ export class TransporterCreepWrapper implements CreepWrapper {
     creepType: string;
     memory: TransporterMemory;
     resourceRequests: ResourceRequest[];
-    private statusCache: number;
     constructor(creep: Creep, pv: Paraverse) {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = <TransporterMemory>creep.memory;
         this.resourceRequests = [];
-        this.statusCache = -1;
     }
 
     giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
@@ -52,32 +55,89 @@ export class TransporterCreepWrapper implements CreepWrapper {
         return creep.transfer(this.element, resourceType, amount);
     }
 
-    process(pv: Paraverse) {
-        let status = this.getStatus(pv);
-        if (!this.memory.job.isPresent)
-            return;
-        let job = this.memory.job.get;
-        let requestorOpt = pv.getRequestorById(job.requestorId);
-        if (!requestorOpt.isPresent)
-            return;
-        let requestor = requestorOpt.get;
-        switch (status) {
-            case TransporterCreepWrapper.FREE:
-                return;
-            case TransporterCreepWrapper.PULL:
-                if (requestor.giveResourceToCreep(this.element, job.resourceType, job.amount) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, requestor.element.pos);
-                }
-                return;
-            case TransporterCreepWrapper.PUSH:
-                if (requestor.takeResourceFromCreep(this.element, job.resourceType, job.amount) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, requestor.element.pos);
-                }
-                return;
-            default:
-                throw new Error(`Transporter ${this.element.name} has unexpected status ${status}.`);
+    preprocess(pv: Paraverse) {
+        let m = this.memory;
+
+        // reset currentRequest if object dies or amount changes
+        if (m.currentRequest.isPresent) {
+            let cr = m.currentRequest.get;
+            if (this.resourceAmount(cr.resourceType) != m.currentAmount
+                || !pv.getRequestorById(cr.requestorId).isPresent)
+                m.currentRequest = mopt.None<ResourceRequest>();
+
         }
 
+        // try to find next request
+        if (!m.currentRequest.isPresent) {
+            if (m.collection.length == 0 && m.delivery.length == 0) return;
+
+            //delete dead requests
+            m.collection = m.collection.filter(rr => pv.getRequestorById(rr.requestorId).isPresent);
+            m.delivery = m.delivery.filter(rr => pv.getRequestorById(rr.requestorId).isPresent);
+
+            //if collections are empty, delete non-satisfyable deliveries
+            if (m.collection.length == 0)
+                m.delivery = m.delivery.filter(rr => rr.amount <= this.resourceAmount(rr.resourceType));
+
+            //if deliveries are empty, delete non-satisfyable collections
+            let es = this.emptyStorage();
+            if (m.delivery.length == 0)
+                m.collection = m.collection.filter(rr => rr.amount <= es);
+
+            if (m.collection.length == 0 && m.delivery.length == 0) return;
+
+            // find satisfyable resource requests
+            let eligible: ResourceRequest[] = [];
+            m.collection.forEach(rr => { if (rr.amount <= es) eligible.push(rr); });
+            if (m.delivery.length > 0) {
+                let ra = this.resourceAmount(m.delivery[0].resourceType);
+                m.delivery.forEach(rr => { if (rr.amount <= ra) eligible.push(rr); });
+            }
+
+            //find closest satisfyable request
+            let closest = mopt.maxBy(eligible, rr => mterr.euclidean(this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos, pv) * -1);
+            if (!closest.isPresent) {
+                m.collection = [];
+                m.delivery = [];
+                return;
+            }
+            //remove closest satisfyable from pending request lists
+            m.collection = m.collection.filter(rr => rr != closest.get.elem);
+            m.delivery = m.delivery.filter(rr => rr != closest.get.elem);
+
+            m.currentRequest = mopt.Some(closest.get.elem);
+            m.currentAmount = this.resourceAmount(m.currentRequest.get.resourceType);
+        }
+    }
+
+    process(pv: Paraverse) {
+        if (!this.memory.currentRequest.isPresent) {
+            pv.avoidObstacle(this);
+            return;
+        }
+        let cr = this.memory.currentRequest.get;
+        let orqor = pv.getRequestorById(cr.requestorId);
+        if (!orqor.isPresent) {
+            this.memory.currentRequest = mopt.None<ResourceRequest>();
+            return;
+        }
+        let rqor = orqor.get;
+        switch (cr.resourceRequestType) {
+            case pv.PUSH_REQUEST: {
+                if (rqor.giveResourceToCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, rqor.element.pos);
+                }
+                break;
+            }
+            case pv.PULL_REQUEST: {
+                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, rqor.element.pos);
+                }
+                break;
+            }
+            default:
+                throw new Error(`Creep ${this.element.name} hit an unexpected request type ${cr.resourceRequestType}`);
+        }
     }
 
     resourceAmount(resourceType: string): number {
@@ -87,316 +147,168 @@ export class TransporterCreepWrapper implements CreepWrapper {
             return this.element.carry[resourceType];
     }
 
-    assignRequest(request: ResourceRequest, pv: Paraverse): void {
-        this.memory.amountWhenFree = this.resourceAmount(request.resourceType);
-        let assignedAmount: number = 0;
-        if (request.resourceRequestType == pv.PUSH_REQUEST)
-            assignedAmount = Math.min(this.emptyStorage(), request.amount);
-        else
-            assignedAmount = Math.min(this.resourceAmount(request.resourceType), request.amount);
-        this.memory.job = mopt.Some<ResourceRequest>({
-            roomName: request.roomName,
-            resourceType: request.resourceType,
-            amount: assignedAmount,
-            requestorId: request.requestorId,
-            resourceRequestType: request.resourceRequestType
-        });
-        request.amount -= assignedAmount;
-        if (request.resourceRequestType == pv.PUSH_REQUEST)
-            this.statusCache = TransporterCreepWrapper.PULL;
-        else
-            this.statusCache = TransporterCreepWrapper.PUSH;
-    }
-
     emptyStorage(): number {
         return this.element.carryCapacity - mdict.sum(this.element.carry);
     }
-
-    //Warning: this function depends on the resourceRequests of the target
-    // which is set only after the constructor of the target has been called.
-    // So, for example, do not cache this function in the constructor.
-    getStatus(pv: Paraverse): number {
-        if (this.statusCache == -1) {
-            if (!this.memory.job.isPresent) {
-                this.statusCache = TransporterCreepWrapper.FREE;
-            } else {
-                let rr = this.memory.job.get;
-                if (rr.resourceRequestType == pv.PULL_REQUEST) {
-                    this.statusCache = this.getPullStatus(rr, pv);
-                } else if (rr.resourceRequestType == pv.PUSH_REQUEST) {
-                    this.statusCache = this.getPushStatus(rr, pv);
-                } else {
-                    throw new Error(`creep ${this.element.name} has unexpected resourceRequestType ${rr.resourceRequestType}`);
-                }
-            }
-        }
-        return this.statusCache;
-    }
-
-    private getPushStatus(job: ResourceRequest, pv: Paraverse): number {
-        let result: number = TransporterCreepWrapper.PUSH;
-        let carry = this.element.carry[job.resourceType];
-        if (carry == 0 // if empty
-            || carry < this.memory.amountWhenFree // or delivered some amount already
-        ) {
-            result = TransporterCreepWrapper.FREE; // set to FREE
-        } else {
-            let optRequestor = pv.getRequestorById(job.requestorId);
-            if (!optRequestor.isPresent) {  // if requestor has died
-                result = TransporterCreepWrapper.FREE; // set to FREE
-            } else {
-                let requestorResourceRequests =
-                    optRequestor.get.resourceRequests.filter(
-                        rrr => rrr.resourceType == job.resourceType && rrr.amount > 0 && rrr.resourceRequestType == pv.PULL_REQUEST
-                    );
-                if (requestorResourceRequests.length == 0) // if requestor is no longer requesting
-                    result = TransporterCreepWrapper.FREE; // set to free
-                else
-                    result = TransporterCreepWrapper.PUSH; // else if all is good, set to PUSH
-            }
-        }
-
-        // if free status, then reset job to free
-        if (result == TransporterCreepWrapper.FREE) {
-            this.memory.job = mopt.None<ResourceRequest>();
-        }
-
-        return result;
-
-    }
-
-    private getPullStatus(job: ResourceRequest, pv: Paraverse): number {
-        let result: number = TransporterCreepWrapper.PULL;
-        let space = this.element.carryCapacity - mdict.sum(this.element.carry);
-        let carry = this.element.carry[job.resourceType];
-        if (space == 0 // if already full 
-            || carry > this.memory.amountWhenFree // or collected some amount already
-        ) {
-            result = TransporterCreepWrapper.FREE;
-        } else {
-            let optRequestor = pv.getRequestorById(job.requestorId);
-            if (!optRequestor.isPresent) { // if requestor has died
-                result = TransporterCreepWrapper.FREE;
-            } else {
-                let requestorResourceRequests =
-                    optRequestor.get.resourceRequests.filter(
-                        rrr => rrr.resourceType == job.resourceType && rrr.amount > 0 && rrr.resourceRequestType == pv.PUSH_REQUEST
-                    );
-                if (requestorResourceRequests.length == 0) // if requestor is no longer requesting
-                    result = TransporterCreepWrapper.FREE;
-                else
-                    result = TransporterCreepWrapper.PULL;
-            }
-        }
-
-        // if free, then reset job to free
-        if (result == TransporterCreepWrapper.FREE) {
-            this.memory.job = mopt.None<ResourceRequest>();
-        }
-
-        return result;
-    }
-
-    static FREE: number = 0;
-    static PUSH: number = 1;
-    static PULL: number = 2;
-
-    isFree(pv: Paraverse): boolean {
-        return this.getStatus(pv) == TransporterCreepWrapper.FREE || !this.memory.job.isPresent;
-    }
-
 }
 
-function getLatestRequests(room: Room, pv: Paraverse): ResourceRequest[] {
-    let crr = pv.getMyCreepsByRoom(room).map(cw => cw.resourceRequests);
-    let srr = pv.getMyStructuresByRoom(room).map(sw => sw.resourceRequests);
-    let result: ResourceRequest[] = [];
-    crr.forEach(crr2 => crr2.forEach(rr => result.push(rr)));
-    srr.forEach(srr2 => srr2.forEach(rr => result.push(rr)));
-    return result;
-}
+class RRMap {
+    pullmap: Dictionary<Dictionary<ResourceRequest>>;
+    pushmap: Dictionary<Dictionary<ResourceRequest>>;
 
-class ResourceRequestMapping {
-    // map from requestorId -> resourceType -> resourceRequestType -> latest ResourceRequest[]
-    map: Dictionary<Dictionary<Dictionary<ResourceRequest>>>;
-    constructor(rrs: ResourceRequest[]) {
-        this.map = {};
-        rrs.forEach(rr => this.add(rr));
+    static makeMap(rrArray: ResourceRequest[]): Dictionary<Dictionary<ResourceRequest>> {
+        let rrtypeToArray = mdict.arrayToDictionary(rrArray, (rr: ResourceRequest) => rr.resourceType);
+        return mdict.mapValues(
+            rrtypeToArray,
+            (rrarray: ResourceRequest[]) => {
+                let ridToArray = mdict.arrayToDictionary(rrarray, (rr: ResourceRequest) => rr.requestorId);
+                return mdict.mapValues(ridToArray, (rrArray: ResourceRequest[]) => {
+                    if (rrArray.length == 0)
+                        throw new Error("Impossibility: found empty ResourceRequestMap in ResourceRequestArray");
+                    else if (rrArray.length == 1)
+                        return rrArray[0];
+                    else
+                        throw new Error("Impossibility: found more than one ResourceRequest for a map entry.")
+                });
+            }
+        );
     }
-    add(rr: ResourceRequest): void {
-        mdict.getOrAdd(
-            mdict.getOrAdd(
-                this.map,
-                rr.requestorId,
-                {}),
-            rr.resourceType,
-            {}
-        )[rr.resourceRequestType.toString()] = rr;
+
+    constructor(rrArray: ResourceRequest[], pv: Paraverse) {
+        this.pullmap = RRMap.makeMap(rrArray.filter(rr => rr.resourceRequestType == pv.PULL_REQUEST && rr.amount > 0));
+        this.pushmap = RRMap.makeMap(rrArray.filter(rr => rr.resourceRequestType == pv.PUSH_REQUEST && rr.amount > 0));
     }
-    get(requestorId: string, resourceType: string, resourceRequestType: string): Option<ResourceRequest> {
-        let res =
-            mdict.getOrElse(
-                mdict.getOrElse(
-                    mdict.getOrElse(
-                        this.map,
-                        requestorId,
-                        {}
-                    ),
-                    resourceType,
-                    {}
-                ),
-                resourceRequestType,
-                null
-            );
-        if (res == null)
-            return mopt.None<ResourceRequest>();
+
+    subtract(rr: ResourceRequest, pv: Paraverse): void {
+        let map = rr.resourceRequestType == pv.PULL_REQUEST ? this.pullmap : this.pushmap;
+        if (map[rr.resourceType] === undefined || map[rr.resourceType][rr.requestorId] === undefined) return;
+        map[rr.resourceType][rr.requestorId].amount -= rr.amount;
+        if (map[rr.resourceType][rr.requestorId].amount <= 0)
+            delete map[rr.resourceType][rr.requestorId];
+    }
+    add(rr: ResourceRequest, pv: Paraverse): boolean {
+        let map = rr.resourceRequestType == pv.PULL_REQUEST ? this.pullmap : this.pushmap;
+        if (map[rr.resourceType] === undefined || map[rr.resourceType][rr.requestorId] === undefined)
+            return false;
+        else {
+            map[rr.resourceType][rr.requestorId].amount += rr.amount;
+            return true;
+        }
+    }
+    insert(rr: ResourceRequest, pv: Paraverse): void {
+        let map = rr.resourceRequestType == pv.PULL_REQUEST ? this.pullmap : this.pushmap;
+        let map2 = mdict.getOrAdd(map, rr.resourceType, {});
+        if (map2[rr.requestorId] === undefined)
+            map2[rr.requestorId] = rr;
         else
-            return mopt.Some(res);
+            map2[rr.requestorId].amount += rr.amount;
     }
-}
-
-
-// If latest requests have amount x and queue has amount y,
-// replace y with min(x, y), and get rid of x
-function adjustQueueWithLatest(
-    requestQueue: Queue<ResourceRequest>,
-    latestRequests: ResourceRequest[],
-    pv: Paraverse
-): void {
-
-    let lrMapping = new ResourceRequestMapping(latestRequests);
-    let rqMapping = new ResourceRequestMapping([]);
-
-    for (let rqi = requestQueue.length(); rqi > 0; --rqi) {
-        let top = requestQueue.pop().get;
-        let olr = lrMapping.get(top.requestorId, top.resourceType, top.resourceRequestType.toString());
-        if (olr.isPresent) {
-            top.amount = Math.min(top.amount, olr.get.amount);
-        }
-        if (top.amount >= 0) {
-            requestQueue.push(top);
-            rqMapping.add(top);
-        }
-    }
-    let unqueuedRequests = latestRequests.filter(rr =>
-        !rqMapping.get(
-            rr.requestorId,
-            rr.resourceType,
-            rr.resourceRequestType.toString()
-        ).isPresent
-    );
-    unqueuedRequests.forEach(rr => {
-        requestQueue.push(rr)
-    });
-}
-
-function partitionTransporters(
-    transporters: TransporterCreepWrapper[],
-    freeTransporters: TransporterCreepWrapper[],
-    unfreeTransporters: TransporterCreepWrapper[],
-    pv: Paraverse
-): void {
-    for (let ti = 0; ti < transporters.length; ++ti) {
-        let tr = transporters[ti];
-        if (tr.isFree(pv)) {
-            freeTransporters.push(tr);
-        } else {
-            unfreeTransporters.push(tr);
-        }
-    }
-}
-
-// remove transports in progress from request list.
-function adjustLatestWithTransporters(latestRequests: ResourceRequest[], unfreeTransporters: TransporterCreepWrapper[]): ResourceRequest[] {
-    let utMap = new ResourceRequestMapping(unfreeTransporters.map(tcw => tcw.memory.job.get));
-    latestRequests.forEach(lr => {
-        let uto = utMap.get(lr.requestorId, lr.resourceType, lr.resourceRequestType.toString());
-        if (uto.isPresent)
-            lr.amount -= uto.get.amount;
-    });
-    return latestRequests.filter(lr => lr.amount > 0);
 }
 
 export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
-    let requestQueue: Queue<ResourceRequest> = pv.getRequestQueue(room);
-    let transporters =
-        pv.getMyCreepsByRoomAndType(
-            room, pv.CREEP_TYPE_TRANSPORTER
-        ).map(cw => <TransporterCreepWrapper>cw);
-    let latestRequests: ResourceRequest[] = getLatestRequests(room, pv);
+    //collect queued requests
+    let queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
 
-    let freeTransporters: TransporterCreepWrapper[] = [];
-    let unfreeTransporters: TransporterCreepWrapper[] = [];
+    //collect all current requests
+    let currentrr =
+        mopt.flatten(pv.getMyCreepsByRoom(room).map(cw => cw.resourceRequests)).concat(
+            mopt.flatten(pv.getMyStructuresByRoom(room).map(sw => sw.resourceRequests)));
 
-    partitionTransporters(transporters, freeTransporters, unfreeTransporters, pv);
+    //collect transporters
+    let transporters = pv.getMyCreepsByRoomAndType(room, pv.CREEP_TYPE_TRANSPORTER).map(cw => <TransporterCreepWrapper>cw);
 
-    // filter away (or reduce amount of) requests that are already in progress
-    latestRequests = adjustLatestWithTransporters(latestRequests, unfreeTransporters);
+    //remove requests in progress from currentrr
+    let currentmap = new RRMap(currentrr, pv);
+    transporters.forEach(tcw => {
+        tcw.memory.collection.forEach(rr => currentmap.subtract(rr, pv));
+        tcw.memory.delivery.forEach(rr => currentmap.subtract(rr, pv));
+        if (tcw.memory.currentRequest.isPresent)
+            currentmap.subtract(tcw.memory.currentRequest.get, pv);
+    });
 
-    // reduce queued amount to latest requested amount
-    // add unqueued requests to the queue
-    adjustQueueWithLatest(requestQueue, latestRequests, pv);
 
-    let topRequestSatisfied: boolean = false;
-    do {
-        topRequestSatisfied = false;
-        let topRequestOpt = requestQueue.peek();
-        if (topRequestOpt.isPresent) {
-            let topRequest = topRequestOpt.get;
-            if (topRequest.resourceRequestType == pv.PULL_REQUEST) {
-                topRequestSatisfied = trySatisfyPull(topRequest, freeTransporters, latestRequests, pv);
-            } else if (topRequest.resourceRequestType == pv.PUSH_REQUEST) {
-                topRequestSatisfied = trySatisfyPush(topRequest, freeTransporters, pv);
-            } else {
-                throw new Error(`Invalid resourceRequestType ${topRequest.resourceRequestType} for ${topRequest.requestorId}`);
-            }
+    //remove queuedrr from currentrr
+    queuedrr.map(rr => currentmap.subtract(rr, pv));
+
+    //push unqueued currentrr into queuedrr
+    let queuedmap = new RRMap(queuedrr, pv);
+    let unqueued: ResourceRequest[] = [];
+    currentrr.forEach(rr => {
+        if (rr.amount > 0 && !queuedmap.add(rr, pv)) {
+            unqueued.push(rr);
+            queuedmap.insert(rr, pv);
         }
-        if (topRequestSatisfied) {
-            requestQueue.pop();
-        }
-    } while (topRequestSatisfied);
+    });
+    unqueued.forEach(rr => { queuedrr.push(rr); });
+
+    // take the top resourceRequest in the queue so that we can try to assign that
+    let queueDll = mopt.makeDLList(queuedrr);
+    while (queueDll.length > 0 && queueDll.front().amount == 0) {
+        queueDll.pop_front();
+    }
+    if (queueDll.length == 0) return;
+
+    // try to assign toprr to free transporters
+    transporters.forEach(tcw => {
+        let mem = tcw.memory;
+        if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent)
+            assignRequest(tcw, queueDll, pv);
+    });
+    
+    //put queueDll back into queuerr
+    let newrr = queueDll.toArray().filter(rr => rr.amount > 0);
+    for (let rri = 0; rri < newrr.length; ++rri) {
+        if (rri < queuedrr.length) queuedrr[rri] = newrr[rri];
+        else queuedrr.push(newrr[rri]);
+    }
+    while (queuedrr.length > newrr.length) queuedrr.pop();
 }
 
-function trySatisfyPull(job: ResourceRequest, transporters: TransporterCreepWrapper[], otherRequests: ResourceRequest[], pv: Paraverse): boolean {
-    let transportersWithResource = transporters.filter(tcw => tcw.isFree(pv) && tcw.resourceAmount(job.resourceType) > 0);
-    while (job.amount >= 0 && transportersWithResource.length > 0) {
-        let tr = transportersWithResource.pop();
-        tr.assignRequest(job, pv);
-    }
-    if (job.amount <= 0) return true;
-    let matchingPushes =
-        otherRequests.filter(
-            rr => rr.resourceType == job.resourceType
-                && rr.resourceRequestType == TransporterCreepWrapper.PUSH
-        );
-    if (matchingPushes.length > 0) {
-        trySatisfyPush(matchingPushes[0], transporters, pv);
-    } else {
-        if (pv.game.rooms[job.roomName] !== undefined && pv.game.rooms[job.roomName].storage !== undefined) {
-            let storage = pv.game.rooms[job.roomName].storage;
-            if (storage.store[job.resourceType] !== undefined && storage.store[job.resourceType] > 0) {
-                trySatisfyPush(
-                    {
-                        roomName: job.roomName,
-                        resourceType: job.resourceType,
-                        resourceRequestType: pv.PUSH_REQUEST,
-                        amount: Math.min(job.amount, storage.store[job.resourceType]),
-                        requestorId: storage.id
-                    },
-                    transporters,
-                    pv
-                );
-            }
-        }
-    }
-    return false;
-}
+function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRequest>, pv: Paraverse) {
+    let mem = tcw.memory;
+    if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0) return;
+    queueDll.forEach(entry => { if (entry.elem.amount <= 0) queueDll.remove(entry); });
+    if (queueDll.length == 0) return;
+    let rt = queueDll.front().resourceType;
 
-function trySatisfyPush(job: ResourceRequest, transporters: TransporterCreepWrapper[], pv: Paraverse): boolean {
-    let validTransporters = transporters.filter(tcw => tcw.isFree(pv) && tcw.emptyStorage() > 0);
-    while (job.amount > 0 && validTransporters.length > 0) {
-        let vt = validTransporters.pop();
-        vt.assignRequest(job, pv);
-    }
-    return job.amount <= 0;
+    // search for collections first
+    let collectableAmount = tcw.emptyStorage();
+    let collectedAmount = 0;
+    queueDll.forEach(entry => {
+        if (collectedAmount >= collectableAmount) return;
+        let rr = entry.elem;
+        if (rr.resourceType != rt || rr.resourceRequestType != pv.PUSH_REQUEST) return;
+        let amt = Math.min(rr.amount, collectableAmount - collectedAmount);
+        rr.amount -= amt;
+        collectedAmount += amt;
+        tcw.memory.collection.push({
+            roomName: rr.roomName,
+            resourceType: rr.resourceType,
+            resourceRequestType: rr.resourceRequestType,
+            requestorId: rr.requestorId,
+            amount: amt
+        });
+        if (rr.amount <= 0) queueDll.remove(entry);
+    });
+
+    // search for deliveries
+    let deliverableAmount = tcw.resourceAmount(rt) + collectedAmount;
+    let deliveredAmount = 0;
+    queueDll.forEach(entry => {
+        if (deliveredAmount >= deliverableAmount) return;
+        let rr = entry.elem;
+        if (rr.resourceType != rt || rr.resourceRequestType != pv.PULL_REQUEST) return;
+        let amt = Math.min(rr.amount, deliverableAmount - deliveredAmount);
+        rr.amount -= amt;
+        deliveredAmount += amt;
+        tcw.memory.delivery.push({
+            roomName: rr.roomName,
+            resourceType: rr.resourceType,
+            resourceRequestType: rr.resourceRequestType,
+            requestorId: rr.requestorId,
+            amount: amt
+        });
+        if (rr.amount <= 0) queueDll.remove(entry);
+    });
+    tcw.preprocess(pv);
 }

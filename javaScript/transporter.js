@@ -1,6 +1,7 @@
 "use strict";
 var mopt = require("./option");
 var mdict = require("./dictionary");
+var mterr = require("./terrain");
 function makeTransporterOrder(orderName, pv) {
     return {
         creepType: pv.CREEP_TYPE_TRANSPORTER,
@@ -21,8 +22,10 @@ function makeTransporterMemory(pv) {
             popStack: []
         },
         totalEfficiency: 0,
-        job: mopt.None(),
-        amountWhenFree: 0
+        collection: [],
+        delivery: [],
+        currentAmount: 0,
+        currentRequest: mopt.None()
     };
 }
 var TransporterCreepWrapper = (function () {
@@ -31,7 +34,6 @@ var TransporterCreepWrapper = (function () {
         this.creepType = pv.CREEP_TYPE_TRANSPORTER;
         this.memory = creep.memory;
         this.resourceRequests = [];
-        this.statusCache = -1;
     }
     TransporterCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
         return this.element.transfer(creep, resourceType, amount);
@@ -39,30 +41,82 @@ var TransporterCreepWrapper = (function () {
     TransporterCreepWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
         return creep.transfer(this.element, resourceType, amount);
     };
+    TransporterCreepWrapper.prototype.preprocess = function (pv) {
+        var _this = this;
+        var m = this.memory;
+        // reset currentRequest if object dies or amount changes
+        if (m.currentRequest.isPresent) {
+            var cr = m.currentRequest.get;
+            if (this.resourceAmount(cr.resourceType) != m.currentAmount
+                || !pv.getRequestorById(cr.requestorId).isPresent)
+                m.currentRequest = mopt.None();
+        }
+        // try to find next request
+        if (!m.currentRequest.isPresent) {
+            if (m.collection.length == 0 && m.delivery.length == 0)
+                return;
+            //delete dead requests
+            m.collection = m.collection.filter(function (rr) { return pv.getRequestorById(rr.requestorId).isPresent; });
+            m.delivery = m.delivery.filter(function (rr) { return pv.getRequestorById(rr.requestorId).isPresent; });
+            //if collections are empty, delete non-satisfyable deliveries
+            if (m.collection.length == 0)
+                m.delivery = m.delivery.filter(function (rr) { return rr.amount <= _this.resourceAmount(rr.resourceType); });
+            //if deliveries are empty, delete non-satisfyable collections
+            var es_1 = this.emptyStorage();
+            if (m.delivery.length == 0)
+                m.collection = m.collection.filter(function (rr) { return rr.amount <= es_1; });
+            if (m.collection.length == 0 && m.delivery.length == 0)
+                return;
+            // find satisfyable resource requests
+            var eligible_1 = [];
+            m.collection.forEach(function (rr) { if (rr.amount <= es_1)
+                eligible_1.push(rr); });
+            if (m.delivery.length > 0) {
+                var ra_1 = this.resourceAmount(m.delivery[0].resourceType);
+                m.delivery.forEach(function (rr) { if (rr.amount <= ra_1)
+                    eligible_1.push(rr); });
+            }
+            //find closest satisfyable request
+            var closest_1 = mopt.maxBy(eligible_1, function (rr) { return mterr.euclidean(_this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos, pv) * -1; });
+            if (!closest_1.isPresent) {
+                m.collection = [];
+                m.delivery = [];
+                return;
+            }
+            //remove closest satisfyable from pending request lists
+            m.collection = m.collection.filter(function (rr) { return rr != closest_1.get.elem; });
+            m.delivery = m.delivery.filter(function (rr) { return rr != closest_1.get.elem; });
+            m.currentRequest = mopt.Some(closest_1.get.elem);
+            m.currentAmount = this.resourceAmount(m.currentRequest.get.resourceType);
+        }
+    };
     TransporterCreepWrapper.prototype.process = function (pv) {
-        var status = this.getStatus(pv);
-        if (!this.memory.job.isPresent)
+        if (!this.memory.currentRequest.isPresent) {
+            pv.avoidObstacle(this);
             return;
-        var job = this.memory.job.get;
-        var requestorOpt = pv.getRequestorById(job.requestorId);
-        if (!requestorOpt.isPresent)
+        }
+        var cr = this.memory.currentRequest.get;
+        var orqor = pv.getRequestorById(cr.requestorId);
+        if (!orqor.isPresent) {
+            this.memory.currentRequest = mopt.None();
             return;
-        var requestor = requestorOpt.get;
-        switch (status) {
-            case TransporterCreepWrapper.FREE:
-                return;
-            case TransporterCreepWrapper.PULL:
-                if (requestor.giveResourceToCreep(this.element, job.resourceType, job.amount) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, requestor.element.pos);
+        }
+        var rqor = orqor.get;
+        switch (cr.resourceRequestType) {
+            case pv.PUSH_REQUEST: {
+                if (rqor.giveResourceToCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, rqor.element.pos);
                 }
-                return;
-            case TransporterCreepWrapper.PUSH:
-                if (requestor.takeResourceFromCreep(this.element, job.resourceType, job.amount) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, requestor.element.pos);
+                break;
+            }
+            case pv.PULL_REQUEST: {
+                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                    pv.moveCreep(this, rqor.element.pos);
                 }
-                return;
+                break;
+            }
             default:
-                throw new Error("Transporter " + this.element.name + " has unexpected status " + status + ".");
+                throw new Error("Creep " + this.element.name + " hit an unexpected request type " + cr.resourceRequestType);
         }
     };
     TransporterCreepWrapper.prototype.resourceAmount = function (resourceType) {
@@ -71,254 +125,162 @@ var TransporterCreepWrapper = (function () {
         else
             return this.element.carry[resourceType];
     };
-    TransporterCreepWrapper.prototype.assignRequest = function (request, pv) {
-        this.memory.amountWhenFree = this.resourceAmount(request.resourceType);
-        var assignedAmount = 0;
-        if (request.resourceRequestType == pv.PUSH_REQUEST)
-            assignedAmount = Math.min(this.emptyStorage(), request.amount);
-        else
-            assignedAmount = Math.min(this.resourceAmount(request.resourceType), request.amount);
-        this.memory.job = mopt.Some({
-            roomName: request.roomName,
-            resourceType: request.resourceType,
-            amount: assignedAmount,
-            requestorId: request.requestorId,
-            resourceRequestType: request.resourceRequestType
-        });
-        request.amount -= assignedAmount;
-        if (request.resourceRequestType == pv.PUSH_REQUEST)
-            this.statusCache = TransporterCreepWrapper.PULL;
-        else
-            this.statusCache = TransporterCreepWrapper.PUSH;
-    };
     TransporterCreepWrapper.prototype.emptyStorage = function () {
         return this.element.carryCapacity - mdict.sum(this.element.carry);
     };
-    //Warning: this function depends on the resourceRequests of the target
-    // which is set only after the constructor of the target has been called.
-    // So, for example, do not cache this function in the constructor.
-    TransporterCreepWrapper.prototype.getStatus = function (pv) {
-        if (this.statusCache == -1) {
-            if (!this.memory.job.isPresent) {
-                this.statusCache = TransporterCreepWrapper.FREE;
-            }
-            else {
-                var rr = this.memory.job.get;
-                if (rr.resourceRequestType == pv.PULL_REQUEST) {
-                    this.statusCache = this.getPullStatus(rr, pv);
-                }
-                else if (rr.resourceRequestType == pv.PUSH_REQUEST) {
-                    this.statusCache = this.getPushStatus(rr, pv);
-                }
-                else {
-                    throw new Error("creep " + this.element.name + " has unexpected resourceRequestType " + rr.resourceRequestType);
-                }
-            }
-        }
-        return this.statusCache;
-    };
-    TransporterCreepWrapper.prototype.getPushStatus = function (job, pv) {
-        var result = TransporterCreepWrapper.PUSH;
-        var carry = this.element.carry[job.resourceType];
-        if (carry == 0 // if empty
-            || carry < this.memory.amountWhenFree // or delivered some amount already
-        ) {
-            result = TransporterCreepWrapper.FREE; // set to FREE
-        }
-        else {
-            var optRequestor = pv.getRequestorById(job.requestorId);
-            if (!optRequestor.isPresent) {
-                result = TransporterCreepWrapper.FREE; // set to FREE
-            }
-            else {
-                var requestorResourceRequests = optRequestor.get.resourceRequests.filter(function (rrr) { return rrr.resourceType == job.resourceType && rrr.amount > 0 && rrr.resourceRequestType == pv.PULL_REQUEST; });
-                if (requestorResourceRequests.length == 0)
-                    result = TransporterCreepWrapper.FREE; // set to free
-                else
-                    result = TransporterCreepWrapper.PUSH; // else if all is good, set to PUSH
-            }
-        }
-        // if free status, then reset job to free
-        if (result == TransporterCreepWrapper.FREE) {
-            this.memory.job = mopt.None();
-        }
-        return result;
-    };
-    TransporterCreepWrapper.prototype.getPullStatus = function (job, pv) {
-        var result = TransporterCreepWrapper.PULL;
-        var space = this.element.carryCapacity - mdict.sum(this.element.carry);
-        var carry = this.element.carry[job.resourceType];
-        if (space == 0 // if already full 
-            || carry > this.memory.amountWhenFree // or collected some amount already
-        ) {
-            result = TransporterCreepWrapper.FREE;
-        }
-        else {
-            var optRequestor = pv.getRequestorById(job.requestorId);
-            if (!optRequestor.isPresent) {
-                result = TransporterCreepWrapper.FREE;
-            }
-            else {
-                var requestorResourceRequests = optRequestor.get.resourceRequests.filter(function (rrr) { return rrr.resourceType == job.resourceType && rrr.amount > 0 && rrr.resourceRequestType == pv.PUSH_REQUEST; });
-                if (requestorResourceRequests.length == 0)
-                    result = TransporterCreepWrapper.FREE;
-                else
-                    result = TransporterCreepWrapper.PULL;
-            }
-        }
-        // if free, then reset job to free
-        if (result == TransporterCreepWrapper.FREE) {
-            this.memory.job = mopt.None();
-        }
-        return result;
-    };
-    TransporterCreepWrapper.prototype.isFree = function (pv) {
-        return this.getStatus(pv) == TransporterCreepWrapper.FREE || !this.memory.job.isPresent;
-    };
     return TransporterCreepWrapper;
 }());
-TransporterCreepWrapper.FREE = 0;
-TransporterCreepWrapper.PUSH = 1;
-TransporterCreepWrapper.PULL = 2;
 exports.TransporterCreepWrapper = TransporterCreepWrapper;
-function getLatestRequests(room, pv) {
-    var crr = pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; });
-    var srr = pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; });
-    var result = [];
-    crr.forEach(function (crr2) { return crr2.forEach(function (rr) { return result.push(rr); }); });
-    srr.forEach(function (srr2) { return srr2.forEach(function (rr) { return result.push(rr); }); });
-    return result;
-}
-var ResourceRequestMapping = (function () {
-    function ResourceRequestMapping(rrs) {
-        var _this = this;
-        this.map = {};
-        rrs.forEach(function (rr) { return _this.add(rr); });
+var RRMap = (function () {
+    function RRMap(rrArray, pv) {
+        this.pullmap = RRMap.makeMap(rrArray.filter(function (rr) { return rr.resourceRequestType == pv.PULL_REQUEST && rr.amount > 0; }));
+        this.pushmap = RRMap.makeMap(rrArray.filter(function (rr) { return rr.resourceRequestType == pv.PUSH_REQUEST && rr.amount > 0; }));
     }
-    ResourceRequestMapping.prototype.add = function (rr) {
-        mdict.getOrAdd(mdict.getOrAdd(this.map, rr.requestorId, {}), rr.resourceType, {})[rr.resourceRequestType.toString()] = rr;
+    RRMap.makeMap = function (rrArray) {
+        var rrtypeToArray = mdict.arrayToDictionary(rrArray, function (rr) { return rr.resourceType; });
+        return mdict.mapValues(rrtypeToArray, function (rrarray) {
+            var ridToArray = mdict.arrayToDictionary(rrarray, function (rr) { return rr.requestorId; });
+            return mdict.mapValues(ridToArray, function (rrArray) {
+                if (rrArray.length == 0)
+                    throw new Error("Impossibility: found empty ResourceRequestMap in ResourceRequestArray");
+                else if (rrArray.length == 1)
+                    return rrArray[0];
+                else
+                    throw new Error("Impossibility: found more than one ResourceRequest for a map entry.");
+            });
+        });
     };
-    ResourceRequestMapping.prototype.get = function (requestorId, resourceType, resourceRequestType) {
-        var res = mdict.getOrElse(mdict.getOrElse(mdict.getOrElse(this.map, requestorId, {}), resourceType, {}), resourceRequestType, null);
-        if (res == null)
-            return mopt.None();
-        else
-            return mopt.Some(res);
+    RRMap.prototype.subtract = function (rr, pv) {
+        var map = rr.resourceRequestType == pv.PULL_REQUEST ? this.pullmap : this.pushmap;
+        if (map[rr.resourceType] === undefined || map[rr.resourceType][rr.requestorId] === undefined)
+            return;
+        map[rr.resourceType][rr.requestorId].amount -= rr.amount;
+        if (map[rr.resourceType][rr.requestorId].amount <= 0)
+            delete map[rr.resourceType][rr.requestorId];
     };
-    return ResourceRequestMapping;
-}());
-// If latest requests have amount x and queue has amount y,
-// replace y with min(x, y), and get rid of x
-function adjustQueueWithLatest(requestQueue, latestRequests, pv) {
-    var lrMapping = new ResourceRequestMapping(latestRequests);
-    var rqMapping = new ResourceRequestMapping([]);
-    for (var rqi = requestQueue.length(); rqi > 0; --rqi) {
-        var top_1 = requestQueue.pop().get;
-        var olr = lrMapping.get(top_1.requestorId, top_1.resourceType, top_1.resourceRequestType.toString());
-        if (olr.isPresent) {
-            top_1.amount = Math.min(top_1.amount, olr.get.amount);
-        }
-        if (top_1.amount >= 0) {
-            requestQueue.push(top_1);
-            rqMapping.add(top_1);
-        }
-    }
-    var unqueuedRequests = latestRequests.filter(function (rr) {
-        return !rqMapping.get(rr.requestorId, rr.resourceType, rr.resourceRequestType.toString()).isPresent;
-    });
-    unqueuedRequests.forEach(function (rr) {
-        requestQueue.push(rr);
-    });
-}
-function partitionTransporters(transporters, freeTransporters, unfreeTransporters, pv) {
-    for (var ti = 0; ti < transporters.length; ++ti) {
-        var tr = transporters[ti];
-        if (tr.isFree(pv)) {
-            freeTransporters.push(tr);
-        }
+    RRMap.prototype.add = function (rr, pv) {
+        var map = rr.resourceRequestType == pv.PULL_REQUEST ? this.pullmap : this.pushmap;
+        if (map[rr.resourceType] === undefined || map[rr.resourceType][rr.requestorId] === undefined)
+            return false;
         else {
-            unfreeTransporters.push(tr);
+            map[rr.resourceType][rr.requestorId].amount += rr.amount;
+            return true;
         }
-    }
-}
-// remove transports in progress from request list.
-function adjustLatestWithTransporters(latestRequests, unfreeTransporters) {
-    var utMap = new ResourceRequestMapping(unfreeTransporters.map(function (tcw) { return tcw.memory.job.get; }));
-    latestRequests.forEach(function (lr) {
-        var uto = utMap.get(lr.requestorId, lr.resourceType, lr.resourceRequestType.toString());
-        if (uto.isPresent)
-            lr.amount -= uto.get.amount;
-    });
-    return latestRequests.filter(function (lr) { return lr.amount > 0; });
-}
+    };
+    RRMap.prototype.insert = function (rr, pv) {
+        var map = rr.resourceRequestType == pv.PULL_REQUEST ? this.pullmap : this.pushmap;
+        var map2 = mdict.getOrAdd(map, rr.resourceType, {});
+        if (map2[rr.requestorId] === undefined)
+            map2[rr.requestorId] = rr;
+        else
+            map2[rr.requestorId].amount += rr.amount;
+    };
+    return RRMap;
+}());
 function manageResourcesForRoom(room, pv) {
-    var requestQueue = pv.getRequestQueue(room);
+    //collect queued requests
+    var queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
+    //collect all current requests
+    var currentrr = mopt.flatten(pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; })).concat(mopt.flatten(pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; })));
+    //collect transporters
     var transporters = pv.getMyCreepsByRoomAndType(room, pv.CREEP_TYPE_TRANSPORTER).map(function (cw) { return cw; });
-    var latestRequests = getLatestRequests(room, pv);
-    var freeTransporters = [];
-    var unfreeTransporters = [];
-    partitionTransporters(transporters, freeTransporters, unfreeTransporters, pv);
-    // filter away (or reduce amount of) requests that are already in progress
-    latestRequests = adjustLatestWithTransporters(latestRequests, unfreeTransporters);
-    // reduce queued amount to latest requested amount
-    // add unqueued requests to the queue
-    adjustQueueWithLatest(requestQueue, latestRequests, pv);
-    var topRequestSatisfied = false;
-    do {
-        topRequestSatisfied = false;
-        var topRequestOpt = requestQueue.peek();
-        if (topRequestOpt.isPresent) {
-            var topRequest = topRequestOpt.get;
-            if (topRequest.resourceRequestType == pv.PULL_REQUEST) {
-                topRequestSatisfied = trySatisfyPull(topRequest, freeTransporters, latestRequests, pv);
-            }
-            else if (topRequest.resourceRequestType == pv.PUSH_REQUEST) {
-                topRequestSatisfied = trySatisfyPush(topRequest, freeTransporters, pv);
-            }
-            else {
-                throw new Error("Invalid resourceRequestType " + topRequest.resourceRequestType + " for " + topRequest.requestorId);
-            }
+    //remove requests in progress from currentrr
+    var currentmap = new RRMap(currentrr, pv);
+    transporters.forEach(function (tcw) {
+        tcw.memory.collection.forEach(function (rr) { return currentmap.subtract(rr, pv); });
+        tcw.memory.delivery.forEach(function (rr) { return currentmap.subtract(rr, pv); });
+        if (tcw.memory.currentRequest.isPresent)
+            currentmap.subtract(tcw.memory.currentRequest.get, pv);
+    });
+    //remove queuedrr from currentrr
+    queuedrr.map(function (rr) { return currentmap.subtract(rr, pv); });
+    //push unqueued currentrr into queuedrr
+    var queuedmap = new RRMap(queuedrr, pv);
+    var unqueued = [];
+    currentrr.forEach(function (rr) {
+        if (rr.amount > 0 && !queuedmap.add(rr, pv)) {
+            unqueued.push(rr);
+            queuedmap.insert(rr, pv);
         }
-        if (topRequestSatisfied) {
-            requestQueue.pop();
-        }
-    } while (topRequestSatisfied);
+    });
+    unqueued.forEach(function (rr) { queuedrr.push(rr); });
+    // take the top resourceRequest in the queue so that we can try to assign that
+    var queueDll = mopt.makeDLList(queuedrr);
+    while (queueDll.length > 0 && queueDll.front().amount == 0) {
+        queueDll.pop_front();
+    }
+    if (queueDll.length == 0)
+        return;
+    // try to assign toprr to free transporters
+    transporters.forEach(function (tcw) {
+        var mem = tcw.memory;
+        if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent)
+            assignRequest(tcw, queueDll, pv);
+    });
+    //put queueDll back into queuerr
+    var newrr = queueDll.toArray().filter(function (rr) { return rr.amount > 0; });
+    for (var rri = 0; rri < newrr.length; ++rri) {
+        if (rri < queuedrr.length)
+            queuedrr[rri] = newrr[rri];
+        else
+            queuedrr.push(newrr[rri]);
+    }
+    while (queuedrr.length > newrr.length)
+        queuedrr.pop();
 }
 exports.manageResourcesForRoom = manageResourcesForRoom;
-function trySatisfyPull(job, transporters, otherRequests, pv) {
-    var transportersWithResource = transporters.filter(function (tcw) { return tcw.isFree(pv) && tcw.resourceAmount(job.resourceType) > 0; });
-    while (job.amount >= 0 && transportersWithResource.length > 0) {
-        var tr = transportersWithResource.pop();
-        tr.assignRequest(job, pv);
-    }
-    if (job.amount <= 0)
-        return true;
-    var matchingPushes = otherRequests.filter(function (rr) { return rr.resourceType == job.resourceType
-        && rr.resourceRequestType == TransporterCreepWrapper.PUSH; });
-    if (matchingPushes.length > 0) {
-        trySatisfyPush(matchingPushes[0], transporters, pv);
-    }
-    else {
-        if (pv.game.rooms[job.roomName] !== undefined && pv.game.rooms[job.roomName].storage !== undefined) {
-            var storage = pv.game.rooms[job.roomName].storage;
-            if (storage.store[job.resourceType] !== undefined && storage.store[job.resourceType] > 0) {
-                trySatisfyPush({
-                    roomName: job.roomName,
-                    resourceType: job.resourceType,
-                    resourceRequestType: pv.PUSH_REQUEST,
-                    amount: Math.min(job.amount, storage.store[job.resourceType]),
-                    requestorId: storage.id
-                }, transporters, pv);
-            }
-        }
-    }
-    return false;
-}
-function trySatisfyPush(job, transporters, pv) {
-    var validTransporters = transporters.filter(function (tcw) { return tcw.isFree(pv) && tcw.emptyStorage() > 0; });
-    while (job.amount > 0 && validTransporters.length > 0) {
-        var vt = validTransporters.pop();
-        vt.assignRequest(job, pv);
-    }
-    return job.amount <= 0;
+function assignRequest(tcw, queueDll, pv) {
+    var mem = tcw.memory;
+    if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0)
+        return;
+    queueDll.forEach(function (entry) { if (entry.elem.amount <= 0)
+        queueDll.remove(entry); });
+    if (queueDll.length == 0)
+        return;
+    var rt = queueDll.front().resourceType;
+    // search for collections first
+    var collectableAmount = tcw.emptyStorage();
+    var collectedAmount = 0;
+    queueDll.forEach(function (entry) {
+        if (collectedAmount >= collectableAmount)
+            return;
+        var rr = entry.elem;
+        if (rr.resourceType != rt || rr.resourceRequestType != pv.PUSH_REQUEST)
+            return;
+        var amt = Math.min(rr.amount, collectableAmount - collectedAmount);
+        rr.amount -= amt;
+        collectedAmount += amt;
+        tcw.memory.collection.push({
+            roomName: rr.roomName,
+            resourceType: rr.resourceType,
+            resourceRequestType: rr.resourceRequestType,
+            requestorId: rr.requestorId,
+            amount: amt
+        });
+        if (rr.amount <= 0)
+            queueDll.remove(entry);
+    });
+    // search for deliveries
+    var deliverableAmount = tcw.resourceAmount(rt) + collectedAmount;
+    var deliveredAmount = 0;
+    queueDll.forEach(function (entry) {
+        if (deliveredAmount >= deliverableAmount)
+            return;
+        var rr = entry.elem;
+        if (rr.resourceType != rt || rr.resourceRequestType != pv.PULL_REQUEST)
+            return;
+        var amt = Math.min(rr.amount, deliverableAmount - deliveredAmount);
+        rr.amount -= amt;
+        deliveredAmount += amt;
+        tcw.memory.delivery.push({
+            roomName: rr.roomName,
+            resourceType: rr.resourceType,
+            resourceRequestType: rr.resourceRequestType,
+            requestorId: rr.requestorId,
+            amount: amt
+        });
+        if (rr.amount <= 0)
+            queueDll.remove(entry);
+    });
+    tcw.preprocess(pv);
 }

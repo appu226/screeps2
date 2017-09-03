@@ -21,10 +21,11 @@ declare interface Paraverse {
     getStructureById(id: string): Option<StructureWrapper>;
     getRequestorById(id: string): Option<ResourceRequestor>;
 
-    getRequestQueue(room: Room): Queue<ResourceRequest>;
     manageResources(room: Room): void;
 
     getSpawnMemory(spawn: StructureSpawn): SpawnMemory;
+
+    getRoomMemory(room: Room): RoomMemory;
 
     getHostileCreepsInRoom(room: Room): Creep[];
     getHostileStructuresInRoom(room: Room): Structure[];
@@ -191,5 +192,5 @@ declare interface SpawnMemory {
 }
 
 declare interface RoomMemory {
-    resourceRequestData: QueueData<ResourceRequest>;
+    queuedResourceRequests: ResourceRequest[];
 }

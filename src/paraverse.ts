@@ -374,11 +374,6 @@ class ParaverseImpl implements Paraverse {
             return this.getStructureById(id);
     }
 
-    getRequestQueue(room: Room): Queue<ResourceRequest> {
-        let data = this.getRoomMemory(room).resourceRequestData;
-        return o.makeQueue(data.pushStack, data.popStack);
-    }
-
     manageResources(room: Room): void {
         mtransporter.manageResourcesForRoom(room, this);
     }
@@ -389,7 +384,7 @@ class ParaverseImpl implements Paraverse {
         return dictionary.getOrAdd(
             this.memory.roomMemories, room.name,
             {
-                resourceRequestData: { pushStack: [], popStack: [] }
+                queuedResourceRequests: []
             });
     }
 

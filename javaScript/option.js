@@ -119,6 +119,12 @@ function maxBy(collection, measure) {
     }, None());
 }
 exports.maxBy = maxBy;
+function flatten(arr) {
+    var res = [];
+    arr.forEach(function (ar) { return ar.forEach(function (a) { return res.push(a); }); });
+    return res;
+}
+exports.flatten = flatten;
 function sum(arr) {
     return arr.reduce(function (prev, curr) { return prev + curr; }, 0);
 }
@@ -344,3 +350,120 @@ function tokenize(comboString, delim) {
     return result;
 }
 exports.tokenize = tokenize;
+var DLListImpl = (function () {
+    function DLListImpl(arr) {
+        var _this = this;
+        this.length = 0;
+        this.isEmpty = true;
+        this.frontEntry = None();
+        this.backEntry = this.frontEntry;
+        arr.forEach(function (elem) { return _this.push_back(elem); });
+    }
+    DLListImpl.prototype.remove = function (entry) {
+        if (entry.prev.isPresent)
+            entry.prev.get.next = entry.next;
+        else
+            this.frontEntry = entry.next;
+        if (entry.next.isPresent)
+            entry.next.get.prev = entry.prev;
+        else
+            this.backEntry = entry.prev;
+        --(this.length);
+        this.isEmpty = (this.length == 0);
+        return entry.elem;
+    };
+    DLListImpl.prototype.insert = function (elem, left, right) {
+        var optEntry = Some({
+            elem: elem,
+            prev: left,
+            next: right
+        });
+        if (left.isPresent)
+            left.get.next = optEntry;
+        else
+            this.frontEntry = optEntry;
+        if (right.isPresent)
+            right.get.prev = optEntry;
+        else
+            this.backEntry = optEntry;
+        ++(this.length);
+        this.isEmpty = false;
+        return optEntry.get;
+    };
+    DLListImpl.prototype.push_front = function (elem) {
+        this.insert(elem, None(), this.frontEntry);
+    };
+    DLListImpl.prototype.pop_front = function () {
+        if (this.frontEntry.isPresent) {
+            return this.remove(this.frontEntry.get);
+        }
+        else
+            throw new Error("Cannot pop front from empty DLList");
+    };
+    DLListImpl.prototype.front = function () {
+        if (this.frontEntry.isPresent)
+            return this.frontEntry.get.elem;
+        else
+            throw new Error("Cannot get front from empty DLList");
+    };
+    DLListImpl.prototype.push_back = function (elem) {
+        this.insert(elem, this.backEntry, None());
+    };
+    DLListImpl.prototype.pop_back = function () {
+        if (this.backEntry.isPresent)
+            return this.remove(this.backEntry.get);
+        else
+            throw new Error("Cannot pop back from empty DLList");
+    };
+    DLListImpl.prototype.back = function () {
+        if (this.isEmpty)
+            throw new Error("Cannot get back from empty DLList");
+        else
+            return this.backEntry.get.elem;
+    };
+    DLListImpl.prototype.find = function (func, findFromReverse) {
+        var res = None();
+        for (var iter = findFromReverse ? this.backEntry : this.frontEntry; iter.isPresent && !res.isPresent; iter = findFromReverse ? iter.get.prev : iter.get.next) {
+            if (func(iter.get.elem))
+                res = Some(iter.get.elem);
+        }
+        return res;
+    };
+    DLListImpl.prototype.extract = function (func, extractFromReverse) {
+        var res = None();
+        for (var iter = extractFromReverse ? this.backEntry : this.frontEntry; iter.isPresent && !res.isPresent; iter = extractFromReverse ? iter.get.prev : iter.get.next) {
+            if (func(iter.get.elem)) {
+                res = Some(iter.get.elem);
+                this.remove(iter.get);
+            }
+        }
+        return res;
+    };
+    DLListImpl.prototype.extractAll = function (func) {
+        var res = [];
+        for (var iter = this.frontEntry; iter.isPresent; iter = iter.get.next) {
+            if (func(iter.get.elem)) {
+                res.push(iter.get.elem);
+                this.remove(iter.get);
+            }
+        }
+        return res;
+    };
+    DLListImpl.prototype.forEach = function (func) {
+        for (var iter = this.frontEntry; iter.isPresent; iter = iter.get.next)
+            func(iter.get);
+    };
+    DLListImpl.prototype.toArray = function () {
+        var res = [];
+        for (var iter = this.frontEntry; iter.isPresent; iter = iter.get.next) {
+            res.push(iter.get.elem);
+        }
+        return res;
+    };
+    return DLListImpl;
+}());
+function makeDLList(elems) {
+    if (elems === void 0) { elems = []; }
+    return new DLListImpl(elems);
+}
+exports.makeDLList = makeDLList;

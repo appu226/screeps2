@@ -124,6 +124,12 @@ export function maxBy<TElem>(collection: TElem[], measure: (TElem) => number): O
     );
 }
 
+export function flatten<TElem>(arr: TElem[][]): TElem[] {
+    let res: TElem[] = [];
+    arr.forEach(ar => ar.forEach(a => res.push(a)));
+    return res;
+}
+
 export function sum(arr: number[]): number {
     return arr.reduce((prev, curr) => prev + curr, 0);
 }
@@ -355,4 +361,138 @@ export function tokenize(comboString: string, delim: string): string[] {
         ++i;
     }
     return result;
+}
+
+class DLListImpl<TElem> implements DLList<TElem> {
+    length: number;
+    isEmpty: boolean;
+    frontEntry: Option<DLListEntry<TElem>>;
+    backEntry: Option<DLListEntry<TElem>>;
+
+    constructor(arr: TElem[]) {
+        this.length = 0;
+        this.isEmpty = true;
+        this.frontEntry = None<DLListEntry<TElem>>();
+        this.backEntry = this.frontEntry;
+        arr.forEach(elem => this.push_back(elem));
+    }
+
+    remove(entry: DLListEntry<TElem>): TElem {
+        if (entry.prev.isPresent)
+            entry.prev.get.next = entry.next;
+        else
+            this.frontEntry = entry.next;
+
+        if (entry.next.isPresent)
+            entry.next.get.prev = entry.prev;
+        else
+            this.backEntry = entry.prev;
+
+        --(this.length);
+        this.isEmpty = (this.length == 0);
+        return entry.elem;
+    }
+
+    insert(elem: TElem, left: Option<DLListEntry<TElem>>, right: Option<DLListEntry<TElem>>): DLListEntry<TElem> {
+        let optEntry = Some<DLListEntry<TElem>>({
+            elem: elem,
+            prev: left,
+            next: right
+        });
+        if (left.isPresent)
+            left.get.next = optEntry;
+        else
+            this.frontEntry = optEntry;
+
+        if (right.isPresent)
+            right.get.prev = optEntry;
+        else
+            this.backEntry = optEntry;
+        ++(this.length);
+        this.isEmpty = false;
+        return optEntry.get;
+    }
+
+    push_front(elem: TElem): void {
+        this.insert(elem, None<DLListEntry<TElem>>(), this.frontEntry);
+    }
+    pop_front(): TElem {
+        if (this.frontEntry.isPresent) {
+            return this.remove(this.frontEntry.get);
+        } else
+            throw new Error("Cannot pop front from empty DLList");
+    }
+    front(): TElem {
+        if (this.frontEntry.isPresent)
+            return this.frontEntry.get.elem;
+        else
+            throw new Error("Cannot get front from empty DLList");
+    }
+
+    push_back(elem: TElem): void {
+        this.insert(elem, this.backEntry, None<DLListEntry<TElem>>());
+    }
+    pop_back(): TElem {
+        if (this.backEntry.isPresent)
+            return this.remove(this.backEntry.get);
+        else
+            throw new Error("Cannot pop back from empty DLList");
+    }
+    back(): TElem {
+        if (this.isEmpty)
+            throw new Error("Cannot get back from empty DLList");
+        else
+            return this.backEntry.get.elem;
+    }
+
+    find(func: (TElem) => boolean, findFromReverse: boolean): Option<TElem> {
+        let res = None<TElem>();
+        for (let iter = findFromReverse ? this.backEntry : this.frontEntry;
+            iter.isPresent && !res.isPresent;
+            iter = findFromReverse ? iter.get.prev : iter.get.next
+        ) {
+            if (func(iter.get.elem))
+                res = Some(iter.get.elem);
+        }
+        return res;
+    }
+    extract(func: (TElem) => boolean, extractFromReverse: boolean): Option<TElem> {
+        let res = None<TElem>();
+        for (let iter = extractFromReverse ? this.backEntry : this.frontEntry;
+            iter.isPresent && !res.isPresent;
+            iter = extractFromReverse ? iter.get.prev : iter.get.next
+        ) {
+            if (func(iter.get.elem)) {
+                res = Some(iter.get.elem);
+                this.remove(iter.get);
+            }
+        }
+        return res;
+    }
+    extractAll(func: (TElem) => boolean): TElem[] {
+        let res: TElem[] = [];
+        for (let iter = this.frontEntry; iter.isPresent; iter = iter.get.next) {
+            if (func(iter.get.elem)) {
+                res.push(iter.get.elem);
+                this.remove(iter.get);
+            }
+        }
+        return res;
+    }
+    forEach(func: (entry: DLListEntry<TElem>) => void): void {
+        for (let iter = this.frontEntry; iter.isPresent; iter = iter.get.next)
+            func(iter.get);
+    }
+
+    toArray(): TElem[] {
+        let res: TElem[] = [];
+        for (let iter = this.frontEntry; iter.isPresent; iter = iter.get.next) {
+            res.push(iter.get.elem);
+        }
+        return res;
+    }
+}
+
+export function makeDLList<TElem>(elems: TElem[] = []): DLList<TElem> {
+    return new DLListImpl(elems);
 }

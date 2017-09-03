@@ -218,10 +218,6 @@ var ParaverseImpl = (function () {
         else
             return this.getStructureById(id);
     };
-    ParaverseImpl.prototype.getRequestQueue = function (room) {
-        var data = this.getRoomMemory(room).resourceRequestData;
-        return o.makeQueue(data.pushStack, data.popStack);
-    };
     ParaverseImpl.prototype.manageResources = function (room) {
         mtransporter.manageResourcesForRoom(room, this);
     };
@@ -229,7 +225,7 @@ var ParaverseImpl = (function () {
         if (this.memory.roomMemories === undefined)
             this.memory.roomMemories = {};
         return dictionary.getOrAdd(this.memory.roomMemories, room.name, {
-            resourceRequestData: { pushStack: [], popStack: [] }
+            queuedResourceRequests: []
         });
     };
     ParaverseImpl.prototype.getSpawnMemory = function (spawn) {
