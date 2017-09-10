@@ -44,14 +44,14 @@ export class HarvesterCreepWrapper implements CreepWrapper {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_HARVESTER;
         this.memory = <HarvesterMemory>creep.memory;
-        let demand = creep.carryCapacity - creep.carry[RESOURCE_ENERGY];
-        this.resourceRequests = demand > 0
+        let demand = creep.carry[RESOURCE_ENERGY];
+        this.resourceRequests = (demand !== undefined && demand > 0)
             ? [{
                 roomName: creep.room.name,
                 resourceType: RESOURCE_ENERGY,
                 amount: demand,
                 requestorId: creep.id,
-                resourceRequestType: pv.PULL_REQUEST
+                resourceRequestType: pv.PUSH_REQUEST
             }]
             : [];
     }
@@ -107,10 +107,21 @@ export class HarvesterCreepWrapper implements CreepWrapper {
         }
     }
     giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
-        return this.element.transfer(creep, resourceType, amount);
+        return this.element.transfer(creep, resourceType, Math.min(amount, this.resourceAmount(resourceType)));
     }
     takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
-        return creep.transfer(this.element, resourceType, amount);
+        return creep.transfer(this.element, resourceType, Math.min(amount, this.emptyStorage()));
+    }
+
+    resourceAmount(resourceType: string): number {
+        if (this.element.carry[resourceType] === undefined) return 0;
+        else return this.element.carry[resourceType];
+    }
+    emptyStorage(): number {
+        let tot = 0;
+        for (let rt in this.element.carry)
+            tot += this.element.carry[tot];
+        return tot;
     }
 }
 

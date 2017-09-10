@@ -5,10 +5,20 @@ class SpawnWrapper implements StructureWrapper {
     my: boolean;
     resourceRequests: ResourceRequest[];
 
-    constructor(spawn: StructureSpawn) {
+    constructor(spawn: StructureSpawn, pv: Paraverse) {
         this.element = spawn;
         this.my = spawn.my;
         this.resourceRequests = [];
+        let energyDemand = spawn.energyCapacity - spawn.energy;
+        if (energyDemand > 0) {
+            this.resourceRequests.push({
+                requestorId: spawn.id,
+                resourceType: RESOURCE_ENERGY,
+                resourceRequestType: pv.PULL_REQUEST,
+                amount: energyDemand,
+                roomName: spawn.room.name
+            });
+        }
     }
 
     process(pv: Paraverse): void {
@@ -72,10 +82,10 @@ class SpawnWrapper implements StructureWrapper {
         throw new Error("Cannot take energy from Spawn.");
     }
     takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
-        return creep.transfer(this.element, resourceType, amount);
+        return creep.transfer(this.element, resourceType, Math.min(amount, this.element.energyCapacity - this.element.energy));
     }
 }
 
-export function makeSpawnWrapper(spawn: StructureSpawn): SpawnWrapper {
-    return new SpawnWrapper(spawn);
+export function makeSpawnWrapper(spawn: StructureSpawn, pv: Paraverse): SpawnWrapper {
+    return new SpawnWrapper(spawn, pv);
 }

@@ -11,7 +11,7 @@ import mcontainer = require('./container');
 export function makeStructureWrapper(structure: Structure, pv: Paraverse): StructureWrapper {
     switch (structure.structureType) {
         case STRUCTURE_SPAWN:
-            return mspawn.makeSpawnWrapper(<StructureSpawn>structure);
+            return mspawn.makeSpawnWrapper(<StructureSpawn>structure, pv);
         case STRUCTURE_KEEPER_LAIR:
             return mkeeperLair.makeKeeperLairWrapper(<StructureKeeperLair>structure);
         case STRUCTURE_CONTROLLER:

@@ -34,14 +34,14 @@ var HarvesterCreepWrapper = (function () {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_HARVESTER;
         this.memory = creep.memory;
-        var demand = creep.carryCapacity - creep.carry[RESOURCE_ENERGY];
-        this.resourceRequests = demand > 0
+        var demand = creep.carry[RESOURCE_ENERGY];
+        this.resourceRequests = (demand !== undefined && demand > 0)
             ? [{
                     roomName: creep.room.name,
                     resourceType: RESOURCE_ENERGY,
                     amount: demand,
                     requestorId: creep.id,
-                    resourceRequestType: pv.PULL_REQUEST
+                    resourceRequestType: pv.PUSH_REQUEST
                 }]
             : [];
     }
@@ -86,10 +86,22 @@ var HarvesterCreepWrapper = (function () {
         }
     };
     HarvesterCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
-        return this.element.transfer(creep, resourceType, amount);
+        return this.element.transfer(creep, resourceType, Math.min(amount, this.resourceAmount(resourceType)));
     };
     HarvesterCreepWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
-        return creep.transfer(this.element, resourceType, amount);
+        return creep.transfer(this.element, resourceType, Math.min(amount, this.emptyStorage()));
+    };
+    HarvesterCreepWrapper.prototype.resourceAmount = function (resourceType) {
+        if (this.element.carry[resourceType] === undefined)
+            return 0;
+        else
+            return this.element.carry[resourceType];
+    };
+    HarvesterCreepWrapper.prototype.emptyStorage = function () {
+        var tot = 0;
+        for (var rt in this.element.carry)
+            tot += this.element.carry[tot];
+        return tot;
     };
     return HarvesterCreepWrapper;
 }());

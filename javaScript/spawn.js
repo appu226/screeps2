@@ -1,10 +1,20 @@
 "use strict";
 var mopt = require("./option");
 var SpawnWrapper = (function () {
-    function SpawnWrapper(spawn) {
+    function SpawnWrapper(spawn, pv) {
         this.element = spawn;
         this.my = spawn.my;
         this.resourceRequests = [];
+        var energyDemand = spawn.energyCapacity - spawn.energy;
+        if (energyDemand > 0) {
+            this.resourceRequests.push({
+                requestorId: spawn.id,
+                resourceType: RESOURCE_ENERGY,
+                resourceRequestType: pv.PULL_REQUEST,
+                amount: energyDemand,
+                roomName: spawn.room.name
+            });
+        }
     }
     SpawnWrapper.prototype.process = function (pv) {
         if (!this.my) {
@@ -59,11 +69,11 @@ var SpawnWrapper = (function () {
         throw new Error("Cannot take energy from Spawn.");
     };
     SpawnWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
-        return creep.transfer(this.element, resourceType, amount);
+        return creep.transfer(this.element, resourceType, Math.min(amount, this.element.energyCapacity - this.element.energy));
     };
     return SpawnWrapper;
 }());
-function makeSpawnWrapper(spawn) {
-    return new SpawnWrapper(spawn);
+function makeSpawnWrapper(spawn, pv) {
+    return new SpawnWrapper(spawn, pv);
 }
 exports.makeSpawnWrapper = makeSpawnWrapper;

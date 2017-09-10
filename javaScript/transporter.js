@@ -48,8 +48,10 @@ var TransporterCreepWrapper = (function () {
         if (m.currentRequest.isPresent) {
             var cr = m.currentRequest.get;
             if (this.resourceAmount(cr.resourceType) != m.currentAmount
-                || !pv.getRequestorById(cr.requestorId).isPresent)
+                || !pv.getRequestorById(cr.requestorId).isPresent) {
                 m.currentRequest = mopt.None();
+                pv.log.debug("transporter/preprocess: resetting " + this.element.name + " to free.");
+            }
         }
         // try to find next request
         if (!m.currentRequest.isPresent) {
@@ -87,6 +89,7 @@ var TransporterCreepWrapper = (function () {
             m.collection = m.collection.filter(function (rr) { return rr != closest_1.get.elem; });
             m.delivery = m.delivery.filter(function (rr) { return rr != closest_1.get.elem; });
             m.currentRequest = mopt.Some(closest_1.get.elem);
+            pv.log.debug("transporter/preprocess: assigned " + this.element.name + " to " + m.currentRequest.get.requestorId + ".");
             m.currentAmount = this.resourceAmount(m.currentRequest.get.resourceType);
         }
     };
@@ -104,13 +107,13 @@ var TransporterCreepWrapper = (function () {
         var rqor = orqor.get;
         switch (cr.resourceRequestType) {
             case pv.PUSH_REQUEST: {
-                if (rqor.giveResourceToCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                if (rqor.giveResourceToCreep(this.element, cr.resourceType, Math.min(cr.amount, this.emptyStorage())) == ERR_NOT_IN_RANGE) {
                     pv.moveCreep(this, rqor.element.pos);
                 }
                 break;
             }
             case pv.PULL_REQUEST: {
-                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, Math.min(cr.amount, this.resourceAmount(cr.resourceType))) == ERR_NOT_IN_RANGE) {
                     pv.moveCreep(this, rqor.element.pos);
                 }
                 break;
@@ -178,13 +181,14 @@ var RRMap = (function () {
     return RRMap;
 }());
 function manageResourcesForRoom(room, pv) {
-    //collect queued requests
+    // collect queued requests
     var queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
-    //collect all current requests
+    // collect all current requests
     var currentrr = mopt.flatten(pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; })).concat(mopt.flatten(pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; })));
-    //collect transporters
+    // collect transporters
     var transporters = pv.getMyCreepsByRoomAndType(room, pv.CREEP_TYPE_TRANSPORTER).map(function (cw) { return cw; });
-    //remove requests in progress from currentrr
+    transporters.forEach(function (tcw) { return tcw.preprocess(pv); });
+    // remove requests in progress from currentrr
     var currentmap = new RRMap(currentrr, pv);
     transporters.forEach(function (tcw) {
         tcw.memory.collection.forEach(function (rr) { return currentmap.subtract(rr, pv); });
@@ -192,9 +196,8 @@ function manageResourcesForRoom(room, pv) {
         if (tcw.memory.currentRequest.isPresent)
             currentmap.subtract(tcw.memory.currentRequest.get, pv);
     });
-    //remove queuedrr from currentrr
-    queuedrr.map(function (rr) { return currentmap.subtract(rr, pv); });
-    //push unqueued currentrr into queuedrr
+    // replace queued amount with current amount
+    queuedrr.forEach(function (qrr) { return qrr.amount = 0; });
     var queuedmap = new RRMap(queuedrr, pv);
     var unqueued = [];
     currentrr.forEach(function (rr) {
@@ -204,20 +207,28 @@ function manageResourcesForRoom(room, pv) {
         }
     });
     unqueued.forEach(function (rr) { queuedrr.push(rr); });
-    // take the top resourceRequest in the queue so that we can try to assign that
+    // remove empty requests
     var queueDll = mopt.makeDLList(queuedrr);
-    while (queueDll.length > 0 && queueDll.front().amount == 0) {
-        queueDll.pop_front();
-    }
+    var queuedResourceTypes = [];
+    var qrrSet = {};
+    queueDll.forEach(function (rre) {
+        if (rre.elem.amount <= 0)
+            queueDll.remove(rre);
+        else if (qrrSet[rre.elem.resourceType] === undefined) {
+            queuedResourceTypes.push(rre.elem.resourceType);
+            qrrSet[rre.elem.resourceType] = true;
+        }
+    });
     if (queueDll.length == 0)
         return;
-    // try to assign toprr to free transporters
+    // try to assign resourceTypes to free transporters
     transporters.forEach(function (tcw) {
         var mem = tcw.memory;
-        if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent)
-            assignRequest(tcw, queueDll, pv);
+        if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent) {
+            queuedResourceTypes.forEach(function (rt) { assignRequest(tcw, queueDll, rt, pv); });
+        }
     });
-    //put queueDll back into queuerr
+    // put queueDll back into queuerr
     var newrr = queueDll.toArray().filter(function (rr) { return rr.amount > 0; });
     for (var rri = 0; rri < newrr.length; ++rri) {
         if (rri < queuedrr.length)
@@ -229,7 +240,7 @@ function manageResourcesForRoom(room, pv) {
         queuedrr.pop();
 }
 exports.manageResourcesForRoom = manageResourcesForRoom;
-function assignRequest(tcw, queueDll, pv) {
+function assignRequest(tcw, queueDll, resourceType, pv) {
     var mem = tcw.memory;
     if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0)
         return;
@@ -237,7 +248,6 @@ function assignRequest(tcw, queueDll, pv) {
         queueDll.remove(entry); });
     if (queueDll.length == 0)
         return;
-    var rt = queueDll.front().resourceType;
     // search for collections first
     var collectableAmount = tcw.emptyStorage();
     var collectedAmount = 0;
@@ -245,40 +255,46 @@ function assignRequest(tcw, queueDll, pv) {
         if (collectedAmount >= collectableAmount)
             return;
         var rr = entry.elem;
-        if (rr.resourceType != rt || rr.resourceRequestType != pv.PUSH_REQUEST)
+        if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PUSH_REQUEST)
             return;
         var amt = Math.min(rr.amount, collectableAmount - collectedAmount);
-        rr.amount -= amt;
-        collectedAmount += amt;
-        tcw.memory.collection.push({
-            roomName: rr.roomName,
-            resourceType: rr.resourceType,
-            resourceRequestType: rr.resourceRequestType,
-            requestorId: rr.requestorId,
-            amount: amt
-        });
+        if (amt > 0) {
+            rr.amount -= amt;
+            collectedAmount += amt;
+            pv.log.debug("transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".collection for " + amt + " of " + rr.resourceType + ".");
+            tcw.memory.collection.push({
+                roomName: rr.roomName,
+                resourceType: rr.resourceType,
+                resourceRequestType: rr.resourceRequestType,
+                requestorId: rr.requestorId,
+                amount: amt
+            });
+        }
         if (rr.amount <= 0)
             queueDll.remove(entry);
     });
     // search for deliveries
-    var deliverableAmount = tcw.resourceAmount(rt) + collectedAmount;
+    var deliverableAmount = tcw.resourceAmount(resourceType) + collectedAmount;
     var deliveredAmount = 0;
     queueDll.forEach(function (entry) {
         if (deliveredAmount >= deliverableAmount)
             return;
         var rr = entry.elem;
-        if (rr.resourceType != rt || rr.resourceRequestType != pv.PULL_REQUEST)
+        if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PULL_REQUEST)
             return;
         var amt = Math.min(rr.amount, deliverableAmount - deliveredAmount);
-        rr.amount -= amt;
-        deliveredAmount += amt;
-        tcw.memory.delivery.push({
-            roomName: rr.roomName,
-            resourceType: rr.resourceType,
-            resourceRequestType: rr.resourceRequestType,
-            requestorId: rr.requestorId,
-            amount: amt
-        });
+        if (amt > 0) {
+            rr.amount -= amt;
+            deliveredAmount += amt;
+            pv.log.debug("transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".delivery for " + amt + " of " + rr.resourceType + ".");
+            tcw.memory.delivery.push({
+                roomName: rr.roomName,
+                resourceType: rr.resourceType,
+                resourceRequestType: rr.resourceRequestType,
+                requestorId: rr.requestorId,
+                amount: amt
+            });
+        }
         if (rr.amount <= 0)
             queueDll.remove(entry);
     });

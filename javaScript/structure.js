@@ -11,7 +11,7 @@ var mcontainer = require("./container");
 function makeStructureWrapper(structure, pv) {
     switch (structure.structureType) {
         case STRUCTURE_SPAWN:
-            return mspawn.makeSpawnWrapper(structure);
+            return mspawn.makeSpawnWrapper(structure, pv);
         case STRUCTURE_KEEPER_LAIR:
             return mkeeperLair.makeKeeperLairWrapper(structure);
         case STRUCTURE_CONTROLLER:

@@ -62,9 +62,10 @@ export class TransporterCreepWrapper implements CreepWrapper {
         if (m.currentRequest.isPresent) {
             let cr = m.currentRequest.get;
             if (this.resourceAmount(cr.resourceType) != m.currentAmount
-                || !pv.getRequestorById(cr.requestorId).isPresent)
+                || !pv.getRequestorById(cr.requestorId).isPresent) {
                 m.currentRequest = mopt.None<ResourceRequest>();
-
+                pv.log.debug(`transporter/preprocess: resetting ${this.element.name} to free.`);
+            }
         }
 
         // try to find next request
@@ -106,6 +107,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
             m.delivery = m.delivery.filter(rr => rr != closest.get.elem);
 
             m.currentRequest = mopt.Some(closest.get.elem);
+            pv.log.debug(`transporter/preprocess: assigned ${this.element.name} to ${m.currentRequest.get.requestorId}.`);
             m.currentAmount = this.resourceAmount(m.currentRequest.get.resourceType);
         }
     }
@@ -124,13 +126,13 @@ export class TransporterCreepWrapper implements CreepWrapper {
         let rqor = orqor.get;
         switch (cr.resourceRequestType) {
             case pv.PUSH_REQUEST: {
-                if (rqor.giveResourceToCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                if (rqor.giveResourceToCreep(this.element, cr.resourceType, Math.min(cr.amount, this.emptyStorage())) == ERR_NOT_IN_RANGE) {
                     pv.moveCreep(this, rqor.element.pos);
                 }
                 break;
             }
             case pv.PULL_REQUEST: {
-                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, cr.amount) == ERR_NOT_IN_RANGE) {
+                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, Math.min(cr.amount, this.resourceAmount(cr.resourceType))) == ERR_NOT_IN_RANGE) {
                     pv.moveCreep(this, rqor.element.pos);
                 }
                 break;
@@ -206,18 +208,19 @@ class RRMap {
 }
 
 export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
-    //collect queued requests
+    // collect queued requests
     let queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
 
-    //collect all current requests
+    // collect all current requests
     let currentrr =
         mopt.flatten(pv.getMyCreepsByRoom(room).map(cw => cw.resourceRequests)).concat(
             mopt.flatten(pv.getMyStructuresByRoom(room).map(sw => sw.resourceRequests)));
 
-    //collect transporters
+    // collect transporters
     let transporters = pv.getMyCreepsByRoomAndType(room, pv.CREEP_TYPE_TRANSPORTER).map(cw => <TransporterCreepWrapper>cw);
+    transporters.forEach(tcw => tcw.preprocess(pv));
 
-    //remove requests in progress from currentrr
+    // remove requests in progress from currentrr
     let currentmap = new RRMap(currentrr, pv);
     transporters.forEach(tcw => {
         tcw.memory.collection.forEach(rr => currentmap.subtract(rr, pv));
@@ -227,10 +230,8 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     });
 
 
-    //remove queuedrr from currentrr
-    queuedrr.map(rr => currentmap.subtract(rr, pv));
-
-    //push unqueued currentrr into queuedrr
+    // replace queued amount with current amount
+    queuedrr.forEach(qrr => qrr.amount = 0);
     let queuedmap = new RRMap(queuedrr, pv);
     let unqueued: ResourceRequest[] = [];
     currentrr.forEach(rr => {
@@ -241,21 +242,29 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     });
     unqueued.forEach(rr => { queuedrr.push(rr); });
 
-    // take the top resourceRequest in the queue so that we can try to assign that
+    // remove empty requests
     let queueDll = mopt.makeDLList(queuedrr);
-    while (queueDll.length > 0 && queueDll.front().amount == 0) {
-        queueDll.pop_front();
-    }
+    let queuedResourceTypes: string[] = [];
+    let qrrSet: Dictionary<boolean> = {};
+    queueDll.forEach(rre => {
+        if (rre.elem.amount <= 0)
+            queueDll.remove(rre);
+        else if (qrrSet[rre.elem.resourceType] === undefined) {
+            queuedResourceTypes.push(rre.elem.resourceType);
+            qrrSet[rre.elem.resourceType] = true;
+        }
+    });
     if (queueDll.length == 0) return;
 
-    // try to assign toprr to free transporters
+    // try to assign resourceTypes to free transporters
     transporters.forEach(tcw => {
         let mem = tcw.memory;
-        if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent)
-            assignRequest(tcw, queueDll, pv);
+        if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent) {
+            queuedResourceTypes.forEach(rt => { assignRequest(tcw, queueDll, rt, pv); });
+        }
     });
-    
-    //put queueDll back into queuerr
+
+    // put queueDll back into queuerr
     let newrr = queueDll.toArray().filter(rr => rr.amount > 0);
     for (let rri = 0; rri < newrr.length; ++rri) {
         if (rri < queuedrr.length) queuedrr[rri] = newrr[rri];
@@ -264,12 +273,11 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     while (queuedrr.length > newrr.length) queuedrr.pop();
 }
 
-function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRequest>, pv: Paraverse) {
+function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRequest>, resourceType: string, pv: Paraverse) {
     let mem = tcw.memory;
     if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0) return;
     queueDll.forEach(entry => { if (entry.elem.amount <= 0) queueDll.remove(entry); });
     if (queueDll.length == 0) return;
-    let rt = queueDll.front().resourceType;
 
     // search for collections first
     let collectableAmount = tcw.emptyStorage();
@@ -277,37 +285,43 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
     queueDll.forEach(entry => {
         if (collectedAmount >= collectableAmount) return;
         let rr = entry.elem;
-        if (rr.resourceType != rt || rr.resourceRequestType != pv.PUSH_REQUEST) return;
+        if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PUSH_REQUEST) return;
         let amt = Math.min(rr.amount, collectableAmount - collectedAmount);
-        rr.amount -= amt;
-        collectedAmount += amt;
-        tcw.memory.collection.push({
-            roomName: rr.roomName,
-            resourceType: rr.resourceType,
-            resourceRequestType: rr.resourceRequestType,
-            requestorId: rr.requestorId,
-            amount: amt
-        });
+        if (amt > 0) {
+            rr.amount -= amt;
+            collectedAmount += amt;
+            pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
+            tcw.memory.collection.push({
+                roomName: rr.roomName,
+                resourceType: rr.resourceType,
+                resourceRequestType: rr.resourceRequestType,
+                requestorId: rr.requestorId,
+                amount: amt
+            });
+        }
         if (rr.amount <= 0) queueDll.remove(entry);
     });
 
     // search for deliveries
-    let deliverableAmount = tcw.resourceAmount(rt) + collectedAmount;
+    let deliverableAmount = tcw.resourceAmount(resourceType) + collectedAmount;
     let deliveredAmount = 0;
     queueDll.forEach(entry => {
         if (deliveredAmount >= deliverableAmount) return;
         let rr = entry.elem;
-        if (rr.resourceType != rt || rr.resourceRequestType != pv.PULL_REQUEST) return;
+        if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PULL_REQUEST) return;
         let amt = Math.min(rr.amount, deliverableAmount - deliveredAmount);
-        rr.amount -= amt;
-        deliveredAmount += amt;
-        tcw.memory.delivery.push({
-            roomName: rr.roomName,
-            resourceType: rr.resourceType,
-            resourceRequestType: rr.resourceRequestType,
-            requestorId: rr.requestorId,
-            amount: amt
-        });
+        if (amt > 0) {
+            rr.amount -= amt;
+            deliveredAmount += amt;
+            pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
+            tcw.memory.delivery.push({
+                roomName: rr.roomName,
+                resourceType: rr.resourceType,
+                resourceRequestType: rr.resourceRequestType,
+                requestorId: rr.requestorId,
+                amount: amt
+            });
+        }
         if (rr.amount <= 0) queueDll.remove(entry);
     });
     tcw.preprocess(pv);
