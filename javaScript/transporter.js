@@ -60,17 +60,11 @@ var TransporterCreepWrapper = (function () {
             //delete dead requests
             m.collection = m.collection.filter(function (rr) { return pv.getRequestorById(rr.requestorId).isPresent; });
             m.delivery = m.delivery.filter(function (rr) { return pv.getRequestorById(rr.requestorId).isPresent; });
-            //if collections are empty, delete non-satisfyable deliveries
-            if (m.collection.length == 0)
-                m.delivery = m.delivery.filter(function (rr) { return rr.amount <= _this.resourceAmount(rr.resourceType); });
-            //if deliveries are empty, delete non-satisfyable collections
-            var es_1 = this.emptyStorage();
-            if (m.delivery.length == 0)
-                m.collection = m.collection.filter(function (rr) { return rr.amount <= es_1; });
             if (m.collection.length == 0 && m.delivery.length == 0)
                 return;
             // find satisfyable resource requests
             var eligible_1 = [];
+            var es_1 = this.emptyStorage();
             m.collection.forEach(function (rr) { if (rr.amount <= es_1)
                 eligible_1.push(rr); });
             if (eligible_1.length == 0)
@@ -150,8 +144,8 @@ var TransporterCreepWrapper = (function () {
 exports.TransporterCreepWrapper = TransporterCreepWrapper;
 var RRMap = (function () {
     function RRMap(rrArray, pv) {
-        this.pullmap = RRMap.makeMap(rrArray.filter(function (rr) { return rr.resourceRequestType == pv.PULL_REQUEST && rr.amount > 0; }));
-        this.pushmap = RRMap.makeMap(rrArray.filter(function (rr) { return rr.resourceRequestType == pv.PUSH_REQUEST && rr.amount > 0; }));
+        this.pullmap = RRMap.makeMap(rrArray.filter(function (rr) { return rr.resourceRequestType == pv.PULL_REQUEST; }));
+        this.pushmap = RRMap.makeMap(rrArray.filter(function (rr) { return rr.resourceRequestType == pv.PUSH_REQUEST; }));
     }
     RRMap.makeMap = function (rrArray) {
         var rrtypeToArray = mdict.arrayToDictionary(rrArray, function (rr) { return rr.resourceType; });
@@ -197,6 +191,7 @@ var RRMap = (function () {
 function manageResourcesForRoom(room, pv) {
     // collect queued requests
     var queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
+    queuedrr.forEach(function (rr) { return console.log("from memory " + rrToString(rr, pv)); });
     // collect all current requests
     var currentrr = mopt.flatten(pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; })).concat(mopt.flatten(pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; })));
     // collect transporters
@@ -211,7 +206,7 @@ function manageResourcesForRoom(room, pv) {
             currentmap.subtract(tcw.memory.currentRequest.get, pv);
     });
     // replace queued amount with current amount
-    queuedrr.forEach(function (qrr) { return qrr.amount = 0; });
+    queuedrr.forEach(function (qrr) { qrr.amount = 0; });
     var queuedmap = new RRMap(queuedrr, pv);
     var unqueued = [];
     currentrr.forEach(function (rr) {
@@ -223,6 +218,7 @@ function manageResourcesForRoom(room, pv) {
     unqueued.forEach(function (rr) { queuedrr.push(rr); });
     // remove empty requests
     var queueDll = mopt.makeDLList(queuedrr);
+    queueDll.forEach(function (entry) { return console.log("after makeDLList " + rrToString(entry.elem, pv)); });
     var queuedResourceTypes = [];
     var qrrSet = {};
     queueDll.forEach(function (rre) {
@@ -236,6 +232,7 @@ function manageResourcesForRoom(room, pv) {
     if (queueDll.length == 0)
         return;
     // try to assign resourceTypes to free transporters
+    queueDll.forEach(function (entry) { return console.log("preAssignment " + rrToString(entry.elem, pv)); });
     transporters.forEach(function (tcw) {
         var mem = tcw.memory;
         if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent) {
@@ -243,24 +240,13 @@ function manageResourcesForRoom(room, pv) {
         }
     });
     // put queueDll back into queuerr
-    var newrr = queueDll.toArray().filter(function (rr) { return rr.amount > 0; });
-    for (var rri = 0; rri < newrr.length; ++rri) {
-        if (rri < queuedrr.length)
-            queuedrr[rri] = newrr[rri];
-        else
-            queuedrr.push(newrr[rri]);
-    }
-    while (queuedrr.length > newrr.length)
-        queuedrr.pop();
+    pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
+    pv.getRoomMemory(room).queuedResourceRequests.forEach(function (rr) { return console.log("postAssignment " + rrToString(rr, pv)); });
 }
 exports.manageResourcesForRoom = manageResourcesForRoom;
 function assignRequest(tcw, queueDll, resourceType, pv) {
     var mem = tcw.memory;
     if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0)
-        return;
-    queueDll.forEach(function (entry) { if (entry.elem.amount <= 0)
-        queueDll.remove(entry); });
-    if (queueDll.length == 0)
         return;
     // search for collections first
     var collectableAmount = tcw.emptyStorage();
@@ -313,4 +299,7 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
             queueDll.remove(entry);
     });
     tcw.preprocess(pv);
+}
+function rrToString(rr, pv) {
+    return rr.requestorId + " " + (rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH") + " " + rr.resourceType + ", " + rr.amount;
 }

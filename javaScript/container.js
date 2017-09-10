@@ -15,7 +15,7 @@ var ContainerWrapper = (function () {
             : [];
     }
     ContainerWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
-        return this.element.transfer(creep, resourceType, amount);
+        return creep.withdraw(this.element, resourceType, amount);
     };
     ContainerWrapper.prototype.takeResourceFromCreep = function (creep, resourceType, amount) {
         return creep.transfer(this.element, resourceType, amount);

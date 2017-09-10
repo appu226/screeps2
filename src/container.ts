@@ -19,7 +19,7 @@ class ContainerWrapper implements StructureWrapper {
     }
 
     giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
-        return this.element.transfer(creep, resourceType, amount);
+        return creep.withdraw(this.element, resourceType, amount);
     }
     takeResourceFromCreep(creep: Creep, resourceType: string, amount: number): number {
         return creep.transfer(this.element, resourceType, amount);

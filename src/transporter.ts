@@ -76,19 +76,11 @@ export class TransporterCreepWrapper implements CreepWrapper {
             m.collection = m.collection.filter(rr => pv.getRequestorById(rr.requestorId).isPresent);
             m.delivery = m.delivery.filter(rr => pv.getRequestorById(rr.requestorId).isPresent);
 
-            //if collections are empty, delete non-satisfyable deliveries
-            if (m.collection.length == 0)
-                m.delivery = m.delivery.filter(rr => rr.amount <= this.resourceAmount(rr.resourceType));
-
-            //if deliveries are empty, delete non-satisfyable collections
-            let es = this.emptyStorage();
-            if (m.delivery.length == 0)
-                m.collection = m.collection.filter(rr => rr.amount <= es);
-
             if (m.collection.length == 0 && m.delivery.length == 0) return;
 
             // find satisfyable resource requests
             let eligible: ResourceRequest[] = [];
+            let es = this.emptyStorage();
             m.collection.forEach(rr => { if (rr.amount <= es) eligible.push(rr); });
             if (eligible.length == 0) m.collection.forEach(rr => eligible.push(rr));
             if (m.delivery.length > 0) {
@@ -188,8 +180,8 @@ class RRMap {
     }
 
     constructor(rrArray: ResourceRequest[], pv: Paraverse) {
-        this.pullmap = RRMap.makeMap(rrArray.filter(rr => rr.resourceRequestType == pv.PULL_REQUEST && rr.amount > 0));
-        this.pushmap = RRMap.makeMap(rrArray.filter(rr => rr.resourceRequestType == pv.PUSH_REQUEST && rr.amount > 0));
+        this.pullmap = RRMap.makeMap(rrArray.filter(rr => rr.resourceRequestType == pv.PULL_REQUEST));
+        this.pushmap = RRMap.makeMap(rrArray.filter(rr => rr.resourceRequestType == pv.PUSH_REQUEST));
     }
 
     subtract(rr: ResourceRequest, pv: Paraverse): void {
@@ -221,6 +213,7 @@ class RRMap {
 export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     // collect queued requests
     let queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
+    queuedrr.forEach(rr => console.log(`from memory ${rrToString(rr, pv)}`));
 
     // collect all current requests
     let currentrr =
@@ -242,7 +235,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
 
     // replace queued amount with current amount
-    queuedrr.forEach(qrr => qrr.amount = 0);
+    queuedrr.forEach(qrr => { qrr.amount = 0; });
     let queuedmap = new RRMap(queuedrr, pv);
     let unqueued: ResourceRequest[] = [];
     currentrr.forEach(rr => {
@@ -255,6 +248,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
     // remove empty requests
     let queueDll = mopt.makeDLList(queuedrr);
+    queueDll.forEach(entry => console.log(`after makeDLList ${rrToString(entry.elem, pv)}`));
     let queuedResourceTypes: string[] = [];
     let qrrSet: Dictionary<boolean> = {};
     queueDll.forEach(rre => {
@@ -268,6 +262,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     if (queueDll.length == 0) return;
 
     // try to assign resourceTypes to free transporters
+    queueDll.forEach(entry => console.log(`preAssignment ${rrToString(entry.elem, pv)}`));
     transporters.forEach(tcw => {
         let mem = tcw.memory;
         if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent) {
@@ -276,19 +271,13 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     });
 
     // put queueDll back into queuerr
-    let newrr = queueDll.toArray().filter(rr => rr.amount > 0);
-    for (let rri = 0; rri < newrr.length; ++rri) {
-        if (rri < queuedrr.length) queuedrr[rri] = newrr[rri];
-        else queuedrr.push(newrr[rri]);
-    }
-    while (queuedrr.length > newrr.length) queuedrr.pop();
+    pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
+    pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => console.log(`postAssignment ${rrToString(rr, pv)}`));
 }
 
 function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRequest>, resourceType: string, pv: Paraverse) {
     let mem = tcw.memory;
     if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0) return;
-    queueDll.forEach(entry => { if (entry.elem.amount <= 0) queueDll.remove(entry); });
-    if (queueDll.length == 0) return;
 
     // search for collections first
     let collectableAmount = tcw.emptyStorage();
@@ -336,4 +325,8 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
         if (rr.amount <= 0) queueDll.remove(entry);
     });
     tcw.preprocess(pv);
+}
+
+function rrToString(rr: ResourceRequest, pv: Paraverse): string {
+    return `${rr.requestorId} ${rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH"} ${rr.resourceType}, ${rr.amount}`;
 }
