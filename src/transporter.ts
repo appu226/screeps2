@@ -90,10 +90,12 @@ export class TransporterCreepWrapper implements CreepWrapper {
             // find satisfyable resource requests
             let eligible: ResourceRequest[] = [];
             m.collection.forEach(rr => { if (rr.amount <= es) eligible.push(rr); });
+            if (eligible.length == 0) m.collection.forEach(rr => eligible.push(rr));
             if (m.delivery.length > 0) {
                 let ra = this.resourceAmount(m.delivery[0].resourceType);
                 m.delivery.forEach(rr => { if (rr.amount <= ra) eligible.push(rr); });
             }
+            if (eligible.length == 0) m.delivery.forEach(rr => eligible.push(rr));
 
             //find closest satisfyable request
             let closest = mopt.maxBy(eligible, rr => mterr.euclidean(this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos, pv) * -1);
@@ -115,31 +117,40 @@ export class TransporterCreepWrapper implements CreepWrapper {
     process(pv: Paraverse) {
         if (!this.memory.currentRequest.isPresent) {
             pv.avoidObstacle(this);
+            pv.pushEfficiency(this.memory, this.element.ticksToLive < 50 ? 1 : 0);
             return;
         }
         let cr = this.memory.currentRequest.get;
         let orqor = pv.getRequestorById(cr.requestorId);
         if (!orqor.isPresent) {
             this.memory.currentRequest = mopt.None<ResourceRequest>();
+            pv.pushEfficiency(this.memory, this.element.ticksToLive < 50 ? 1 : 0);
             return;
         }
+
         let rqor = orqor.get;
+        let res: number = OK;
         switch (cr.resourceRequestType) {
             case pv.PUSH_REQUEST: {
-                if (rqor.giveResourceToCreep(this.element, cr.resourceType, Math.min(cr.amount, this.emptyStorage())) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, rqor.element.pos);
-                }
+                res = rqor.giveResourceToCreep(this.element, cr.resourceType, Math.min(cr.amount, this.emptyStorage()))
                 break;
             }
             case pv.PULL_REQUEST: {
-                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, Math.min(cr.amount, this.resourceAmount(cr.resourceType))) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, rqor.element.pos);
-                }
+                res = rqor.takeResourceFromCreep(this.element, cr.resourceType, Math.min(cr.amount, this.resourceAmount(cr.resourceType)));
                 break;
             }
             default:
                 throw new Error(`Creep ${this.element.name} hit an unexpected request type ${cr.resourceRequestType}`);
         }
+        let efficiency = 0;
+        if (res == ERR_NOT_IN_RANGE) {
+            let moveRes = pv.moveCreep(this, rqor.element.pos);
+            if (moveRes && cr.amount > 5) efficiency = 1;
+        } else
+            this.memory.currentRequest = mopt.None<ResourceRequest>();
+        if (res == OK && cr.amount > 5) efficiency = 1;
+
+        pv.pushEfficiency(this.memory, efficiency);
     }
 
     resourceAmount(resourceType: string): number {

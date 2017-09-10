@@ -73,11 +73,15 @@ var TransporterCreepWrapper = (function () {
             var eligible_1 = [];
             m.collection.forEach(function (rr) { if (rr.amount <= es_1)
                 eligible_1.push(rr); });
+            if (eligible_1.length == 0)
+                m.collection.forEach(function (rr) { return eligible_1.push(rr); });
             if (m.delivery.length > 0) {
                 var ra_1 = this.resourceAmount(m.delivery[0].resourceType);
                 m.delivery.forEach(function (rr) { if (rr.amount <= ra_1)
                     eligible_1.push(rr); });
             }
+            if (eligible_1.length == 0)
+                m.delivery.forEach(function (rr) { return eligible_1.push(rr); });
             //find closest satisfyable request
             var closest_1 = mopt.maxBy(eligible_1, function (rr) { return mterr.euclidean(_this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos, pv) * -1; });
             if (!closest_1.isPresent) {
@@ -96,31 +100,41 @@ var TransporterCreepWrapper = (function () {
     TransporterCreepWrapper.prototype.process = function (pv) {
         if (!this.memory.currentRequest.isPresent) {
             pv.avoidObstacle(this);
+            pv.pushEfficiency(this.memory, this.element.ticksToLive < 50 ? 1 : 0);
             return;
         }
         var cr = this.memory.currentRequest.get;
         var orqor = pv.getRequestorById(cr.requestorId);
         if (!orqor.isPresent) {
             this.memory.currentRequest = mopt.None();
+            pv.pushEfficiency(this.memory, this.element.ticksToLive < 50 ? 1 : 0);
             return;
         }
         var rqor = orqor.get;
+        var res = OK;
         switch (cr.resourceRequestType) {
             case pv.PUSH_REQUEST: {
-                if (rqor.giveResourceToCreep(this.element, cr.resourceType, Math.min(cr.amount, this.emptyStorage())) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, rqor.element.pos);
-                }
+                res = rqor.giveResourceToCreep(this.element, cr.resourceType, Math.min(cr.amount, this.emptyStorage()));
                 break;
             }
             case pv.PULL_REQUEST: {
-                if (rqor.takeResourceFromCreep(this.element, cr.resourceType, Math.min(cr.amount, this.resourceAmount(cr.resourceType))) == ERR_NOT_IN_RANGE) {
-                    pv.moveCreep(this, rqor.element.pos);
-                }
+                res = rqor.takeResourceFromCreep(this.element, cr.resourceType, Math.min(cr.amount, this.resourceAmount(cr.resourceType)));
                 break;
             }
             default:
                 throw new Error("Creep " + this.element.name + " hit an unexpected request type " + cr.resourceRequestType);
         }
+        var efficiency = 0;
+        if (res == ERR_NOT_IN_RANGE) {
+            var moveRes = pv.moveCreep(this, rqor.element.pos);
+            if (moveRes && cr.amount > 5)
+                efficiency = 1;
+        }
+        else
+            this.memory.currentRequest = mopt.None();
+        if (res == OK && cr.amount > 5)
+            efficiency = 1;
+        pv.pushEfficiency(this.memory, efficiency);
     };
     TransporterCreepWrapper.prototype.resourceAmount = function (resourceType) {
         if (this.element.carry[resourceType] === undefined)

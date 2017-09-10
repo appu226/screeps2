@@ -35,7 +35,18 @@ export class UpgraderCreepWrapper implements CreepWrapper {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_UPGRADER;
         this.memory = <UpgraderMemory>creep.memory;
-        this.resourceRequests = [];
+        let energy = creep.carry[RESOURCE_ENERGY];
+        if (energy === undefined) energy = 0;
+        let demand = creep.carryCapacity - energy;
+        this.resourceRequests = demand > 0
+            ? [{
+                roomName: creep.room.name,
+                resourceType: RESOURCE_ENERGY,
+                amount: demand,
+                requestorId: creep.id,
+                resourceRequestType: pv.PULL_REQUEST
+            }]
+            : [];
     }
 
     giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {

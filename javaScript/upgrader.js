@@ -27,7 +27,19 @@ var UpgraderCreepWrapper = (function () {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_UPGRADER;
         this.memory = creep.memory;
-        this.resourceRequests = [];
+        var energy = creep.carry[RESOURCE_ENERGY];
+        if (energy === undefined)
+            energy = 0;
+        var demand = creep.carryCapacity - energy;
+        this.resourceRequests = demand > 0
+            ? [{
+                    roomName: creep.room.name,
+                    resourceType: RESOURCE_ENERGY,
+                    amount: demand,
+                    requestorId: creep.id,
+                    resourceRequestType: pv.PULL_REQUEST
+                }]
+            : [];
     }
     UpgraderCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
         return this.element.transfer(creep, resourceType, amount);
