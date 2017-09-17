@@ -35,14 +35,6 @@ class RoomWrapperImpl implements RoomWrapper {
                 me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
             }
 
-            if (pv.getTransporterEfficiency(me) > .9) {
-                pv.scheduleCreep(
-                    me,
-                    pv.makeTransporterOrder(`Transporter_${me.name}`),
-                    4
-                );
-            }
-
             let hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (let hci = 0; hci < hostileCreeps.length; ++hci) {
                 let hc = hostileCreeps[hci];

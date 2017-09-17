@@ -121,12 +121,12 @@ var TransporterCreepWrapper = (function () {
         var efficiency = 0;
         if (res == ERR_NOT_IN_RANGE) {
             var moveRes = pv.moveCreep(this, rqor.element.pos);
-            if (moveRes && cr.amount > 5)
+            if (moveRes)
                 efficiency = 1;
         }
         else
             this.memory.currentRequest = mopt.None();
-        if (res == OK && cr.amount > 5)
+        if (res == OK)
             efficiency = 1;
         pv.pushEfficiency(this.memory, efficiency);
     };
@@ -175,6 +175,7 @@ var RRMap = (function () {
             return false;
         else {
             map[rr.resourceType][rr.requestorId].amount += rr.amount;
+            map[rr.resourceType][rr.requestorId].isBlocker = rr.isBlocker;
             return true;
         }
     };
@@ -183,15 +184,17 @@ var RRMap = (function () {
         var map2 = mdict.getOrAdd(map, rr.resourceType, {});
         if (map2[rr.requestorId] === undefined)
             map2[rr.requestorId] = rr;
-        else
+        else {
             map2[rr.requestorId].amount += rr.amount;
+            map2[rr.requestorId].isBlocker = rr.isBlocker;
+        }
     };
     return RRMap;
 }());
 function manageResourcesForRoom(room, pv) {
     // collect queued requests
     var queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
-    queuedrr.forEach(function (rr) { return console.log("from memory " + rrToString(rr, pv)); });
+    // queuedrr.forEach(rr => pv.log.debug(`from memory ${rrToString(rr, pv)}`));
     // collect all current requests
     var currentrr = mopt.flatten(pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; })).concat(mopt.flatten(pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; })));
     // collect transporters
@@ -206,7 +209,7 @@ function manageResourcesForRoom(room, pv) {
             currentmap.subtract(tcw.memory.currentRequest.get, pv);
     });
     // replace queued amount with current amount
-    queuedrr.forEach(function (qrr) { qrr.amount = 0; });
+    queuedrr.forEach(function (qrr) { qrr.amount = 0; qrr.isBlocker = false; });
     var queuedmap = new RRMap(queuedrr, pv);
     var unqueued = [];
     currentrr.forEach(function (rr) {
@@ -218,7 +221,7 @@ function manageResourcesForRoom(room, pv) {
     unqueued.forEach(function (rr) { queuedrr.push(rr); });
     // remove empty requests
     var queueDll = mopt.makeDLList(queuedrr);
-    queueDll.forEach(function (entry) { return console.log("after makeDLList " + rrToString(entry.elem, pv)); });
+    // queueDll.forEach(entry => pv.log.debug(`after makeDLList ${rrToString(entry.elem, pv)}`));
     var queuedResourceTypes = [];
     var qrrSet = {};
     queueDll.forEach(function (rre) {
@@ -232,7 +235,7 @@ function manageResourcesForRoom(room, pv) {
     if (queueDll.length == 0)
         return;
     // try to assign resourceTypes to free transporters
-    queueDll.forEach(function (entry) { return console.log("preAssignment " + rrToString(entry.elem, pv)); });
+    // queueDll.forEach(entry => pv.log.debug(`preAssignment ${rrToString(entry.elem, pv)}`));
     transporters.forEach(function (tcw) {
         var mem = tcw.memory;
         if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent) {
@@ -241,9 +244,27 @@ function manageResourcesForRoom(room, pv) {
     });
     // put queueDll back into queuerr
     pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
-    pv.getRoomMemory(room).queuedResourceRequests.forEach(function (rr) { return console.log("postAssignment " + rrToString(rr, pv)); });
+    // pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => pv.log.debug(`postAssignment ${rrToString(rr, pv)}`));
+    if (avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) && pv.getTransporterEfficiency(room) > .9) {
+        pv.scheduleCreep(room, pv.makeTransporterOrder("Transporter_" + room.name), 4);
+    }
 }
 exports.manageResourcesForRoom = manageResourcesForRoom;
+// check whether there is a pending request that is a blocker
+// that could have been avoided if we had more transporters
+function avoidableBlocker(queuedRequests, pv) {
+    var blockers = queuedRequests.filter(function (rr) { return rr.isBlocker; });
+    if (blockers.length == 0)
+        return false;
+    return blockers.some(function (rr) {
+        return rr.isBlocker
+            && blockers.some(function (rr2) {
+                return rr.resourceRequestType != rr2.resourceRequestType
+                    && rr.resourceType == rr2.resourceType
+                    && rr2.amount > 0;
+            });
+    });
+}
 function assignRequest(tcw, queueDll, resourceType, pv) {
     var mem = tcw.memory;
     if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0)
@@ -303,5 +324,5 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
     tcw.preprocess(pv);
 }
 function rrToString(rr, pv) {
-    return rr.requestorId + " " + (rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH") + " " + rr.resourceType + ", " + rr.amount;
+    return rr.requestorId + " " + (rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH") + " " + rr.resourceType + ", " + rr.amount + (rr.isBlocker ? ", isBlocker" : "");
 }

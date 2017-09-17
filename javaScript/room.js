@@ -32,9 +32,6 @@ var RoomWrapperImpl = (function () {
                 var roadPos = pv.getRoadToBeBuilt(me);
                 me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
             }
-            if (pv.getTransporterEfficiency(me) > .9) {
-                pv.scheduleCreep(me, pv.makeTransporterOrder("Transporter_" + me.name), 4);
-            }
             var hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (var hci = 0; hci < hostileCreeps.length; ++hci) {
                 var hc = hostileCreeps[hci];

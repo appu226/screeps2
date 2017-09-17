@@ -137,10 +137,10 @@ export class TransporterCreepWrapper implements CreepWrapper {
         let efficiency = 0;
         if (res == ERR_NOT_IN_RANGE) {
             let moveRes = pv.moveCreep(this, rqor.element.pos);
-            if (moveRes && cr.amount > 5) efficiency = 1;
+            if (moveRes) efficiency = 1;
         } else
             this.memory.currentRequest = mopt.None<ResourceRequest>();
-        if (res == OK && cr.amount > 5) efficiency = 1;
+        if (res == OK) efficiency = 1;
 
         pv.pushEfficiency(this.memory, efficiency);
     }
@@ -197,6 +197,7 @@ class RRMap {
             return false;
         else {
             map[rr.resourceType][rr.requestorId].amount += rr.amount;
+            map[rr.resourceType][rr.requestorId].isBlocker = rr.isBlocker;
             return true;
         }
     }
@@ -205,15 +206,17 @@ class RRMap {
         let map2 = mdict.getOrAdd(map, rr.resourceType, {});
         if (map2[rr.requestorId] === undefined)
             map2[rr.requestorId] = rr;
-        else
+        else {
             map2[rr.requestorId].amount += rr.amount;
+            map2[rr.requestorId].isBlocker = rr.isBlocker;
+        }
     }
 }
 
 export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     // collect queued requests
     let queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
-    queuedrr.forEach(rr => console.log(`from memory ${rrToString(rr, pv)}`));
+    // queuedrr.forEach(rr => pv.log.debug(`from memory ${rrToString(rr, pv)}`));
 
     // collect all current requests
     let currentrr =
@@ -235,7 +238,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
 
     // replace queued amount with current amount
-    queuedrr.forEach(qrr => { qrr.amount = 0; });
+    queuedrr.forEach(qrr => { qrr.amount = 0; qrr.isBlocker = false; });
     let queuedmap = new RRMap(queuedrr, pv);
     let unqueued: ResourceRequest[] = [];
     currentrr.forEach(rr => {
@@ -248,7 +251,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
     // remove empty requests
     let queueDll = mopt.makeDLList(queuedrr);
-    queueDll.forEach(entry => console.log(`after makeDLList ${rrToString(entry.elem, pv)}`));
+    // queueDll.forEach(entry => pv.log.debug(`after makeDLList ${rrToString(entry.elem, pv)}`));
     let queuedResourceTypes: string[] = [];
     let qrrSet: Dictionary<boolean> = {};
     queueDll.forEach(rre => {
@@ -262,7 +265,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     if (queueDll.length == 0) return;
 
     // try to assign resourceTypes to free transporters
-    queueDll.forEach(entry => console.log(`preAssignment ${rrToString(entry.elem, pv)}`));
+    // queueDll.forEach(entry => pv.log.debug(`preAssignment ${rrToString(entry.elem, pv)}`));
     transporters.forEach(tcw => {
         let mem = tcw.memory;
         if (mem.collection.length == 0 && mem.delivery.length == 0 && !mem.currentRequest.isPresent) {
@@ -272,7 +275,32 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
     // put queueDll back into queuerr
     pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
-    pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => console.log(`postAssignment ${rrToString(rr, pv)}`));
+    // pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => pv.log.debug(`postAssignment ${rrToString(rr, pv)}`));
+
+
+    if (avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) && pv.getTransporterEfficiency(room) > .9) {
+        pv.scheduleCreep(
+            room,
+            pv.makeTransporterOrder(`Transporter_${room.name}`),
+            4
+        );
+    }
+}
+
+// check whether there is a pending request that is a blocker
+// that could have been avoided if we had more transporters
+function avoidableBlocker(queuedRequests: ResourceRequest[], pv: Paraverse): boolean {
+    let blockers = queuedRequests.filter(rr => rr.isBlocker);
+    if (blockers.length == 0)
+        return false;
+    return blockers.some(rr => {
+        return rr.isBlocker
+            && blockers.some(rr2 => {
+                return rr.resourceRequestType != rr2.resourceRequestType
+                    && rr.resourceType == rr2.resourceType
+                    && rr2.amount > 0;
+            });
+    });
 }
 
 function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRequest>, resourceType: string, pv: Paraverse) {
@@ -330,5 +358,5 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
 }
 
 function rrToString(rr: ResourceRequest, pv: Paraverse): string {
-    return `${rr.requestorId} ${rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH"} ${rr.resourceType}, ${rr.amount}`;
+    return `${rr.requestorId} ${rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH"} ${rr.resourceType}, ${rr.amount}${rr.isBlocker ? ", isBlocker": ""}`;
 }
