@@ -27,7 +27,10 @@ function makeHarvesterMemory(sourceId: string, pv: Paraverse): HarvesterMemory {
             pushStack: [],
             popStack: []
         },
-        totalEfficiency: 0
+        totalEfficiency: 0,
+        lastX: -1,
+        lastY: -1,
+        lastTimeOfMoveAttempt: -1
     }
 }
 
@@ -99,7 +102,11 @@ export class HarvesterCreepWrapper implements CreepWrapper {
                 targets,
                 (sw: StructureWrapper) => -1 * mter.euclidean(sw.element.pos, this.element.pos, pv)
             );
-            if (closest.isPresent) {
+            if (closest.isPresent
+                && ( // don't go too far if there are transporters
+                    pv.getMyCreepsByRoomAndType(this.element.room, pv.CREEP_TYPE_TRANSPORTER).length == 0
+                    || closest.get.measure * -1 < 5
+                )) {
                 let target = closest.get.elem;
                 if (this.element.transfer(target.element, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
                     pv.moveCreep(this, target.element.pos);

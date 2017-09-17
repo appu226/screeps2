@@ -4,8 +4,8 @@ function makeUpgraderOrder(orderName, roomName, pv) {
         creepType: pv.CREEP_TYPE_UPGRADER,
         name: pv.CREEP_TYPE_UPGRADER + "_" + pv.getUid(),
         orderName: orderName,
-        basicBody: [MOVE, CARRY, WORK, WORK],
-        addOnBody: [MOVE, CARRY, WORK, WORK],
+        basicBody: [MOVE, CARRY, CARRY, WORK],
+        addOnBody: [MOVE, CARRY, CARRY, WORK],
         maxEnergy: 3000,
         memory: makeUpgraderMemory(roomName, pv)
     };
@@ -19,7 +19,10 @@ function makeUpgraderMemory(roomName, pv) {
             pushStack: [],
             popStack: []
         },
-        totalEfficiency: 0
+        totalEfficiency: 0,
+        lastX: -1,
+        lastY: -1,
+        lastTimeOfMoveAttempt: -1
     };
 }
 var UpgraderCreepWrapper = (function () {

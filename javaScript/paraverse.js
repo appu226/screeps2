@@ -458,7 +458,20 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.moveCreep = function (cw, pos) {
         if (cw.element.fatigue > 0 && this.getPossibleConstructionSites(cw.element.room)[cw.element.pos.x][cw.element.pos.y])
             this.recordFatigue(cw.element.pos.x, cw.element.pos.y, cw.element.pos.roomName);
-        return cw.element.moveTo(pos) == OK;
+        var isStuck = false;
+        if (cw.element.fatigue == 0) {
+            if (cw.element.pos.x == cw.memory.lastX && cw.element.pos.y == cw.memory.lastY) {
+                ++cw.memory.lastTimeOfMoveAttempt;
+            }
+            else {
+                cw.memory.lastX = cw.element.pos.x;
+                cw.memory.lastY = cw.element.pos.y;
+                cw.memory.lastTimeOfMoveAttempt = 0;
+            }
+            if (cw.memory.lastTimeOfMoveAttempt >= 5)
+                isStuck = true;
+        }
+        return cw.element.moveTo(pos, { reusePath: isStuck ? 0 : 50, ignoreCreeps: !isStuck }) == OK;
     };
     ParaverseImpl.prototype.makeCreepWrapper = function (c) {
         if (!c.my)

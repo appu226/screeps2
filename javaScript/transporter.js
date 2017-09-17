@@ -25,7 +25,10 @@ function makeTransporterMemory(pv) {
         collection: [],
         delivery: [],
         currentAmount: 0,
-        currentRequest: mopt.None()
+        currentRequest: mopt.None(),
+        lastX: -1,
+        lastY: -1,
+        lastTimeOfMoveAttempt: -1
     };
 }
 var TransporterCreepWrapper = (function () {
@@ -50,7 +53,6 @@ var TransporterCreepWrapper = (function () {
             if (this.resourceAmount(cr.resourceType) != m.currentAmount
                 || !pv.getRequestorById(cr.requestorId).isPresent) {
                 m.currentRequest = mopt.None();
-                pv.log.debug("transporter/preprocess: resetting " + this.element.name + " to free.");
             }
         }
         // try to find next request
@@ -87,7 +89,7 @@ var TransporterCreepWrapper = (function () {
             m.collection = m.collection.filter(function (rr) { return rr != closest_1.get.elem; });
             m.delivery = m.delivery.filter(function (rr) { return rr != closest_1.get.elem; });
             m.currentRequest = mopt.Some(closest_1.get.elem);
-            pv.log.debug("transporter/preprocess: assigned " + this.element.name + " to " + m.currentRequest.get.requestorId + ".");
+            // pv.log.debug(`transporter/preprocess: assigned ${this.element.name} to ${m.currentRequest.get.requestorId}.`);
             m.currentAmount = this.resourceAmount(m.currentRequest.get.resourceType);
         }
     };
@@ -118,17 +120,12 @@ var TransporterCreepWrapper = (function () {
             default:
                 throw new Error("Creep " + this.element.name + " hit an unexpected request type " + cr.resourceRequestType);
         }
-        var efficiency = 0;
         if (res == ERR_NOT_IN_RANGE) {
-            var moveRes = pv.moveCreep(this, rqor.element.pos);
-            if (moveRes)
-                efficiency = 1;
+            pv.moveCreep(this, rqor.element.pos);
         }
         else
             this.memory.currentRequest = mopt.None();
-        if (res == OK)
-            efficiency = 1;
-        pv.pushEfficiency(this.memory, efficiency);
+        pv.pushEfficiency(this.memory, 1);
     };
     TransporterCreepWrapper.prototype.resourceAmount = function (resourceType) {
         if (this.element.carry[resourceType] === undefined)
@@ -245,7 +242,10 @@ function manageResourcesForRoom(room, pv) {
     // put queueDll back into queuerr
     pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
     // pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => pv.log.debug(`postAssignment ${rrToString(rr, pv)}`));
-    if (avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) && pv.getTransporterEfficiency(room) > .9) {
+    if (pv.getMyCreepsByRoom(room).length * 3 / 4 >= transporters.length // not more than 3/4ths should be transporters
+        && pv.getTransporterEfficiency(room) > .9 // transporters should not be idle
+        && avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) // transporters should make a difference
+    ) {
         pv.scheduleCreep(room, pv.makeTransporterOrder("Transporter_" + room.name), 4);
     }
 }
@@ -282,7 +282,7 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
         if (amt > 0) {
             rr.amount -= amt;
             collectedAmount += amt;
-            pv.log.debug("transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".collection for " + amt + " of " + rr.resourceType + ".");
+            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
             tcw.memory.collection.push({
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
@@ -308,7 +308,7 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
         if (amt > 0) {
             rr.amount -= amt;
             deliveredAmount += amt;
-            pv.log.debug("transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".delivery for " + amt + " of " + rr.resourceType + ".");
+            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
             tcw.memory.delivery.push({
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,

@@ -26,7 +26,10 @@ function makeHarvesterMemory(sourceId, pv) {
             pushStack: [],
             popStack: []
         },
-        totalEfficiency: 0
+        totalEfficiency: 0,
+        lastX: -1,
+        lastY: -1,
+        lastTimeOfMoveAttempt: -1
     };
 }
 var HarvesterCreepWrapper = (function () {
@@ -78,7 +81,9 @@ var HarvesterCreepWrapper = (function () {
             pv.pushEfficiency(this.memory, 0);
             var targets = pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_SPAWN).filter(function (sw) { return isFreeSpawn(sw); }).concat(pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_CONTAINER).filter(function (sw) { return isFreeContainer(sw); })).concat(pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_EXTENSION).filter(function (sw) { return isFreeExtension(sw); }));
             var closest = mopt.maxBy(targets, function (sw) { return -1 * mter.euclidean(sw.element.pos, _this.element.pos, pv); });
-            if (closest.isPresent) {
+            if (closest.isPresent
+                && (pv.getMyCreepsByRoomAndType(this.element.room, pv.CREEP_TYPE_TRANSPORTER).length == 0
+                    || closest.get.measure * -1 < 5)) {
                 var target = closest.get.elem;
                 if (this.element.transfer(target.element, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
                     pv.moveCreep(this, target.element.pos);

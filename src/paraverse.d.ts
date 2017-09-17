@@ -137,6 +137,7 @@ declare interface StructureWrapper extends ResourceRequestor {
 declare interface CreepWrapper extends ResourceRequestor {
     element: Creep;
     creepType: string;
+    memory: CreepMemory;
     process(pv: Paraverse): void;
 }
 
@@ -161,6 +162,9 @@ declare interface CreepMemory {
     creepType: string;
     efficiencies: QueueData<number>;
     totalEfficiency: number;
+    lastX: number;
+    lastY: number;
+    lastTimeOfMoveAttempt: number;
 }
 
 declare interface CreepOrder {
@@ -180,7 +184,7 @@ declare interface PlannedConstructionSite {
     roomName: string;
 }
 
-declare interface XY{
+declare interface XY {
     x: number;
     y: number;
 }

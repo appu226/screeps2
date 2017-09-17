@@ -3,10 +3,12 @@ export class MiscCreepWrapper implements CreepWrapper {
         this.element = creep;
         this.creepType = creepType
         this.resourceRequests = [];
+        this.memory = null;
     }
     element: Creep;
     creepType: string;
     resourceRequests: ResourceRequest[];
+    memory: CreepMemory;
     giveResourceToCreep(creep: Creep, resourceType: string, amount: number): number {
         return this.element.transfer(creep, resourceType, amount);
     }

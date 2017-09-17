@@ -25,7 +25,10 @@ function makeTransporterMemory(pv: Paraverse): TransporterMemory {
         collection: [],
         delivery: [],
         currentAmount: 0,
-        currentRequest: mopt.None<ResourceRequest>()
+        currentRequest: mopt.None<ResourceRequest>(),
+        lastX: -1,
+        lastY: -1,
+        lastTimeOfMoveAttempt: -1
     };
 }
 
@@ -64,7 +67,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
             if (this.resourceAmount(cr.resourceType) != m.currentAmount
                 || !pv.getRequestorById(cr.requestorId).isPresent) {
                 m.currentRequest = mopt.None<ResourceRequest>();
-                pv.log.debug(`transporter/preprocess: resetting ${this.element.name} to free.`);
+                // pv.log.debug(`transporter/preprocess: resetting ${this.element.name} to free.`);
             }
         }
 
@@ -101,7 +104,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
             m.delivery = m.delivery.filter(rr => rr != closest.get.elem);
 
             m.currentRequest = mopt.Some(closest.get.elem);
-            pv.log.debug(`transporter/preprocess: assigned ${this.element.name} to ${m.currentRequest.get.requestorId}.`);
+            // pv.log.debug(`transporter/preprocess: assigned ${this.element.name} to ${m.currentRequest.get.requestorId}.`);
             m.currentAmount = this.resourceAmount(m.currentRequest.get.resourceType);
         }
     }
@@ -134,15 +137,12 @@ export class TransporterCreepWrapper implements CreepWrapper {
             default:
                 throw new Error(`Creep ${this.element.name} hit an unexpected request type ${cr.resourceRequestType}`);
         }
-        let efficiency = 0;
         if (res == ERR_NOT_IN_RANGE) {
-            let moveRes = pv.moveCreep(this, rqor.element.pos);
-            if (moveRes) efficiency = 1;
+            pv.moveCreep(this, rqor.element.pos);
         } else
             this.memory.currentRequest = mopt.None<ResourceRequest>();
-        if (res == OK) efficiency = 1;
 
-        pv.pushEfficiency(this.memory, efficiency);
+        pv.pushEfficiency(this.memory, 1);
     }
 
     resourceAmount(resourceType: string): number {
@@ -278,7 +278,11 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     // pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => pv.log.debug(`postAssignment ${rrToString(rr, pv)}`));
 
 
-    if (avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) && pv.getTransporterEfficiency(room) > .9) {
+    if (
+        pv.getMyCreepsByRoom(room).length * 3 / 4 >= transporters.length  // not more than 3/4ths should be transporters
+        && pv.getTransporterEfficiency(room) > .9 // transporters should not be idle
+        && avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) // transporters should make a difference
+    ) {
         pv.scheduleCreep(
             room,
             pv.makeTransporterOrder(`Transporter_${room.name}`),
@@ -318,7 +322,7 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
         if (amt > 0) {
             rr.amount -= amt;
             collectedAmount += amt;
-            pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
+            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
             tcw.memory.collection.push({
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
@@ -342,7 +346,7 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
         if (amt > 0) {
             rr.amount -= amt;
             deliveredAmount += amt;
-            pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
+            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
             tcw.memory.delivery.push({
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
@@ -358,5 +362,5 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
 }
 
 function rrToString(rr: ResourceRequest, pv: Paraverse): string {
-    return `${rr.requestorId} ${rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH"} ${rr.resourceType}, ${rr.amount}${rr.isBlocker ? ", isBlocker": ""}`;
+    return `${rr.requestorId} ${rr.resourceRequestType == pv.PULL_REQUEST ? "PULL" : "PUSH"} ${rr.resourceType}, ${rr.amount}${rr.isBlocker ? ", isBlocker" : ""}`;
 }

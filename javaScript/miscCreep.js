@@ -4,6 +4,7 @@ var MiscCreepWrapper = (function () {
         this.element = creep;
         this.creepType = creepType;
         this.resourceRequests = [];
+        this.memory = null;
     }
     MiscCreepWrapper.prototype.giveResourceToCreep = function (creep, resourceType, amount) {
         return this.element.transfer(creep, resourceType, amount);

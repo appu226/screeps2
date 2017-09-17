@@ -20,7 +20,10 @@ function makeDefenderMemory(targetId: string, pv: Paraverse): DefenderMemory {
             pushStack: [],
             popStack: []
         },
-        totalEfficiency: 0
+        totalEfficiency: 0,
+        lastX: -1,
+        lastY: -1,
+        lastTimeOfMoveAttempt: -1
     }
 }
 
