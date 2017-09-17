@@ -296,7 +296,8 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
                 resourceType: rr.resourceType,
                 resourceRequestType: rr.resourceRequestType,
                 requestorId: rr.requestorId,
-                amount: amt
+                amount: amt,
+                isBlocker: rr.isBlocker
             });
         }
         if (rr.amount <= 0) queueDll.remove(entry);
@@ -319,7 +320,8 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
                 resourceType: rr.resourceType,
                 resourceRequestType: rr.resourceRequestType,
                 requestorId: rr.requestorId,
-                amount: amt
+                amount: amt,
+                isBlocker: rr.isBlocker
             });
         }
         if (rr.amount <= 0) queueDll.remove(entry);

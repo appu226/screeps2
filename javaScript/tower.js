@@ -12,7 +12,8 @@ var TowerWrapper = (function () {
                     resourceType: RESOURCE_ENERGY,
                     amount: demand,
                     requestorId: tower.id,
-                    resourceRequestType: pv.PULL_REQUEST
+                    resourceRequestType: pv.PULL_REQUEST,
+                    isBlocker: tower.energy == 0
                 }]
             : [];
     }

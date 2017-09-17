@@ -118,6 +118,7 @@ declare interface ResourceRequest {
     amount: number;
     requestorId: string;
     resourceRequestType: number;
+    isBlocker: boolean;
 }
 
 declare interface ResourceRequestor {

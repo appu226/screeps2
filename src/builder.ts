@@ -37,7 +37,7 @@ export class BuilderCreepWrapper implements CreepWrapper {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_BUILDER;
         this.memory = <BuilderMemory>creep.memory;
-        let demand = this.element.carryCapacity - this.element.carry[RESOURCE_ENERGY];
+        let demand = pv.availableSpace(creep.carry, creep.carryCapacity);
         this.resourceRequests =
             (demand > 0
                 ? [{
@@ -45,7 +45,8 @@ export class BuilderCreepWrapper implements CreepWrapper {
                     resourceType: RESOURCE_ENERGY,
                     amount: demand,
                     requestorId: this.element.id,
-                    resourceRequestType: pv.PULL_REQUEST
+                    resourceRequestType: pv.PULL_REQUEST,
+                    isBlocker: (pv.resourceAmount(creep.carry, RESOURCE_ENERGY) == 0)
                 }]
                 : []);
     }

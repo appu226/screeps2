@@ -16,7 +16,11 @@ class SpawnWrapper implements StructureWrapper {
                 resourceType: RESOURCE_ENERGY,
                 resourceRequestType: pv.PULL_REQUEST,
                 amount: energyDemand,
-                roomName: spawn.room.name
+                roomName: spawn.room.name,
+                //isBlocker is used for checking if you need more transporters
+                //spawn and extension energy becomes 0 suddenly rather than gradually
+                //so you can't really use spawn or extension data to check if you need more transporters
+                isBlocker: false
             });
         }
     }

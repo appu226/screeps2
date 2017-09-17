@@ -34,14 +34,15 @@ var HarvesterCreepWrapper = (function () {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_HARVESTER;
         this.memory = creep.memory;
-        var demand = creep.carry[RESOURCE_ENERGY];
-        this.resourceRequests = (demand !== undefined && demand > 0)
+        var demand = pv.resourceAmount(creep.carry, RESOURCE_ENERGY);
+        this.resourceRequests = demand > 0
             ? [{
                     roomName: creep.room.name,
                     resourceType: RESOURCE_ENERGY,
                     amount: demand,
                     requestorId: creep.id,
-                    resourceRequestType: pv.PUSH_REQUEST
+                    resourceRequestType: pv.PUSH_REQUEST,
+                    isBlocker: pv.availableSpace(creep.carry, creep.carryCapacity) == 0
                 }]
             : [];
     }

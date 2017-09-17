@@ -3,14 +3,15 @@ var ContainerWrapper = (function () {
     function ContainerWrapper(container, pv) {
         this.element = container;
         this.my = container.room.controller.my;
-        var supply = container.store[RESOURCE_ENERGY];
+        var supply = pv.resourceAmount(container.store, RESOURCE_ENERGY);
         this.resourceRequests = supply > 0
             ? [{
                     roomName: this.element.room.name,
                     resourceType: RESOURCE_ENERGY,
                     amount: supply,
                     requestorId: this.element.id,
-                    resourceRequestType: pv.PUSH_REQUEST
+                    resourceRequestType: pv.PUSH_REQUEST,
+                    isBlocker: pv.availableSpace(container.store, container.storeCapacity) == 0
                 }]
             : [];
     }

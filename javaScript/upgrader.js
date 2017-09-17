@@ -27,9 +27,7 @@ var UpgraderCreepWrapper = (function () {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_UPGRADER;
         this.memory = creep.memory;
-        var energy = creep.carry[RESOURCE_ENERGY];
-        if (energy === undefined)
-            energy = 0;
+        var energy = pv.resourceAmount(creep.carry, RESOURCE_ENERGY);
         var demand = creep.carryCapacity - energy;
         this.resourceRequests = demand > 0
             ? [{
@@ -37,7 +35,8 @@ var UpgraderCreepWrapper = (function () {
                     resourceType: RESOURCE_ENERGY,
                     amount: demand,
                     requestorId: creep.id,
-                    resourceRequestType: pv.PULL_REQUEST
+                    resourceRequestType: pv.PULL_REQUEST,
+                    isBlocker: energy == 0
                 }]
             : [];
     }

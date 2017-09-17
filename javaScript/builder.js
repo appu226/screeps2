@@ -28,7 +28,7 @@ var BuilderCreepWrapper = (function () {
         this.element = creep;
         this.creepType = pv.CREEP_TYPE_BUILDER;
         this.memory = creep.memory;
-        var demand = this.element.carryCapacity - this.element.carry[RESOURCE_ENERGY];
+        var demand = pv.availableSpace(creep.carry, creep.carryCapacity);
         this.resourceRequests =
             (demand > 0
                 ? [{
@@ -36,7 +36,8 @@ var BuilderCreepWrapper = (function () {
                         resourceType: RESOURCE_ENERGY,
                         amount: demand,
                         requestorId: this.element.id,
-                        resourceRequestType: pv.PULL_REQUEST
+                        resourceRequestType: pv.PULL_REQUEST,
+                        isBlocker: (pv.resourceAmount(creep.carry, RESOURCE_ENERGY) == 0)
                     }]
                 : []);
     }
