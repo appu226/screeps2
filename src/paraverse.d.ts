@@ -62,6 +62,9 @@ declare interface Paraverse {
     getTotalCollectedDefense(enemyId: string): number;
     getSoldierCapability(soldier: Creep): number;
 
+    creepResourceAmount(creep: Creep, resourceType: string): number;
+    creepStorageAmount(creep: Creep): number;
+
     getTowerMemory(towerId: string): TowerMemory;
     setTowerMemory(towerId: string, towerMemory: TowerMemory): void;
 

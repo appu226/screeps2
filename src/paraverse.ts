@@ -756,6 +756,19 @@ class ParaverseImpl implements Paraverse {
         );
     }
 
+    creepResourceAmount(creep: Creep, resourceType: string): number {
+        if (creep.carry[resourceType] === undefined)
+            return 0;
+        else
+            return creep.carry[resourceType];
+    }
+
+    creepStorageAmount(creep: Creep): number {
+        let fullness = 0;
+        for (let rt in creep.carry) fullness += creep.carry[rt];
+        return creep.carryCapacity - fullness;
+    }
+
     recordFatigue(x: number, y: number, roomName: string) {
         let key = `${x}_${y}`;
         let roomFr = dictionary.getOrAdd<Dictionary<FatigueRecord>>(this.memory.fatigueRecords, roomName, {});

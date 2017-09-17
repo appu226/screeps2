@@ -557,6 +557,18 @@ var ParaverseImpl = (function () {
         return (soldier.getActiveBodyparts(RANGED_ATTACK) * RANGED_ATTACK_POWER
             + soldier.getActiveBodyparts(HEAL) * HEAL_POWER);
     };
+    ParaverseImpl.prototype.creepResourceAmount = function (creep, resourceType) {
+        if (creep.carry[resourceType] === undefined)
+            return 0;
+        else
+            return creep.carry[resourceType];
+    };
+    ParaverseImpl.prototype.creepStorageAmount = function (creep) {
+        var fullness = 0;
+        for (var rt in creep.carry)
+            fullness += creep.carry[rt];
+        return creep.carryCapacity - fullness;
+    };
     ParaverseImpl.prototype.recordFatigue = function (x, y, roomName) {
         var key = x + "_" + y;
         var roomFr = dictionary.getOrAdd(this.memory.fatigueRecords, roomName, {});
