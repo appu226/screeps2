@@ -291,9 +291,8 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
                 amount: amt,
                 isBlocker: rr.isBlocker
             });
-        }
-        if (rr.amount <= 0)
             queueDll.remove(entry);
+        }
     });
     // search for deliveries
     var deliverableAmount = tcw.resourceAmount(resourceType) + collectedAmount;
@@ -317,9 +316,8 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
                 amount: amt,
                 isBlocker: rr.isBlocker
             });
-        }
-        if (rr.amount <= 0)
             queueDll.remove(entry);
+        }
     });
     tcw.preprocess(pv);
 }

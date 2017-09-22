@@ -331,8 +331,8 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
                 amount: amt,
                 isBlocker: rr.isBlocker
             });
+            queueDll.remove(entry);
         }
-        if (rr.amount <= 0) queueDll.remove(entry);
     });
 
     // search for deliveries
@@ -355,8 +355,8 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
                 amount: amt,
                 isBlocker: rr.isBlocker
             });
+            queueDll.remove(entry);
         }
-        if (rr.amount <= 0) queueDll.remove(entry);
     });
     tcw.preprocess(pv);
 }
