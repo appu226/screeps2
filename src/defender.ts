@@ -56,6 +56,11 @@ export class DefenderCreepWrapper implements CreepWrapper {
             let hostileStructures: Structure[] = pv.getHostileStructuresInRoom(defender.room);
             if (hostileStructures.length > 0) enemy = hostileStructures[0];
         }
+        if (enemy == null) {
+            pv.avoidObstacle(this);
+            pv.pushEfficiency(memory, 0);
+            return;
+        }
         let couldMove = pv.moveCreep(this, enemy.pos);
         let attackResult = defender.attack(enemy);
         pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);

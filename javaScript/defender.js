@@ -47,6 +47,11 @@ var DefenderCreepWrapper = (function () {
             if (hostileStructures.length > 0)
                 enemy = hostileStructures[0];
         }
+        if (enemy == null) {
+            pv.avoidObstacle(this);
+            pv.pushEfficiency(memory, 0);
+            return;
+        }
         var couldMove = pv.moveCreep(this, enemy.pos);
         var attackResult = defender.attack(enemy);
         pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);
