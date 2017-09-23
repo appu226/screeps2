@@ -571,8 +571,16 @@ class ParaverseImpl implements Paraverse {
             this.getConstructionSitesFromRoom(room).forEach(cs => result[cs.pos.x][cs.pos.y] = false);
             this.structureWrappers.forEach(
                 sw => {
-                    if (sw.element.room.name == room.name)
+                    if (sw.element.room.name == room.name) {
                         result[sw.element.pos.x][sw.element.pos.y] = false;
+                        if (sw.element.structureType == STRUCTURE_CONTROLLER) {
+                            for (let x1 = Math.max(0, sw.element.pos.x - 3); x1 < Math.min(sw.element.pos.x + 4, result.length); ++x1) {
+                                for (let y1 = Math.max(0, sw.element.pos.y - 3); y1 < Math.min(sw.element.pos.y + 4, result[x1].length); ++y1) {
+                                    result[x1][y1] = false;
+                                }
+                            }
+                        }
+                    }
                 }
             );
             this.getMySources().forEach(sw => result[sw.source.pos.x][sw.source.pos.y] = false);
