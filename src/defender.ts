@@ -5,8 +5,8 @@ export function makeDefenderOrder(orderName: string, targetId: string, pv: Parav
         creepType: pv.CREEP_TYPE_DEFENDER,
         name: `${pv.CREEP_TYPE_DEFENDER}_${pv.getUid()}`,
         orderName: orderName,
-        basicBody: [RANGED_ATTACK, MOVE, MOVE, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH],
-        addOnBody: [MOVE, RANGED_ATTACK, MOVE, HEAL],
+        basicBody: [MOVE, ATTACK, MOVE, ATTACK],
+        addOnBody: [MOVE, ATTACK],
         maxEnergy: 100000,
         memory: makeDefenderMemory(targetId, pv)
     };
@@ -57,7 +57,7 @@ export class DefenderCreepWrapper implements CreepWrapper {
             if (hostileStructures.length > 0) enemy = hostileStructures[0];
         }
         let couldMove = pv.moveCreep(this, enemy.pos);
-        let attackResult = defender.rangedAttack(enemy);
+        let attackResult = defender.attack(enemy);
         pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);
         return;
     }

@@ -4,8 +4,8 @@ function makeDefenderOrder(orderName, targetId, pv) {
         creepType: pv.CREEP_TYPE_DEFENDER,
         name: pv.CREEP_TYPE_DEFENDER + "_" + pv.getUid(),
         orderName: orderName,
-        basicBody: [RANGED_ATTACK, MOVE, MOVE, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH],
-        addOnBody: [MOVE, RANGED_ATTACK, MOVE, HEAL],
+        basicBody: [MOVE, ATTACK, MOVE, ATTACK],
+        addOnBody: [MOVE, ATTACK],
         maxEnergy: 100000,
         memory: makeDefenderMemory(targetId, pv)
     };
@@ -48,7 +48,7 @@ var DefenderCreepWrapper = (function () {
                 enemy = hostileStructures[0];
         }
         var couldMove = pv.moveCreep(this, enemy.pos);
-        var attackResult = defender.rangedAttack(enemy);
+        var attackResult = defender.attack(enemy);
         pv.pushEfficiency(memory, couldMove || attackResult == OK ? 1 : 0);
         return;
     };
