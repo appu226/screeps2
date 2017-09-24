@@ -1,11 +1,11 @@
 import o = require('./option');
 
-export function makeClaimerOrder(orderName: string, roomName: string, roomPath: string[], pv: Paraverse): CreepOrder {
+export function makeClaimerOrder(orderName: string, roomName: string, roomPath: string[], addClaimPart: boolean, pv: Paraverse): CreepOrder {
     return {
         creepType: pv.CREEP_TYPE_CLAIMER,
         name: `${pv.CREEP_TYPE_CLAIMER}_${pv.getUid()}`,
         orderName: orderName,
-        basicBody: [MOVE, CLAIM, MOVE, WORK, MOVE, CARRY],
+        basicBody: addClaimPart ? [MOVE, CLAIM, MOVE, WORK, MOVE, CARRY] : [MOVE, WORK, MOVE, CARRY],
         addOnBody: [MOVE, MOVE, WORK, CARRY],
         maxEnergy: 5000,
         memory: makeClaimerMemory(roomName, roomPath, pv)

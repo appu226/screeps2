@@ -503,7 +503,7 @@ class ParaverseImpl implements Paraverse {
     makeTransporterOrder(orderName: string): CreepOrder { return mtransporter.makeTransporterOrder(orderName, this); }
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder { return mupgrader.makeUpgraderOrder(orderName, roomName, this); }
     makeDefenderOrder(orderName: string, targetId: string): CreepOrder { return mdefender.makeDefenderOrder(orderName, targetId, this); }
-    makeClaimerOrder(orderName: string, destination: string, destinationPath: string[]): CreepOrder { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, this); }
+    makeClaimerOrder(orderName: string, destination: string, destinationPath: string[], addClaimPart: boolean): CreepOrder { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, addClaimPart, this); }
 
     getTerrain(room: Room): number[][] {
         if (this.memory.terrainMap[room.name] === undefined) {

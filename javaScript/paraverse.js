@@ -331,7 +331,7 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.makeTransporterOrder = function (orderName) { return mtransporter.makeTransporterOrder(orderName, this); };
     ParaverseImpl.prototype.makeUpgraderOrder = function (orderName, roomName) { return mupgrader.makeUpgraderOrder(orderName, roomName, this); };
     ParaverseImpl.prototype.makeDefenderOrder = function (orderName, targetId) { return mdefender.makeDefenderOrder(orderName, targetId, this); };
-    ParaverseImpl.prototype.makeClaimerOrder = function (orderName, destination, destinationPath) { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, this); };
+    ParaverseImpl.prototype.makeClaimerOrder = function (orderName, destination, destinationPath, addClaimPart) { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, addClaimPart, this); };
     ParaverseImpl.prototype.getTerrain = function (room) {
         var _this = this;
         if (this.memory.terrainMap[room.name] === undefined) {

@@ -1,10 +1,10 @@
 "use strict";
-function makeClaimerOrder(orderName, roomName, roomPath, pv) {
+function makeClaimerOrder(orderName, roomName, roomPath, addClaimPart, pv) {
     return {
         creepType: pv.CREEP_TYPE_CLAIMER,
         name: pv.CREEP_TYPE_CLAIMER + "_" + pv.getUid(),
         orderName: orderName,
-        basicBody: [MOVE, CLAIM, MOVE, WORK, MOVE, CARRY],
+        basicBody: addClaimPart ? [MOVE, CLAIM, MOVE, WORK, MOVE, CARRY] : [MOVE, WORK, MOVE, CARRY],
         addOnBody: [MOVE, MOVE, WORK, CARRY],
         maxEnergy: 5000,
         memory: makeClaimerMemory(roomName, roomPath, pv)

@@ -48,7 +48,8 @@ var RoomWrapperImpl = (function () {
                     var rtc = memory.roomsToClaim[rtci];
                     var roomToClaim = pv.game.rooms[rtc.destination];
                     if (roomToClaim === undefined || pv.getMyStructuresByRoomAndType(roomToClaim, STRUCTURE_SPAWN).length == 0) {
-                        pv.scheduleCreep(me, pv.makeClaimerOrder("claimer_" + rtc.destination, rtc.destination, rtc.path), 2);
+                        var needClaimPart = (roomToClaim === undefined || !roomToClaim.controller.my);
+                        pv.scheduleCreep(me, pv.makeClaimerOrder("claimer_" + rtc.destination, rtc.destination, rtc.path, needClaimPart), 2);
                         rtcToKeep.push(rtc);
                     }
                 }
