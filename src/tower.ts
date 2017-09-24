@@ -1,5 +1,4 @@
 import o = require('./option');
-import mterrain = require('./terrain');
 
 class TowerWrapper implements StructureWrapper {
     element: StructureTower;
@@ -27,7 +26,7 @@ class TowerWrapper implements StructureWrapper {
         let t = this.element;
         let closestAndWeakestFinder =
             function (c: Creep | Structure): number {
-                return 1.0 / mterrain.euclidean(t.pos, c.pos, pv) / c.hits
+                return 1.0 / pv.euclidean(t.pos, c.pos) / c.hits
             };
 
         //attack closest and weakest enemy
@@ -57,7 +56,7 @@ class TowerWrapper implements StructureWrapper {
             pv.getMyStructuresByRoom(
                 t.room
             ).map(sw => sw.element).filter(s => s.hits < s.hitsMax);
-        let ss = o.maxBy<Structure>(structures, closestAndWeakestFinder);
+        let ss = o.maxBy<Structure>(structures, (s: Structure) => -s.hits);
         if (ss.isPresent) {
             t.repair(ss.get.elem);
         }

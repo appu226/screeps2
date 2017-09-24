@@ -1,7 +1,6 @@
 "use strict";
 var mopt = require("./option");
 var mdict = require("./dictionary");
-var mterr = require("./terrain");
 function makeTransporterOrder(orderName, pv) {
     return {
         creepType: pv.CREEP_TYPE_TRANSPORTER,
@@ -79,7 +78,7 @@ var TransporterCreepWrapper = (function () {
             if (eligible_1.length == 0)
                 m.delivery.forEach(function (rr) { return eligible_1.push(rr); });
             //find closest satisfyable request
-            var closest_1 = mopt.maxBy(eligible_1, function (rr) { return mterr.euclidean(_this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos, pv) * -1; });
+            var closest_1 = mopt.maxBy(eligible_1, function (rr) { return pv.manhattan(_this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos) * -1; });
             if (!closest_1.isPresent) {
                 m.collection = [];
                 m.delivery = [];

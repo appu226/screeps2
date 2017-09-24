@@ -100,6 +100,7 @@ class ParaverseImpl implements Paraverse {
     CREEP_TYPE_TRANSPORTER: string;
     CREEP_TYPE_UPGRADER: string;
     CREEP_TYPE_FOREIGNER: string;
+    CREEP_TYPE_CLAIMER: string;
 
     TERRAIN_CODE_PLAIN: number;
     TERRAIN_CODE_SWAMP: number;
@@ -137,6 +138,7 @@ class ParaverseImpl implements Paraverse {
         this.CREEP_TYPE_TRANSPORTER = "transporter";
         this.CREEP_TYPE_UPGRADER = "upgrader";
         this.CREEP_TYPE_FOREIGNER = "foreigner";
+        this.CREEP_TYPE_CLAIMER = "claimer";
 
         this.TERRAIN_CODE_PLAIN = 0;
         this.TERRAIN_CODE_SWAMP = TERRAIN_MASK_SWAMP;
@@ -381,11 +383,18 @@ class ParaverseImpl implements Paraverse {
     getRoomMemory(room: Room): RoomMemory {
         if (this.memory.roomMemories === undefined)
             this.memory.roomMemories = {};
-        return dictionary.getOrAdd(
+        let roomMemory = dictionary.getOrAdd<RoomMemory>(
             this.memory.roomMemories, room.name,
             {
-                queuedResourceRequests: []
+                queuedResourceRequests: [],
+                roomsToClaim: [],
+                roomsToMine: [],
+                roomsToSign: []
             });
+        if (roomMemory.roomsToClaim === undefined) roomMemory.roomsToClaim = [];
+        if (roomMemory.roomsToMine === undefined) roomMemory.roomsToMine = [];
+        if (roomMemory.roomsToSign === undefined) roomMemory.roomsToSign = [];
+        return roomMemory;
     }
 
     getSpawnMemory(spawn: StructureSpawn): SpawnMemory {
@@ -818,6 +827,14 @@ class ParaverseImpl implements Paraverse {
         let roomFrs = this.memory.fatigueRecords[room.name];
         let maxFFr = o.maxBy(dictionary.getValues(roomFrs), (fr: FatigueRecord) => fr.fatigue);
         return maxFFr.get.elem.xy;
+    }
+
+    euclidean(p1: RoomPosition, p2: RoomPosition): number {
+        return mterrain.euclidean(p1, p2, this);
+    }
+
+    manhattan(p1: RoomPosition, p2: RoomPosition): number {
+        return mterrain.manhattan(p1, p2, this);
     }
 
 }

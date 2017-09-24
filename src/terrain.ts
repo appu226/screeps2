@@ -22,3 +22,11 @@ export function euclidean(p1: RoomPosition, p2: RoomPosition, pv: Paraverse): nu
         return pv.map.getRoomLinearDistance(p1.roomName, p2.roomName) * 50 * Math.sqrt(2);
     }
 }
+
+export function manhattan(p1: RoomPosition, p2: RoomPosition, pv: Paraverse): number {
+    if (p1.roomName == p2.roomName) {
+        return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
+    } else {
+        return pv.map.getRoomLinearDistance(p1.roomName, p2.roomName) * 50;
+    }
+}

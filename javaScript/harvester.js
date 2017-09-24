@@ -1,6 +1,5 @@
 "use strict";
 var mopt = require("./option");
-var mter = require("./terrain");
 function isHarvesterWithSource(creepWrapper, sourceId, pv) {
     return creepWrapper.creepType == pv.CREEP_TYPE_HARVESTER &&
         creepWrapper.memory.sourceId == sourceId;
@@ -80,7 +79,7 @@ var HarvesterCreepWrapper = (function () {
         else {
             pv.pushEfficiency(this.memory, 0);
             var targets = pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_SPAWN).filter(function (sw) { return isFreeSpawn(sw); }).concat(pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_CONTAINER).filter(function (sw) { return isFreeContainer(sw); })).concat(pv.getMyStructuresByRoomAndType(this.element.room, STRUCTURE_EXTENSION).filter(function (sw) { return isFreeExtension(sw); }));
-            var closest = mopt.maxBy(targets, function (sw) { return -1 * mter.euclidean(sw.element.pos, _this.element.pos, pv); });
+            var closest = mopt.maxBy(targets, function (sw) { return -1 * pv.manhattan(sw.element.pos, _this.element.pos); });
             if (closest.isPresent
                 && (pv.getMyCreepsByRoomAndType(this.element.room, pv.CREEP_TYPE_TRANSPORTER).length == 0
                     || closest.get.measure * -1 < 5)) {

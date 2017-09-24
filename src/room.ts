@@ -1,6 +1,5 @@
 import mdict = require('./dictionary');
 import mopt = require('./option');
-import mter = require('./terrain');
 
 class RoomWrapperImpl implements RoomWrapper {
     room: Room;
@@ -47,8 +46,8 @@ class RoomWrapperImpl implements RoomWrapper {
                     );
                 }
             }
+            pv.manageResources(me);
         }
-        pv.manageResources(me);
     }
 
 }
@@ -78,7 +77,7 @@ function isSourceWithoutContainer(sw: SourceWrapper, room: Room, pv: Paraverse):
     let sourceMemory = pv.getSourceMemory(sw.source);
     if (sw.source.room.controller.level < 4 && pv.isCloseToLair(sw.source, sourceMemory))
         return false;
-    
+
     //check memory
     let cid = sourceMemory.containerId;
     let inMemory = cid != "" && pv.getStructureById(cid).isPresent;
@@ -91,7 +90,7 @@ function isSourceWithoutContainer(sw: SourceWrapper, room: Room, pv: Paraverse):
             STRUCTURE_CONTAINER
         );
         let containersInRange = containers.filter((cw: StructureWrapper) =>
-            mter.euclidean(sw.source.pos, cw.element.pos, pv) < 3
+            pv.manhattan(sw.source.pos, cw.element.pos) < 3
         );
         isClose = containersInRange.length > 0;
     }

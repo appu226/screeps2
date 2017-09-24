@@ -52,6 +52,7 @@ var ParaverseImpl = (function () {
         this.CREEP_TYPE_TRANSPORTER = "transporter";
         this.CREEP_TYPE_UPGRADER = "upgrader";
         this.CREEP_TYPE_FOREIGNER = "foreigner";
+        this.CREEP_TYPE_CLAIMER = "claimer";
         this.TERRAIN_CODE_PLAIN = 0;
         this.TERRAIN_CODE_SWAMP = TERRAIN_MASK_SWAMP;
         this.TERRAIN_CODE_WALL = TERRAIN_MASK_WALL;
@@ -224,9 +225,19 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.getRoomMemory = function (room) {
         if (this.memory.roomMemories === undefined)
             this.memory.roomMemories = {};
-        return dictionary.getOrAdd(this.memory.roomMemories, room.name, {
-            queuedResourceRequests: []
+        var roomMemory = dictionary.getOrAdd(this.memory.roomMemories, room.name, {
+            queuedResourceRequests: [],
+            roomsToClaim: [],
+            roomsToMine: [],
+            roomsToSign: []
         });
+        if (roomMemory.roomsToClaim === undefined)
+            roomMemory.roomsToClaim = [];
+        if (roomMemory.roomsToMine === undefined)
+            roomMemory.roomsToMine = [];
+        if (roomMemory.roomsToSign === undefined)
+            roomMemory.roomsToSign = [];
+        return roomMemory;
     };
     ParaverseImpl.prototype.getSpawnMemory = function (spawn) {
         var mem = spawn.memory;
@@ -615,6 +626,12 @@ var ParaverseImpl = (function () {
         var roomFrs = this.memory.fatigueRecords[room.name];
         var maxFFr = o.maxBy(dictionary.getValues(roomFrs), function (fr) { return fr.fatigue; });
         return maxFFr.get.elem.xy;
+    };
+    ParaverseImpl.prototype.euclidean = function (p1, p2) {
+        return mterrain.euclidean(p1, p2, this);
+    };
+    ParaverseImpl.prototype.manhattan = function (p1, p2) {
+        return mterrain.manhattan(p1, p2, this);
     };
     return ParaverseImpl;
 }());

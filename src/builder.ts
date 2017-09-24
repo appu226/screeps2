@@ -6,8 +6,8 @@ export function makeBuilderOrder(orderName: string, pv: Paraverse): CreepOrder {
         name: `${pv.CREEP_TYPE_BUILDER}_${pv.getUid()}`,
         orderName: orderName,
         basicBody: [MOVE, CARRY, WORK, CARRY, CARRY],
-        addOnBody: [MOVE, CARRY, WORK, CARRY],
-        maxEnergy: 1000,
+        addOnBody: [MOVE, CARRY, CARRY, WORK, MOVE, CARRY, CARRY, CARRY],
+        maxEnergy: 5000,
         memory: makeBuilderMemory(pv)
     };
 }

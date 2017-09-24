@@ -25,3 +25,12 @@ function euclidean(p1, p2, pv) {
     }
 }
 exports.euclidean = euclidean;
+function manhattan(p1, p2, pv) {
+    if (p1.roomName == p2.roomName) {
+        return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
+    }
+    else {
+        return pv.map.getRoomLinearDistance(p1.roomName, p2.roomName) * 50;
+    }
+}
+exports.manhattan = manhattan;

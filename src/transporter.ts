@@ -1,6 +1,5 @@
 import mopt = require('./option');
 import mdict = require('./dictionary');
-import mterr = require('./terrain');
 
 export function makeTransporterOrder(orderName: string, pv: Paraverse): CreepOrder {
     return {
@@ -93,7 +92,7 @@ export class TransporterCreepWrapper implements CreepWrapper {
             if (eligible.length == 0) m.delivery.forEach(rr => eligible.push(rr));
 
             //find closest satisfyable request
-            let closest = mopt.maxBy(eligible, rr => mterr.euclidean(this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos, pv) * -1);
+            let closest = mopt.maxBy(eligible, rr => pv.manhattan(this.element.pos, pv.getRequestorById(rr.requestorId).get.element.pos) * -1);
             if (!closest.isPresent) {
                 m.collection = [];
                 m.delivery = [];

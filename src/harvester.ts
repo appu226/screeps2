@@ -1,5 +1,4 @@
 import mopt = require('./option');
-import mter = require('./terrain');
 
 export function isHarvesterWithSource(creepWrapper: CreepWrapper, sourceId: string, pv: Paraverse): boolean {
     return creepWrapper.creepType == pv.CREEP_TYPE_HARVESTER &&
@@ -100,7 +99,7 @@ export class HarvesterCreepWrapper implements CreepWrapper {
 
             let closest = mopt.maxBy<StructureWrapper>(
                 targets,
-                (sw: StructureWrapper) => -1 * mter.euclidean(sw.element.pos, this.element.pos, pv)
+                (sw: StructureWrapper) => -1 * pv.manhattan(sw.element.pos, this.element.pos)
             );
             if (closest.isPresent
                 && ( // don't go too far if there are transporters

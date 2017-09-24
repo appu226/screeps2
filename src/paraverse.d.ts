@@ -76,6 +76,9 @@ declare interface Paraverse {
 
     getUid(): number;
 
+    euclidean(p1: RoomPosition, p2: RoomPosition): number;
+    manhattan(p1: RoomPosition, p2: RoomPosition): number;
+
     LOG_LEVEL_SILENT: number;
     LOG_LEVEL_ERROR: number;
     LOG_LEVEL_WARN: number;
@@ -88,6 +91,7 @@ declare interface Paraverse {
     CREEP_TYPE_TRANSPORTER: string;
     CREEP_TYPE_UPGRADER: string;
     CREEP_TYPE_FOREIGNER: string;
+    CREEP_TYPE_CLAIMER: string;
 
     TERRAIN_CODE_PLAIN: number;
     TERRAIN_CODE_SWAMP: number;
@@ -199,6 +203,14 @@ declare interface SpawnMemory {
     ticksSinceLastDonation: number;
 }
 
+declare interface RoomPath {
+    path: string[];
+    destination: string;
+}
+
 declare interface RoomMemory {
     queuedResourceRequests: ResourceRequest[];
+    roomsToClaim: RoomPath[];
+    roomsToSign: RoomPath[];
+    roomsToMine: RoomPath[];
 }

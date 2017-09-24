@@ -1,6 +1,5 @@
 "use strict";
 var o = require("./option");
-var mterrain = require("./terrain");
 var TowerWrapper = (function () {
     function TowerWrapper(tower, pv) {
         this.element = tower;
@@ -20,7 +19,7 @@ var TowerWrapper = (function () {
     TowerWrapper.prototype.process = function (pv) {
         var t = this.element;
         var closestAndWeakestFinder = function (c) {
-            return 1.0 / mterrain.euclidean(t.pos, c.pos, pv) / c.hits;
+            return 1.0 / pv.euclidean(t.pos, c.pos) / c.hits;
         };
         //attack closest and weakest enemy
         var enemies = pv.getHostileCreepsInRoom(t.room);
@@ -41,7 +40,7 @@ var TowerWrapper = (function () {
         if (fullNess < .75)
             return;
         var structures = pv.getMyStructuresByRoom(t.room).map(function (sw) { return sw.element; }).filter(function (s) { return s.hits < s.hitsMax; });
-        var ss = o.maxBy(structures, closestAndWeakestFinder);
+        var ss = o.maxBy(structures, function (s) { return -s.hits; });
         if (ss.isPresent) {
             t.repair(ss.get.elem);
         }

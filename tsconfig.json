@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-         //"outDir": "/home/parakram/.config/Screeps/scripts/screeps.com/default",
+        //"outDir": "/home/parakram/.config/Screeps/scripts/screeps.com/default",
         "outDir": "javaScript",
         "rootDir": "src",
         "target": "es3",
@@ -11,6 +11,7 @@
     },
     "files": [
         "src/builder.ts",
+        "src/claimer.ts",
         "src/container.ts",
         "src/controller.ts",
         "src/defender.ts",

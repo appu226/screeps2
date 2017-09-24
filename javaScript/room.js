@@ -1,6 +1,5 @@
 "use strict";
 var mopt = require("./option");
-var mter = require("./terrain");
 var RoomWrapperImpl = (function () {
     function RoomWrapperImpl(room) {
         this.room = room;
@@ -41,8 +40,8 @@ var RoomWrapperImpl = (function () {
                     pv.scheduleCreep(me, pv.makeDefenderOrder("defender_" + me.name + "_" + hc.id, hc.id), 2);
                 }
             }
+            pv.manageResources(me);
         }
-        pv.manageResources(me);
     };
     return RoomWrapperImpl;
 }());
@@ -73,7 +72,7 @@ function isSourceWithoutContainer(sw, room, pv) {
     if (!isClose) {
         var containers = pv.getMyStructuresByRoomAndType(room, STRUCTURE_CONTAINER);
         var containersInRange = containers.filter(function (cw) {
-            return mter.euclidean(sw.source.pos, cw.element.pos, pv) < 3;
+            return pv.manhattan(sw.source.pos, cw.element.pos) < 3;
         });
         isClose = containersInRange.length > 0;
     }
