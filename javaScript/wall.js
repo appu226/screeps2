@@ -2,7 +2,7 @@
 var WallWrapper = (function () {
     function WallWrapper(wall) {
         this.element = wall;
-        this.my = wall.room.controller.my;
+        this.my = wall.room.controller === undefined ? false : wall.room.controller.my;
         this.resourceRequests = [];
     }
     WallWrapper.prototype.process = function (pv) {

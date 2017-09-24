@@ -38,6 +38,7 @@ declare interface Paraverse {
     makeTransporterOrder(orderName: string): CreepOrder;
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder;
     makeDefenderOrder(orderName: string, targetId: string): CreepOrder;
+    makeClaimerOrder(orderName: string, roomName: string, roomPath: string[]): CreepOrder;
 
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
     getConstructionSitesFromRoomOfType(room: Room, structureType: string): ConstructionSite[];

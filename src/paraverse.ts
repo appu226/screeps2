@@ -6,6 +6,7 @@ import mbuilder = require('./builder');
 import mharvester = require('./harvester');
 import mupgrader = require('./upgrader');
 import mdefender = require('./defender');
+import mclaimer = require('./claimer');
 import source = require('./source');
 import o = require('./option');
 import mlogger = require('./logger');
@@ -298,7 +299,7 @@ class ParaverseImpl implements Paraverse {
     }
 
     getMyRooms(): RoomWrapper[] {
-        return dictionary.getValues<RoomWrapper>(this.roomWrappers).filter(rw => rw.room.controller.my);
+        return dictionary.getValues<RoomWrapper>(this.roomWrappers).filter(rw => (rw.room.controller === undefined) ? false : rw.room.controller.my);
     }
 
     getMyCreeps(): CreepWrapper[] {
@@ -405,7 +406,7 @@ class ParaverseImpl implements Paraverse {
     }
 
     getMySources(): SourceWrapper[] {
-        return this.sourceWrappers.filter(sw => sw.source.room.controller.my);
+        return this.sourceWrappers.filter(sw => sw.source.room.controller === undefined ? false : sw.source.room.controller.my);
     }
 
     getSourceMemory(s: Source): SourceMemory {
@@ -502,6 +503,7 @@ class ParaverseImpl implements Paraverse {
     makeTransporterOrder(orderName: string): CreepOrder { return mtransporter.makeTransporterOrder(orderName, this); }
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder { return mupgrader.makeUpgraderOrder(orderName, roomName, this); }
     makeDefenderOrder(orderName: string, targetId: string): CreepOrder { return mdefender.makeDefenderOrder(orderName, targetId, this); }
+    makeClaimerOrder(orderName: string, destination: string, destinationPath: string[]): CreepOrder { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, this); }
 
     getTerrain(room: Room): number[][] {
         if (this.memory.terrainMap[room.name] === undefined) {
@@ -696,6 +698,8 @@ class ParaverseImpl implements Paraverse {
                 return new mupgrader.UpgraderCreepWrapper(c, this);
             case this.CREEP_TYPE_DEFENDER:
                 return new mdefender.DefenderCreepWrapper(c, this);
+            case this.CREEP_TYPE_CLAIMER:
+                return new mclaimer.ClaimerCreepWrapper(c, this);
             default:
                 this.log.error(`makeCreepWrapper: creep ${c.name} of type ${(<CreepMemory>c.memory).creepType} not yet supported.`);
                 return new mMiscCreep.MiscCreepWrapper(c, (<CreepMemory>c.memory).creepType);

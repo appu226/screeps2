@@ -5,7 +5,7 @@ class WallWrapper implements StructureWrapper {
 
     constructor(wall: StructureWall) {
         this.element = wall;
-        this.my = wall.room.controller.my;
+        this.my = wall.room.controller === undefined ? false : wall.room.controller.my;
         this.resourceRequests = [];
     }
 

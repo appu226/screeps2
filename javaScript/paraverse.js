@@ -7,6 +7,7 @@ var mbuilder = require("./builder");
 var mharvester = require("./harvester");
 var mupgrader = require("./upgrader");
 var mdefender = require("./defender");
+var mclaimer = require("./claimer");
 var source = require("./source");
 var o = require("./option");
 var mlogger = require("./logger");
@@ -151,7 +152,7 @@ var ParaverseImpl = (function () {
         }
     }
     ParaverseImpl.prototype.getMyRooms = function () {
-        return dictionary.getValues(this.roomWrappers).filter(function (rw) { return rw.room.controller.my; });
+        return dictionary.getValues(this.roomWrappers).filter(function (rw) { return (rw.room.controller === undefined) ? false : rw.room.controller.my; });
     };
     ParaverseImpl.prototype.getMyCreeps = function () {
         if (this.myCreepWrappers === undefined || this.myCreepWrappers == null) {
@@ -248,7 +249,7 @@ var ParaverseImpl = (function () {
         return mem;
     };
     ParaverseImpl.prototype.getMySources = function () {
-        return this.sourceWrappers.filter(function (sw) { return sw.source.room.controller.my; });
+        return this.sourceWrappers.filter(function (sw) { return sw.source.room.controller === undefined ? false : sw.source.room.controller.my; });
     };
     ParaverseImpl.prototype.getSourceMemory = function (s) {
         if (this.memory.sourceMemories[s.id] === undefined) {
@@ -330,6 +331,7 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.makeTransporterOrder = function (orderName) { return mtransporter.makeTransporterOrder(orderName, this); };
     ParaverseImpl.prototype.makeUpgraderOrder = function (orderName, roomName) { return mupgrader.makeUpgraderOrder(orderName, roomName, this); };
     ParaverseImpl.prototype.makeDefenderOrder = function (orderName, targetId) { return mdefender.makeDefenderOrder(orderName, targetId, this); };
+    ParaverseImpl.prototype.makeClaimerOrder = function (orderName, destination, destinationPath) { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, this); };
     ParaverseImpl.prototype.getTerrain = function (room) {
         var _this = this;
         if (this.memory.terrainMap[room.name] === undefined) {
@@ -506,6 +508,8 @@ var ParaverseImpl = (function () {
                 return new mupgrader.UpgraderCreepWrapper(c, this);
             case this.CREEP_TYPE_DEFENDER:
                 return new mdefender.DefenderCreepWrapper(c, this);
+            case this.CREEP_TYPE_CLAIMER:
+                return new mclaimer.ClaimerCreepWrapper(c, this);
             default:
                 this.log.error("makeCreepWrapper: creep " + c.name + " of type " + c.memory.creepType + " not yet supported.");
                 return new mMiscCreep.MiscCreepWrapper(c, c.memory.creepType);

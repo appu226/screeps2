@@ -6,7 +6,7 @@ var RoomWrapperImpl = (function () {
     }
     RoomWrapperImpl.prototype.process = function (pv) {
         var me = this.room;
-        if (me.controller.my) {
+        if (me.controller !== undefined && me.controller.my) {
             //remove stale creep orders.
             var pq = pv.getCreepOrders(me.name);
             while (!pq.isEmpty && pv.game.creeps[pq.peek().get.name] !== undefined) {
@@ -41,6 +41,22 @@ var RoomWrapperImpl = (function () {
                 }
             }
             pv.manageResources(me);
+            if (me.controller.level >= 4 && me.energyCapacityAvailable >= 900) {
+                var memory = pv.getRoomMemory(me);
+                var rtcToKeep = [];
+                for (var rtci = 0; rtci < memory.roomsToClaim.length; ++rtci) {
+                    var rtc = memory.roomsToClaim[rtci];
+                    var roomToClaim = pv.game.rooms[rtc.destination];
+                    if (roomToClaim === undefined || pv.getMyStructuresByRoomAndType(roomToClaim, STRUCTURE_SPAWN).length == 0) {
+                        pv.scheduleCreep(me, pv.makeClaimerOrder("claimer_" + rtc.destination, rtc.destination, rtc.path), 2);
+                        rtcToKeep.push(rtc);
+                    }
+                }
+                for (var rtci = 0; rtci < rtcToKeep.length; ++rtci)
+                    memory.roomsToClaim[rtci] = rtcToKeep[rtci];
+                while (memory.roomsToClaim.length > rtcToKeep.length)
+                    memory.roomsToClaim.pop();
+            }
         }
     };
     return RoomWrapperImpl;

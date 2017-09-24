@@ -4,9 +4,9 @@ function makeClaimerOrder(orderName, roomName, roomPath, pv) {
         creepType: pv.CREEP_TYPE_CLAIMER,
         name: pv.CREEP_TYPE_CLAIMER + "_" + pv.getUid(),
         orderName: orderName,
-        basicBody: [MOVE, CLAIM],
+        basicBody: [MOVE, CLAIM, MOVE, WORK, MOVE, CARRY],
         addOnBody: [MOVE, MOVE, WORK, CARRY],
-        maxEnergy: 100000,
+        maxEnergy: 5000,
         memory: makeClaimerMemory(roomName, roomPath, pv)
     };
 }
@@ -17,7 +17,7 @@ function makeClaimerMemory(targetRoom, roomPath, pv) {
         roomPath: roomPath,
         spawnConstructionSiteId: "",
         sourceId: "",
-        creepType: pv.CREEP_TYPE_DEFENDER,
+        creepType: pv.CREEP_TYPE_CLAIMER,
         efficiencies: {
             pushStack: [],
             popStack: []
@@ -91,10 +91,14 @@ var ClaimerCreepWrapper = (function () {
                     nextRoom = mem.roomPath[i];
             if (nextRoom == "")
                 throw new Error("claimer/ClaimerCreepWrapper.process: Creep " + creep.name + " does not know which room to go to after " + creep.room.name);
-            var exits = pv.map.describeExits(creep.room.name);
-            if (exits[nextRoom] === undefined)
+            var exitopp = pv.map.describeExits(creep.room.name);
+            var exits = {};
+            for (var x in exitopp)
+                exits[exitopp[x]] = parseInt(x);
+            if (exits[nextRoom] === undefined || exits[nextRoom] == null)
                 throw new Error("claimer/ClaimerCreepWrpper.process: Could not find exit to " + nextRoom + " from " + creep.room.name);
-            creep.moveTo(creep.pos.findClosestByRange(exits[nextRoom]));
+            var nrrp = creep.pos.findClosestByPath(exits[nextRoom]);
+            pv.moveCreep(this, nrrp);
         }
     };
     ClaimerCreepWrapper.prototype.getSource = function (pv) {

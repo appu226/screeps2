@@ -10,7 +10,7 @@ class RoomWrapperImpl implements RoomWrapper {
 
     process(pv: Paraverse): void {
         let me = this.room;
-        if (me.controller.my) {
+        if (me.controller !== undefined && me.controller.my) {
             //remove stale creep orders.
             let pq = pv.getCreepOrders(me.name);
             while (!pq.isEmpty && pv.game.creeps[pq.peek().get.name] !== undefined) {
@@ -47,6 +47,22 @@ class RoomWrapperImpl implements RoomWrapper {
                 }
             }
             pv.manageResources(me);
+            if (me.controller.level >= 4 && me.energyCapacityAvailable >= 900) {
+                let memory = pv.getRoomMemory(me);
+                let rtcToKeep: RoomPath[] = [];
+                for (let rtci = 0; rtci < memory.roomsToClaim.length; ++rtci) {
+                    let rtc = memory.roomsToClaim[rtci];
+                    let roomToClaim = pv.game.rooms[rtc.destination];
+                    if (roomToClaim === undefined || pv.getMyStructuresByRoomAndType(roomToClaim, STRUCTURE_SPAWN).length == 0) {
+                        pv.scheduleCreep(me, pv.makeClaimerOrder(`claimer_${rtc.destination}`, rtc.destination, rtc.path), 2);
+                        rtcToKeep.push(rtc);
+                    }
+                }
+                for (let rtci = 0; rtci < rtcToKeep.length; ++rtci)
+                    memory.roomsToClaim[rtci] = rtcToKeep[rtci];
+                while (memory.roomsToClaim.length > rtcToKeep.length) memory.roomsToClaim.pop();
+
+            }
         }
     }
 
