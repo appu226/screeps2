@@ -17,7 +17,7 @@ class SourceWrapperImpl implements SourceWrapper {
             let harvestingCapacity = allCreeps.reduce<number>(
                 (acc: number, cw: CreepWrapper) => acc + cw.element.getActiveBodyparts(WORK),
                 0
-            );
+            ) * 2;
             if (isCollectionSpotEmpty && harvestingCapacity < 12) {
                 pv.scheduleCreep(this.source.room, pv.makeHarvesterOrder("Harvester_" + this.source.id, this.source.id), 5);
             }

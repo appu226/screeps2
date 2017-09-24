@@ -12,8 +12,8 @@ export function makeHarvesterOrder(orderName: string, sourceId: string, pv: Para
         name: `${pv.CREEP_TYPE_HARVESTER}_${pv.getUid()}`,
         orderName: orderName,
         basicBody: [MOVE, CARRY, WORK, WORK],
-        addOnBody: [WORK, CARRY, WORK],
-        maxEnergy: 1550,
+        addOnBody: [MOVE, WORK, MOVE, CARRY, WORK],
+        maxEnergy: 1000,
         memory: makeHarvesterMemory(sourceId, pv)
     };
 }
