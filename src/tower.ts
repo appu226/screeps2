@@ -55,7 +55,7 @@ class TowerWrapper implements StructureWrapper {
         let structures =
             pv.getMyStructuresByRoom(
                 t.room
-            ).map(sw => sw.element).filter(s => s.hits < s.hitsMax);
+            ).map(sw => sw.element).filter(s => s.hitsMax - s.hits >= 800);
         let ss = o.maxBy<Structure>(structures, (s: Structure) => -s.hits);
         if (ss.isPresent) {
             t.repair(ss.get.elem);

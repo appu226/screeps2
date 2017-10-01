@@ -429,18 +429,21 @@ var ParaverseImpl = (function () {
                 if (sw.element.room.name == room.name) {
                     result_4[sw.element.pos.x][sw.element.pos.y] = false;
                     if (sw.element.structureType == STRUCTURE_CONTROLLER) {
-                        for (var x1 = Math.max(0, sw.element.pos.x - 3); x1 < Math.min(sw.element.pos.x + 4, result_4.length); ++x1) {
-                            for (var y1 = Math.max(0, sw.element.pos.y - 3); y1 < Math.min(sw.element.pos.y + 4, result_4[x1].length); ++y1) {
-                                result_4[x1][y1] = false;
-                            }
-                        }
+                        _this.blackoutMap(result_4, sw.element.pos, 3);
                     }
                 }
             });
-            this.getMySources().forEach(function (sw) { return result_4[sw.source.pos.x][sw.source.pos.y] = false; });
+            this.getMySources().forEach(function (sw) { _this.blackoutMap(result_4, sw.source.pos, 3); });
             this.possibleConstructionSitesCache[room.name] = result_4;
         }
         return this.possibleConstructionSitesCache[room.name];
+    };
+    ParaverseImpl.prototype.blackoutMap = function (map, pos, range) {
+        for (var x1 = Math.max(0, pos.x - range); x1 < Math.min(pos.x + range + 1, map.length); ++x1) {
+            for (var y1 = Math.max(0, pos.y - range); y1 < Math.min(pos.y + range + 1, map[x1].length); ++y1) {
+                map[x1][y1] = false;
+            }
+        }
     };
     ParaverseImpl.prototype.constructNextSite = function (room, structureType) {
         var possibleConstructionSites = this.getPossibleConstructionSites(room);

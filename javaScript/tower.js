@@ -39,7 +39,7 @@ var TowerWrapper = (function () {
         var fullNess = t.energy / t.energyCapacity;
         if (fullNess < .75)
             return;
-        var structures = pv.getMyStructuresByRoom(t.room).map(function (sw) { return sw.element; }).filter(function (s) { return s.hits < s.hitsMax; });
+        var structures = pv.getMyStructuresByRoom(t.room).map(function (sw) { return sw.element; }).filter(function (s) { return s.hitsMax - s.hits >= 800; });
         var ss = o.maxBy(structures, function (s) { return -s.hits; });
         if (ss.isPresent) {
             t.repair(ss.get.elem);
