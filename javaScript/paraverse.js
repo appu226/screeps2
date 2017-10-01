@@ -120,7 +120,12 @@ var ParaverseImpl = (function () {
         }
         this.myCreepWrappers = this.creepWrappers.filter(function (cw) { return cw.element.my; });
         this.hostileStructuresByRoom =
-            dictionary.arrayToDictionary(this.structureWrappers.filter(function (sw) { return !sw.my; }).map(function (sw) { return sw.element; }), function (s) { return s.room.name; });
+            dictionary.arrayToDictionary(this.structureWrappers.filter(function (sw) { return !sw.my; }).map(function (sw) { return sw.element; }).filter(function (hs) {
+                return (hs.structureType != STRUCTURE_CONTROLLER
+                    && hs.structureType != STRUCTURE_PORTAL
+                    && hs.structureType != STRUCTURE_KEEPER_LAIR
+                    && hs.structureType != STRUCTURE_POWER_BANK);
+            }), function (s) { return s.room.name; });
         this.myCreepWrappersByRoom =
             dictionary.arrayToDictionary(this.myCreepWrappers, function (cw) { return cw.element.room.name; });
         this.myCreepWrappersByRoomAndType =

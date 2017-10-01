@@ -8,6 +8,7 @@ var mroad = require("./road");
 var mtower = require("./tower");
 var mwall = require("./wall");
 var mcontainer = require("./container");
+var mmiscstructure = require("./miscStructure");
 function makeStructureWrapper(structure, pv) {
     switch (structure.structureType) {
         case STRUCTURE_SPAWN:
@@ -28,7 +29,9 @@ function makeStructureWrapper(structure, pv) {
             return mcontainer.makeContainerWrapper(structure, pv);
         case STRUCTURE_WALL:
             return mwall.makeWallWrapper(structure);
-        default: throw new Error("makeStructureWrapper: type " + structure.structureType + " not yet supported.");
+        default:
+            pv.log.error("makeStructureWrapper: type " + structure.structureType + " not yet supported.");
+            return mmiscstructure.makeMiscStructureWrapper(structure, pv);
     }
 }
 exports.makeStructureWrapper = makeStructureWrapper;

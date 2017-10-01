@@ -8,7 +8,7 @@ class LoggerImpl implements Logger {
         this.msgLevelStr = ["SILENT", "ERROR", "WARN", "INFO", "DEBUG"];
     }
     selectivePrint(msgLevel: number, message: string) {
-        if(msgLevel >= this.logLevel) console.log(`[${this.msgLevelStr[msgLevel]}] ${message}`);
+        if(msgLevel <= this.logLevel) console.log(`[${this.msgLevelStr[msgLevel]}] ${message}`);
     }
     debug(message: string): void {
         this.selectivePrint(this.pv.LOG_LEVEL_DEBUG, message);

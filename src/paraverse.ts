@@ -239,7 +239,16 @@ class ParaverseImpl implements Paraverse {
         this.myCreepWrappers = this.creepWrappers.filter(cw => cw.element.my);
         this.hostileStructuresByRoom =
             dictionary.arrayToDictionary<Structure>(
-                this.structureWrappers.filter(sw => !sw.my).map(sw => sw.element),
+                this.structureWrappers.filter(
+                    sw => !sw.my
+                ).map(
+                    sw => sw.element
+                    ).filter(
+                    hs =>
+                        (hs.structureType != STRUCTURE_CONTROLLER
+                            && hs.structureType != STRUCTURE_PORTAL
+                            && hs.structureType != STRUCTURE_KEEPER_LAIR
+                            && hs.structureType != STRUCTURE_POWER_BANK)),
                 (s: Structure) => s.room.name
             );
         this.myCreepWrappersByRoom =

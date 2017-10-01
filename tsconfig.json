@@ -26,6 +26,7 @@
         "src/mapSearch.d.ts",
         "src/mapSearch.ts",
         "src/miscCreep.ts",
+        "src/miscStructure.ts",
         "src/option.ts",
         "src/paraverse.d.ts",
         "src/paraverse.ts",

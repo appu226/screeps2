@@ -6,7 +6,7 @@ var LoggerImpl = (function () {
         this.msgLevelStr = ["SILENT", "ERROR", "WARN", "INFO", "DEBUG"];
     }
     LoggerImpl.prototype.selectivePrint = function (msgLevel, message) {
-        if (msgLevel >= this.logLevel)
+        if (msgLevel <= this.logLevel)
             console.log("[" + this.msgLevelStr[msgLevel] + "] " + message);
     };
     LoggerImpl.prototype.debug = function (message) {
