@@ -510,7 +510,7 @@ var ParaverseImpl = (function () {
                 cw.memory.lastY = cw.element.pos.y;
                 cw.memory.lastTimeOfMoveAttempt = 0;
             }
-            if (cw.memory.lastTimeOfMoveAttempt >= 5)
+            if (cw.memory.lastTimeOfMoveAttempt >= 3)
                 isStuck = true;
         }
         return cw.element.moveTo(pos, { reusePath: isStuck ? 0 : 50, ignoreCreeps: !isStuck }) == OK;
