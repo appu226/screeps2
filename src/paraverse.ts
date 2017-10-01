@@ -83,6 +83,10 @@ class ParaverseImpl implements Paraverse {
     myCreepWrappersByRoomAndType: Dictionary<Dictionary<CreepWrapper[]>>;
     creepsById: Dictionary<CreepWrapper>;
 
+    myFlags: Flag[];
+    myFlagsByRoom: Dictionary<Flag[]>;
+    myFlagsByRoomAndColors: Dictionary<Dictionary<Dictionary<Flag[]>>>;
+
 
     deliveryIntent: Dictionary<Dictionary<number>>;
     collectionIntent: Dictionary<Dictionary<number>>;
@@ -305,6 +309,16 @@ class ParaverseImpl implements Paraverse {
             let cw = this.creepWrappers[cwi];
             this.creepsById[cw.element.id] = cw;
         }
+
+        this.myFlags = dictionary.getValues(this.game.flags);
+        this.myFlagsByRoom = dictionary.arrayToDictionary<Flag>(this.myFlags, (flag: Flag) => flag.pos.roomName);
+        this.myFlagsByRoomAndColors = dictionary.mapValues<Flag[], Dictionary<Dictionary<Flag[]>>>(
+            this.myFlagsByRoom,
+            (roomFlags: Flag[]) => dictionary.mapValues<Flag[], Dictionary<Flag[]>>(
+                dictionary.arrayToDictionary<Flag>(roomFlags, (flag: Flag) => flag.color.toString()),
+                (roomColorFlags: Flag[]) => dictionary.arrayToDictionary<Flag>(roomColorFlags, (flag: Flag) => flag.secondaryColor.toString())
+            )
+        );
     }
 
     getMyRooms(): RoomWrapper[] {
@@ -384,6 +398,30 @@ class ParaverseImpl implements Paraverse {
             return creep;
         else
             return this.getStructureById(id);
+    }
+
+    getMyFlags(): Flag[] {
+        return this.myFlags;
+    }
+
+    getMyFlagsByRoom(room: Room): Flag[] {
+        return dictionary.getOrElse(this.myFlagsByRoom, room.name, []);
+    }
+
+    getMyFlagsByRoomAndColors(room: Room, color: number, secondaryColor: number): Flag[] {
+        return dictionary.getOrElse(
+            dictionary.getOrElse(
+                dictionary.getOrElse(
+                    this.myFlagsByRoomAndColors,
+                    room.name,
+                    {}
+                ),
+                color.toString(),
+                {}
+            ),
+            secondaryColor.toString(),
+            []
+        );
     }
 
     manageResources(room: Room): void {
@@ -578,6 +616,7 @@ class ParaverseImpl implements Paraverse {
         switch (structureType) {
             case STRUCTURE_RAMPART:
             case STRUCTURE_CONTAINER:
+            case STRUCTURE_ROAD:
                 return false;
             default:
                 return true;

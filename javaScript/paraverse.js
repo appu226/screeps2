@@ -155,6 +155,9 @@ var ParaverseImpl = (function () {
             var cw = this.creepWrappers[cwi];
             this.creepsById[cw.element.id] = cw;
         }
+        this.myFlags = dictionary.getValues(this.game.flags);
+        this.myFlagsByRoom = dictionary.arrayToDictionary(this.myFlags, function (flag) { return flag.pos.roomName; });
+        this.myFlagsByRoomAndColors = dictionary.mapValues(this.myFlagsByRoom, function (roomFlags) { return dictionary.mapValues(dictionary.arrayToDictionary(roomFlags, function (flag) { return flag.color.toString(); }), function (roomColorFlags) { return dictionary.arrayToDictionary(roomColorFlags, function (flag) { return flag.secondaryColor.toString(); }); }); });
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return (rw.room.controller === undefined) ? false : rw.room.controller.my; });
@@ -224,6 +227,15 @@ var ParaverseImpl = (function () {
             return creep;
         else
             return this.getStructureById(id);
+    };
+    ParaverseImpl.prototype.getMyFlags = function () {
+        return this.myFlags;
+    };
+    ParaverseImpl.prototype.getMyFlagsByRoom = function (room) {
+        return dictionary.getOrElse(this.myFlagsByRoom, room.name, []);
+    };
+    ParaverseImpl.prototype.getMyFlagsByRoomAndColors = function (room, color, secondaryColor) {
+        return dictionary.getOrElse(dictionary.getOrElse(dictionary.getOrElse(this.myFlagsByRoomAndColors, room.name, {}), color.toString(), {}), secondaryColor.toString(), []);
     };
     ParaverseImpl.prototype.manageResources = function (room) {
         mtransporter.manageResourcesForRoom(room, this);
@@ -400,6 +412,7 @@ var ParaverseImpl = (function () {
         switch (structureType) {
             case STRUCTURE_RAMPART:
             case STRUCTURE_CONTAINER:
+            case STRUCTURE_ROAD:
                 return false;
             default:
                 return true;

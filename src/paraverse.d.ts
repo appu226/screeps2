@@ -20,6 +20,9 @@ declare interface Paraverse {
     getMyStructuresByRoomAndType(room: Room, structureType: string): StructureWrapper[];
     getStructureById(id: string): Option<StructureWrapper>;
     getRequestorById(id: string): Option<ResourceRequestor>;
+    getMyFlags(): Flag[];
+    getMyFlagsByRoom(room: Room): Flag[];
+    getMyFlagsByRoomAndColors(room: Room, color: number, secondaryColor: number): Flag[];
 
     manageResources(room: Room): void;
 

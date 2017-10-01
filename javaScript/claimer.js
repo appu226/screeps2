@@ -85,20 +85,26 @@ var ClaimerCreepWrapper = (function () {
             }
         }
         else {
-            var nextRoom = "";
-            for (var i = 1; i < mem.roomPath.length; ++i)
-                if (mem.roomPath[i - 1] == creep.room.name)
-                    nextRoom = mem.roomPath[i];
-            if (nextRoom == "")
-                throw new Error("claimer/ClaimerCreepWrapper.process: Creep " + creep.name + " does not know which room to go to after " + creep.room.name);
-            var exitopp = pv.map.describeExits(creep.room.name);
-            var exits = {};
-            for (var x in exitopp)
-                exits[exitopp[x]] = parseInt(x);
-            if (exits[nextRoom] === undefined || exits[nextRoom] == null)
-                throw new Error("claimer/ClaimerCreepWrpper.process: Could not find exit to " + nextRoom + " from " + creep.room.name);
-            var nrrp = creep.pos.findClosestByPath(exits[nextRoom]);
-            pv.moveCreep(this, nrrp);
+            var flags = pv.getMyFlagsByRoomAndColors(creep.room, COLOR_PURPLE, COLOR_PURPLE);
+            if (flags.length == 0 || pv.manhattan(creep.pos.findClosestByRange(flags)[0].pos, creep.pos) < 2) {
+                var nextRoom = "";
+                for (var i = 1; i < mem.roomPath.length; ++i)
+                    if (mem.roomPath[i - 1] == creep.room.name)
+                        nextRoom = mem.roomPath[i];
+                if (nextRoom == "")
+                    throw new Error("claimer/ClaimerCreepWrapper.process: Creep " + creep.name + " does not know which room to go to after " + creep.room.name);
+                var exitopp = pv.map.describeExits(creep.room.name);
+                var exits = {};
+                for (var x in exitopp)
+                    exits[exitopp[x]] = parseInt(x);
+                if (exits[nextRoom] === undefined || exits[nextRoom] == null)
+                    throw new Error("claimer/ClaimerCreepWrpper.process: Could not find exit to " + nextRoom + " from " + creep.room.name);
+                var nrrp = creep.pos.findClosestByPath(exits[nextRoom]);
+                pv.moveCreep(this, nrrp);
+            }
+            else {
+                pv.moveCreep(this, creep.pos.findClosestByRange(flags)[0].pos);
+            }
         }
     };
     ClaimerCreepWrapper.prototype.getSource = function (pv) {

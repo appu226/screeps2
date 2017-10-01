@@ -93,18 +93,23 @@ export class ClaimerCreepWrapper implements CreepWrapper {
             }
 
         } else {
-            let nextRoom = ""
-            for (let i = 1; i < mem.roomPath.length; ++i)
-                if (mem.roomPath[i - 1] == creep.room.name) nextRoom = mem.roomPath[i];
-            if (nextRoom == "")
-                throw new Error(`claimer/ClaimerCreepWrapper.process: Creep ${creep.name} does not know which room to go to after ${creep.room.name}`);
-            let exitopp = pv.map.describeExits(creep.room.name);
-            let exits = {};
-            for (let x in exitopp) exits[exitopp[x]] = parseInt(x);
-            if (exits[nextRoom] === undefined || exits[nextRoom] == null)
-                throw new Error(`claimer/ClaimerCreepWrpper.process: Could not find exit to ${nextRoom} from ${creep.room.name}`);
-            let nrrp = <RoomPosition>creep.pos.findClosestByPath(exits[nextRoom]);
-            pv.moveCreep(this, nrrp);
+            let flags = pv.getMyFlagsByRoomAndColors(creep.room, COLOR_PURPLE, COLOR_PURPLE);
+            if (flags.length == 0 || pv.manhattan(creep.pos.findClosestByRange<Flag>(flags)[0].pos, creep.pos) < 2) {
+                let nextRoom = ""
+                for (let i = 1; i < mem.roomPath.length; ++i)
+                    if (mem.roomPath[i - 1] == creep.room.name) nextRoom = mem.roomPath[i];
+                if (nextRoom == "")
+                    throw new Error(`claimer/ClaimerCreepWrapper.process: Creep ${creep.name} does not know which room to go to after ${creep.room.name}`);
+                let exitopp = pv.map.describeExits(creep.room.name);
+                let exits = {};
+                for (let x in exitopp) exits[exitopp[x]] = parseInt(x);
+                if (exits[nextRoom] === undefined || exits[nextRoom] == null)
+                    throw new Error(`claimer/ClaimerCreepWrpper.process: Could not find exit to ${nextRoom} from ${creep.room.name}`);
+                let nrrp = <RoomPosition>creep.pos.findClosestByPath(exits[nextRoom]);
+                pv.moveCreep(this, nrrp);
+            } else {
+                pv.moveCreep(this, creep.pos.findClosestByRange<Flag>(flags)[0].pos);
+            }
         }
     }
 
