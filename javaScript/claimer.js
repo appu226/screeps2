@@ -86,7 +86,7 @@ var ClaimerCreepWrapper = (function () {
         }
         else {
             var flags = pv.getMyFlagsByRoomAndColors(creep.room, COLOR_PURPLE, COLOR_PURPLE);
-            if (flags.length == 0 || pv.manhattan(creep.pos.findClosestByRange(flags)[0].pos, creep.pos) < 2) {
+            if (flags.length == 0 || pv.manhattan(creep.pos.findClosestByRange(flags).pos, creep.pos) < 2) {
                 var nextRoom = "";
                 for (var i = 1; i < mem.roomPath.length; ++i)
                     if (mem.roomPath[i - 1] == creep.room.name)
@@ -103,7 +103,7 @@ var ClaimerCreepWrapper = (function () {
                 pv.moveCreep(this, nrrp);
             }
             else {
-                pv.moveCreep(this, creep.pos.findClosestByRange(flags)[0].pos);
+                pv.moveCreep(this, creep.pos.findClosestByRange(flags).pos);
             }
         }
     };
