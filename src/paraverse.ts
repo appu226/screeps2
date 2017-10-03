@@ -29,6 +29,7 @@ interface ParaMemory extends Memory {
     wallHitPoints: Dictionary<number>;
     fatigueRecords: Dictionary<Dictionary<FatigueRecord>>;
     roomMemories: Dictionary<RoomMemory>;
+    timerLogs: Dictionary<TimerLog>;
 }
 
 export function makeParaverse(
@@ -45,6 +46,7 @@ export function makeParaverse(
     if (paraMemory.towerMemory === undefined) paraMemory.towerMemory = {};
     if (paraMemory.wallHitPoints === undefined) paraMemory.wallHitPoints = {};
     if (paraMemory.fatigueRecords === undefined) paraMemory.fatigueRecords = {};
+    if (paraMemory.timerLogs === undefined) paraMemory.timerLogs = {};
 
     return new ParaverseImpl(game, map, paraMemory);
 }
@@ -92,6 +94,8 @@ class ParaverseImpl implements Paraverse {
     collectionIntent: Dictionary<Dictionary<number>>;
 
     collectedDefense: Dictionary<number>;
+
+    startTimes: Dictionary<number>;
 
     LOG_LEVEL_SILENT: number;
     LOG_LEVEL_ERROR: number;
@@ -319,6 +323,8 @@ class ParaverseImpl implements Paraverse {
                 (roomColorFlags: Flag[]) => dictionary.arrayToDictionary<Flag>(roomColorFlags, (flag: Flag) => flag.secondaryColor.toString())
             )
         );
+
+        this.startTimes = {};
     }
 
     getMyRooms(): RoomWrapper[] {
@@ -890,6 +896,31 @@ class ParaverseImpl implements Paraverse {
 
     log(categories: string[], message: (() => string)): void {
         this.logger.log(categories, message);
+    }
+
+    startTimer(label: string): void {
+        this.startTimer[label] = this.game.cpu.getUsed();
+    }
+
+    endTimer(label: string): void {
+        let start = dictionary.getOrElse<number>(this.startTimes, label, 0);
+        let end = this.game.cpu.getUsed();
+        let timeLog = dictionary.getOrAdd<TimerLog>(
+            this.memory.timerLogs,
+            label,
+            {
+                totalTime: 0,
+                count: 0
+            });
+        ++timeLog.count;
+        timeLog.totalTime += (end - start);
+    }
+
+    printTimings(): void {
+        for (let label in this.memory.timerLogs) {
+            let log = this.memory.timerLogs[label];
+            console.log(`${label}\t: ${log.totalTime / log.count}`);
+        }
     }
 
 }

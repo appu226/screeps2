@@ -32,6 +32,8 @@ function makeParaverse(game, map, memory) {
         paraMemory.wallHitPoints = {};
     if (paraMemory.fatigueRecords === undefined)
         paraMemory.fatigueRecords = {};
+    if (paraMemory.timerLogs === undefined)
+        paraMemory.timerLogs = {};
     return new ParaverseImpl(game, map, paraMemory);
 }
 exports.makeParaverse = makeParaverse;
@@ -158,6 +160,7 @@ var ParaverseImpl = (function () {
         this.myFlags = dictionary.getValues(this.game.flags);
         this.myFlagsByRoom = dictionary.arrayToDictionary(this.myFlags, function (flag) { return flag.pos.roomName; });
         this.myFlagsByRoomAndColors = dictionary.mapValues(this.myFlagsByRoom, function (roomFlags) { return dictionary.mapValues(dictionary.arrayToDictionary(roomFlags, function (flag) { return flag.color.toString(); }), function (roomColorFlags) { return dictionary.arrayToDictionary(roomColorFlags, function (flag) { return flag.secondaryColor.toString(); }); }); });
+        this.startTimes = {};
     }
     ParaverseImpl.prototype.getMyRooms = function () {
         return dictionary.getValues(this.roomWrappers).filter(function (rw) { return (rw.room.controller === undefined) ? false : rw.room.controller.my; });
@@ -656,6 +659,25 @@ var ParaverseImpl = (function () {
     };
     ParaverseImpl.prototype.log = function (categories, message) {
         this.logger.log(categories, message);
+    };
+    ParaverseImpl.prototype.startTimer = function (label) {
+        this.startTimer[label] = this.game.cpu.getUsed();
+    };
+    ParaverseImpl.prototype.endTimer = function (label) {
+        var start = dictionary.getOrElse(this.startTimes, label, 0);
+        var end = this.game.cpu.getUsed();
+        var timeLog = dictionary.getOrAdd(this.memory.timerLogs, label, {
+            totalTime: 0,
+            count: 0
+        });
+        ++timeLog.count;
+        timeLog.totalTime += (end - start);
+    };
+    ParaverseImpl.prototype.printTimings = function () {
+        for (var label in this.memory.timerLogs) {
+            var log = this.memory.timerLogs[label];
+            console.log(label + "\t: " + log.totalTime / log.count);
+        }
     };
     return ParaverseImpl;
 }());

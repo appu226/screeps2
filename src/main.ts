@@ -2,19 +2,26 @@ import o = require('./option');
 import paraverse = require('./paraverse');
 
 export function loop(): void {
-    var pv = paraverse.makeParaverse(Game, Game.map, Memory);
+    let pv = paraverse.makeParaverse(Game, Game.map, Memory);
+    pv.endTimer("startup");
+    pv.startTimer("main");
 
-    var rooms = pv.getMyRooms();
+    let rooms = pv.getMyRooms();
     rooms.forEach((r) => o.tryCatch(() => r.process(pv), `processing room ${r.room.name}`));
 
-    var sources = pv.getMySources();
+    let sources = pv.getMySources();
     sources.forEach((s) => o.tryCatch(() => s.process(pv), `processing source ${s.source.id}`));
 
-    var structures = pv.getMyStructures();
+    let structures = pv.getMyStructures();
     structures.forEach((s) => o.tryCatch(() => s.process(pv), `processing structure ${s.element.id}`));
 
-    var creeps = pv.getMyCreeps();
+    let creeps = pv.getMyCreeps();
     creeps.forEach((c) => o.tryCatch(() => c.process(pv), `processing structure ${c.element.name}`));
 
     pv.log(["main"], () => "Completed main loop.");
+    pv.log(["timings"], () => {
+        pv.printTimings();
+        return "=========";
+    })
+    pv.endTimer("main");
 }

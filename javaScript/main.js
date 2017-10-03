@@ -3,6 +3,8 @@ var o = require("./option");
 var paraverse = require("./paraverse");
 function loop() {
     var pv = paraverse.makeParaverse(Game, Game.map, Memory);
+    pv.endTimer("startup");
+    pv.startTimer("main");
     var rooms = pv.getMyRooms();
     rooms.forEach(function (r) { return o.tryCatch(function () { return r.process(pv); }, "processing room " + r.room.name); });
     var sources = pv.getMySources();
@@ -12,5 +14,10 @@ function loop() {
     var creeps = pv.getMyCreeps();
     creeps.forEach(function (c) { return o.tryCatch(function () { return c.process(pv); }, "processing structure " + c.element.name); });
     pv.log(["main"], function () { return "Completed main loop."; });
+    pv.log(["timings"], function () {
+        pv.printTimings();
+        return "=========";
+    });
+    pv.endTimer("main");
 }
 exports.loop = loop;

@@ -81,6 +81,9 @@ declare interface Paraverse {
     manhattan(p1: RoomPosition, p2: RoomPosition): number;
 
     log(categories: string[], message: (() => string)): void;
+    startTimer(label: string): void;
+    endTimer(label: string): void;
+    printTimings(): void;
 
     LOG_LEVEL_SILENT: number;
     LOG_LEVEL_ERROR: number;
@@ -212,4 +215,9 @@ declare interface RoomMemory {
     roomsToClaim: RoomPath[];
     roomsToSign: RoomPath[];
     roomsToMine: RoomPath[];
+}
+
+declare interface TimerLog {
+    totalTime: number;
+    count: number;
 }
