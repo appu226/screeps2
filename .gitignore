@@ -38,3 +38,5 @@ jspm_packages
 
 #Gruntfile.js
 Gruntfile.js
+
+package-lock.json
