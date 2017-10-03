@@ -30,7 +30,7 @@ function makeStructureWrapper(structure, pv) {
         case STRUCTURE_WALL:
             return mwall.makeWallWrapper(structure);
         default:
-            pv.log.error("makeStructureWrapper: type " + structure.structureType + " not yet supported.");
+            pv.log(["structure", "makeStructureWrapper"], function () { return "structure/makeStructureWrapper: type " + structure.structureType + " not yet supported."; });
             return mmiscstructure.makeMiscStructureWrapper(structure, pv);
     }
 }

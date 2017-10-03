@@ -16,5 +16,5 @@ export function loop(): void {
     var creeps = pv.getMyCreeps();
     creeps.forEach((c) => o.tryCatch(() => c.process(pv), `processing structure ${c.element.name}`));
 
-    pv.log.debug("Completed main loop.");
+    pv.log(["main"], () => "Completed main loop.");
 }

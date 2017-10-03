@@ -27,7 +27,7 @@ class SpawnWrapper implements StructureWrapper {
 
     process(pv: Paraverse): void {
         if (!this.my) {
-            pv.log.debug(`spawn.ts: Skipping spawn ${this.element.id}`)
+            pv.log(["spawn", "process", "spawn.process"], () => `spawn/SpawnWrapper.process: Skipping spawn ${this.element.id}`)
             return;
         }
         let me = this.element;
@@ -75,9 +75,9 @@ class SpawnWrapper implements StructureWrapper {
                 order.basicBody.sort((lbp, rbp) =>
                     pv.bodyPartPriority[lbp] - pv.bodyPartPriority[rbp]
                 );
-                pv.log.debug(`Spawn ${me.id} scheduling ${order.basicBody} for cost ${minEnergy}`)
+                pv.log(["spawn", "process", "spawn.process"], () => `spawn/SpawnWrapper.process: Spawn ${me.id} scheduling ${order.basicBody} for cost ${minEnergy}`)
                 let result = me.createCreep(order.basicBody, order.name, order.memory);
-                pv.log.debug(`with result ${result}`);
+                pv.log(["spawn", "process", "spawn.process"], () => `spawn/SpawnWrapper.process: with result ${result}`);
             }
         }
     }

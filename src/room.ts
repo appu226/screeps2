@@ -118,10 +118,10 @@ function isSourceWithoutContainer(sw: SourceWrapper, room: Room, pv: Paraverse):
 function findSourceWithoutContainer(room: Room, pv: Paraverse): Option<Source> {
     let sourcesWithoutContainers = pv.getMySources().filter((sw: SourceWrapper) => isSourceWithoutContainer(sw, room, pv));
     if (sourcesWithoutContainers.length == 0) {
-        pv.log.debug(`All sources have containers in room ${room.name}.`);
+        pv.log(["room", "findSourceWithoutContainer"], () => `room/findSourceWithoutContainer: All sources have containers in room ${room.name}.`);
         return mopt.None<Source>();
     } else {
-        pv.log.debug(`Source ${sourcesWithoutContainers[0].source.id} is without container in room ${room.name}`);
+        pv.log(["room", "findSourceWithoutContainer"], () => `room/findSourceWithoutContainer: Source ${sourcesWithoutContainers[0].source.id} is without container in room ${room.name}`);
         return mopt.Some<Source>(sourcesWithoutContainers[0].source);
     }
 }

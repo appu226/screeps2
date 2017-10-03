@@ -81,7 +81,8 @@ export class HarvesterCreepWrapper implements CreepWrapper {
             } else if (source.energy == 0) {
                 pv.pushEfficiency(this.memory, 0)
             } else {
-                pv.log.error(`Harevet attempt by ${this.element.name} failed with error ${harvestAttempt}.`)
+                if (harvestAttempt != OK)
+                    pv.log(["harvestor", "process", "HarvestorCreepWrapper.process"], () => `harvestor.ts/HarvestorCreepWrapper.process: Harvest attempt by ${this.element.name} failed with error ${harvestAttempt}.`)
                 pv.pushEfficiency(this.memory, 1);
             }
         } else {

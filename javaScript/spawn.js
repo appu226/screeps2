@@ -21,8 +21,9 @@ var SpawnWrapper = (function () {
         }
     }
     SpawnWrapper.prototype.process = function (pv) {
+        var _this = this;
         if (!this.my) {
-            pv.log.debug("spawn.ts: Skipping spawn " + this.element.id);
+            pv.log(["spawn", "process", "spawn.process"], function () { return "spawn/SpawnWrapper.process: Skipping spawn " + _this.element.id; });
             return;
         }
         var me = this.element;
@@ -51,21 +52,21 @@ var SpawnWrapper = (function () {
         if (!topOrder.isPresent)
             topOrder = orderQueue.peek();
         if (topOrder.isPresent && me.spawning == null) {
-            var order = topOrder.get;
-            var minEnergy = order.basicBody.map(function (bp) { return BODYPART_COST[bp]; }).reduce(function (p, c) { return p + c; }, 0);
-            var maxEnergy = Math.min(me.room.energyCapacityAvailable, order.maxEnergy);
+            var order_1 = topOrder.get;
+            var minEnergy_1 = order_1.basicBody.map(function (bp) { return BODYPART_COST[bp]; }).reduce(function (p, c) { return p + c; }, 0);
+            var maxEnergy = Math.min(me.room.energyCapacityAvailable, order_1.maxEnergy);
             //console.log("minEnergy, maxEnergy, avblEnergy, ticksSinceLastDonation = ", minEnergy, maxEnergy, avblEnergy, memory.ticksSinceLastDonation);
-            if (avblEnergy >= minEnergy && avblEnergy >= maxEnergy) {
-                for (var x = 0; minEnergy + BODYPART_COST[order.addOnBody[x]] <= Math.min(order.maxEnergy, avblEnergy); x = (x + 1) % order.addOnBody.length) {
-                    order.basicBody.push(order.addOnBody[x]);
-                    minEnergy += BODYPART_COST[order.addOnBody[x]];
+            if (avblEnergy >= minEnergy_1 && avblEnergy >= maxEnergy) {
+                for (var x = 0; minEnergy_1 + BODYPART_COST[order_1.addOnBody[x]] <= Math.min(order_1.maxEnergy, avblEnergy); x = (x + 1) % order_1.addOnBody.length) {
+                    order_1.basicBody.push(order_1.addOnBody[x]);
+                    minEnergy_1 += BODYPART_COST[order_1.addOnBody[x]];
                 }
-                order.basicBody.sort(function (lbp, rbp) {
+                order_1.basicBody.sort(function (lbp, rbp) {
                     return pv.bodyPartPriority[lbp] - pv.bodyPartPriority[rbp];
                 });
-                pv.log.debug("Spawn " + me.id + " scheduling " + order.basicBody + " for cost " + minEnergy);
-                var result = me.createCreep(order.basicBody, order.name, order.memory);
-                pv.log.debug("with result " + result);
+                pv.log(["spawn", "process", "spawn.process"], function () { return "spawn/SpawnWrapper.process: Spawn " + me.id + " scheduling " + order_1.basicBody + " for cost " + minEnergy_1; });
+                var result_1 = me.createCreep(order_1.basicBody, order_1.name, order_1.memory);
+                pv.log(["spawn", "process", "spawn.process"], function () { return "spawn/SpawnWrapper.process: with result " + result_1; });
             }
         }
     };

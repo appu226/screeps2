@@ -63,8 +63,8 @@ var HarvesterCreepWrapper = (function () {
                 pv.pushEfficiency(this.memory, 0);
                 return;
             }
-            var harvestAttempt = this.element.harvest(source);
-            if (harvestAttempt == ERR_NOT_IN_RANGE) {
+            var harvestAttempt_1 = this.element.harvest(source);
+            if (harvestAttempt_1 == ERR_NOT_IN_RANGE) {
                 pv.pushEfficiency(this.memory, 0);
                 pv.moveCreep(this, source.pos);
             }
@@ -72,7 +72,8 @@ var HarvesterCreepWrapper = (function () {
                 pv.pushEfficiency(this.memory, 0);
             }
             else {
-                pv.log.error("Harevet attempt by " + this.element.name + " failed with error " + harvestAttempt + ".");
+                if (harvestAttempt_1 != OK)
+                    pv.log(["harvestor", "process", "HarvestorCreepWrapper.process"], function () { return "harvestor.ts/HarvestorCreepWrapper.process: Harvest attempt by " + _this.element.name + " failed with error " + harvestAttempt_1 + "."; });
                 pv.pushEfficiency(this.memory, 1);
             }
         }

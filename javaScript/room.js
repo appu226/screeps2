@@ -98,11 +98,11 @@ function isSourceWithoutContainer(sw, room, pv) {
 function findSourceWithoutContainer(room, pv) {
     var sourcesWithoutContainers = pv.getMySources().filter(function (sw) { return isSourceWithoutContainer(sw, room, pv); });
     if (sourcesWithoutContainers.length == 0) {
-        pv.log.debug("All sources have containers in room " + room.name + ".");
+        pv.log(["room", "findSourceWithoutContainer"], function () { return "room/findSourceWithoutContainer: All sources have containers in room " + room.name + "."; });
         return mopt.None();
     }
     else {
-        pv.log.debug("Source " + sourcesWithoutContainers[0].source.id + " is without container in room " + room.name);
+        pv.log(["room", "findSourceWithoutContainer"], function () { return "room/findSourceWithoutContainer: Source " + sourcesWithoutContainers[0].source.id + " is without container in room " + room.name; });
         return mopt.Some(sourcesWithoutContainers[0].source);
     }
 }

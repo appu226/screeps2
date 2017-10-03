@@ -16,8 +16,8 @@ var mterrain = require("./terrain");
 var mms = require("./mapSearch");
 function makeParaverse(game, map, memory) {
     var paraMemory = memory;
-    if (paraMemory.logLevel === undefined)
-        paraMemory.logLevel = 4;
+    if (paraMemory.logCategories === undefined)
+        paraMemory.logCategories = {};
     if (paraMemory.creepOrders === undefined)
         paraMemory.creepOrders = {};
     if (paraMemory.terrainMap === undefined)
@@ -41,7 +41,7 @@ var ParaverseImpl = (function () {
         this.game = game;
         this.map = map;
         this.memory = memory;
-        this.log = mlogger.createLogger(memory.logLevel, this);
+        this.logger = mlogger.createLogger(memory.logCategories);
         this.LOG_LEVEL_SILENT = 0;
         this.LOG_LEVEL_ERROR = 1;
         this.LOG_LEVEL_WARN = 2;
@@ -298,10 +298,6 @@ var ParaverseImpl = (function () {
         }
         return o.wrapPriorityQueueData(this.memory.creepOrders[roomName]);
     };
-    ParaverseImpl.prototype.setLogLevel = function (logLevel) {
-        this.memory.logLevel = logLevel;
-        this.log.setLogLevel(logLevel);
-    };
     ParaverseImpl.prototype.getConstructionSitesFromRoom = function (room) {
         if (this.constructionSitesByRoom[room.name] === undefined) {
             this.constructionSitesByRoom[room.name] = room.find(FIND_MY_CONSTRUCTION_SITES);
@@ -457,11 +453,11 @@ var ParaverseImpl = (function () {
         var possibleConstructionSites = this.getPossibleConstructionSites(source.room);
         var optXy = mms.searchForContainerConstructionSite(possibleConstructionSites, source.pos.x, source.pos.y);
         if (optXy.isPresent) {
-            this.log.debug("Creating container at " + source.room.name + "[" + optXy.get.x + "][" + optXy.get.y + "].");
+            this.log(["paraverse", "constructNextContainer"], function () { return "Creating container at " + source.room.name + "[" + optXy.get.x + "][" + optXy.get.y + "]."; });
             return source.room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_CONTAINER) == OK;
         }
         else {
-            this.log.debug("Failed to create container for source " + source.id + " in room " + source.room.name);
+            this.log(["paraverse", "constructNextContainer"], function () { return "Failed to create container for source " + source.id + " in room " + source.room.name; });
             return false;
         }
     };
@@ -532,7 +528,7 @@ var ParaverseImpl = (function () {
             case this.CREEP_TYPE_CLAIMER:
                 return new mclaimer.ClaimerCreepWrapper(c, this);
             default:
-                this.log.error("makeCreepWrapper: creep " + c.name + " of type " + c.memory.creepType + " not yet supported.");
+                this.log(["error", "paraverse", "makeCreepWrapper"], function () { return "makeCreepWrapper: creep " + c.name + " of type " + c.memory.creepType + " not yet supported."; });
                 return new mMiscCreep.MiscCreepWrapper(c, c.memory.creepType);
         }
     };
@@ -657,6 +653,9 @@ var ParaverseImpl = (function () {
     };
     ParaverseImpl.prototype.manhattan = function (p1, p2) {
         return mterrain.manhattan(p1, p2, this);
+    };
+    ParaverseImpl.prototype.log = function (categories, message) {
+        this.logger.log(categories, message);
     };
     return ParaverseImpl;
 }());

@@ -14,7 +14,7 @@ var ControllerWrapper = (function () {
         var totalEfficiency = o.sum(upgraders.map(function (cw) { return pv.getEfficiency(cw.element.memory); }));
         var upgradeCapacity = o.sum(upgraders.map(function (cw) { return cw.element.getActiveBodyparts(WORK); }));
         if (totalEfficiency >= upgraders.length * 90.0 / 100.0 && upgradeCapacity < 15) {
-            pv.log.debug("Scheduling upgrader for room " + roomName);
+            pv.log(["controller", "process", "scheduleCreep"], function () { return "controller.ts/ControllerWrapper.process: Scheduling upgrader for room " + roomName; });
             pv.scheduleCreep(this.element.room, pv.makeUpgraderOrder("Upgrader_" + roomName, roomName), 2);
         }
         else {

@@ -20,7 +20,7 @@ interface FatigueRecord {
 }
 
 interface ParaMemory extends Memory {
-    logLevel: number;
+    logCategories: Dictionary<boolean>;
     creepOrders: Dictionary<PQEntry<CreepOrder>[]>;
     terrainMap: Dictionary<number[][]>;
     sourceMemories: Dictionary<SourceMemory>;
@@ -37,7 +37,7 @@ export function makeParaverse(
     memory: Memory
 ): Paraverse {
     var paraMemory = <ParaMemory>memory;
-    if (paraMemory.logLevel === undefined) paraMemory.logLevel = 4;
+    if (paraMemory.logCategories === undefined) paraMemory.logCategories = {};
     if (paraMemory.creepOrders === undefined) paraMemory.creepOrders = {};
     if (paraMemory.terrainMap === undefined) paraMemory.terrainMap = {};
     if (paraMemory.sourceMemories === undefined) paraMemory.sourceMemories = {};
@@ -54,7 +54,7 @@ class ParaverseImpl implements Paraverse {
     map: GameMap;
     memory: ParaMemory;
 
-    log: Logger;
+    logger: Logger;
 
     bodyPartPriority: Dictionary<number>;
 
@@ -129,7 +129,7 @@ class ParaverseImpl implements Paraverse {
         this.game = game;
         this.map = map;
         this.memory = memory;
-        this.log = mlogger.createLogger(memory.logLevel, this);
+        this.logger = mlogger.createLogger(memory.logCategories);
 
         this.LOG_LEVEL_SILENT = 0;
         this.LOG_LEVEL_ERROR = 1;
@@ -490,11 +490,6 @@ class ParaverseImpl implements Paraverse {
         return o.wrapPriorityQueueData<CreepOrder>(this.memory.creepOrders[roomName]);
     }
 
-    setLogLevel(logLevel: number): void {
-        this.memory.logLevel = logLevel;
-        this.log.setLogLevel(logLevel);
-    }
-
     getConstructionSitesFromRoom(room: Room): ConstructionSite[] {
         if (this.constructionSitesByRoom[room.name] === undefined) {
             this.constructionSitesByRoom[room.name] = room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
@@ -665,10 +660,10 @@ class ParaverseImpl implements Paraverse {
         let possibleConstructionSites = this.getPossibleConstructionSites(source.room);
         let optXy = mms.searchForContainerConstructionSite(possibleConstructionSites, source.pos.x, source.pos.y);
         if (optXy.isPresent) {
-            this.log.debug(`Creating container at ${source.room.name}[${optXy.get.x}][${optXy.get.y}].`);
+            this.log(["paraverse", "constructNextContainer"], () => `Creating container at ${source.room.name}[${optXy.get.x}][${optXy.get.y}].`);
             return source.room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_CONTAINER) == OK;
         } else {
-            this.log.debug(`Failed to create container for source ${source.id} in room ${source.room.name}`);
+            this.log(["paraverse", "constructNextContainer"], () => `Failed to create container for source ${source.id} in room ${source.room.name}`);
             return false;
         }
     }
@@ -753,7 +748,7 @@ class ParaverseImpl implements Paraverse {
             case this.CREEP_TYPE_CLAIMER:
                 return new mclaimer.ClaimerCreepWrapper(c, this);
             default:
-                this.log.error(`makeCreepWrapper: creep ${c.name} of type ${(<CreepMemory>c.memory).creepType} not yet supported.`);
+                this.log(["error", "paraverse", "makeCreepWrapper"], () => `makeCreepWrapper: creep ${c.name} of type ${(<CreepMemory>c.memory).creepType} not yet supported.`);
                 return new mMiscCreep.MiscCreepWrapper(c, (<CreepMemory>c.memory).creepType);
         }
     }
@@ -891,6 +886,10 @@ class ParaverseImpl implements Paraverse {
 
     manhattan(p1: RoomPosition, p2: RoomPosition): number {
         return mterrain.manhattan(p1, p2, this);
+    }
+
+    log(categories: string[], message: (() => string)): void {
+        this.logger.log(categories, message);
     }
 
 }

@@ -3,9 +3,6 @@ declare interface Paraverse {
     memory: Memory;
     map: GameMap;
 
-    log: Logger;
-    setLogLevel(level: number): void;
-
     bodyPartPriority: Dictionary<number>;
 
     getMyRooms(): RoomWrapper[];
@@ -83,6 +80,8 @@ declare interface Paraverse {
     euclidean(p1: RoomPosition, p2: RoomPosition): number;
     manhattan(p1: RoomPosition, p2: RoomPosition): number;
 
+    log(categories: string[], message: (() => string)): void;
+
     LOG_LEVEL_SILENT: number;
     LOG_LEVEL_ERROR: number;
     LOG_LEVEL_WARN: number;
@@ -113,11 +112,7 @@ declare interface Paraverse {
 }
 
 declare interface Logger {
-    debug(message: string): void;
-    info(message: string): void;
-    warn(message: string): void;
-    error(message: string): void;
-    setLogLevel(logLevel: number): void;
+    log(categories: string[], message: (() => string)): void;
 }
 
 declare interface ResourceRequest {
