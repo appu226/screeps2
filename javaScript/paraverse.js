@@ -665,18 +665,22 @@ var ParaverseImpl = (function () {
     };
     ParaverseImpl.prototype.endTimer = function (label) {
         var start = dictionary.getOrElse(this.startTimes, label, 0);
-        var end = this.game.cpu.getUsed();
+        var delta = this.game.cpu.getUsed() - start;
         var timeLog = dictionary.getOrAdd(this.memory.timerLogs, label, {
             totalTime: 0,
-            count: 0
+            count: 0,
+            totalTimeSq: 0
         });
         ++timeLog.count;
-        timeLog.totalTime += (end - start);
+        timeLog.totalTime += delta;
+        timeLog.totalTimeSq += delta * delta;
     };
     ParaverseImpl.prototype.printTimings = function () {
         for (var label in this.memory.timerLogs) {
             var log = this.memory.timerLogs[label];
-            console.log(label + "\t: " + log.totalTime / log.count);
+            var avg = log.totalTime / log.count;
+            var std = Math.sqrt((log.totalTimeSq / log.count) - avg * avg);
+            console.log(label + "\t: " + Math.round(avg * 100000) / 100000 + " \t+- " + Math.round(std * 300000) / 100000);
         }
     };
     return ParaverseImpl;

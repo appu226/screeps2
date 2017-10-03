@@ -219,5 +219,6 @@ declare interface RoomMemory {
 
 declare interface TimerLog {
     totalTime: number;
+    totalTimeSq: number;
     count: number;
 }

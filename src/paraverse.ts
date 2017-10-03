@@ -904,22 +904,26 @@ class ParaverseImpl implements Paraverse {
 
     endTimer(label: string): void {
         let start = dictionary.getOrElse<number>(this.startTimes, label, 0);
-        let end = this.game.cpu.getUsed();
+        let delta = this.game.cpu.getUsed() - start;
         let timeLog = dictionary.getOrAdd<TimerLog>(
             this.memory.timerLogs,
             label,
             {
                 totalTime: 0,
-                count: 0
+                count: 0,
+                totalTimeSq: 0
             });
         ++timeLog.count;
-        timeLog.totalTime += (end - start);
+        timeLog.totalTime += delta;
+        timeLog.totalTimeSq += delta * delta;
     }
 
     printTimings(): void {
         for (let label in this.memory.timerLogs) {
             let log = this.memory.timerLogs[label];
-            console.log(`${label}\t: ${log.totalTime / log.count}`);
+            let avg = log.totalTime / log.count;
+            let std = Math.sqrt((log.totalTimeSq / log.count) - avg * avg);
+            console.log(`${label}\t: ${Math.round(avg * 100000) / 100000} \t+- ${Math.round(std * 300000) / 100000}`);
         }
     }
 
