@@ -424,18 +424,13 @@ var ParaverseImpl = (function () {
         if (this.possibleConstructionSitesCache[room.name] === undefined) {
             var result_4 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
             this.getConstructionSitesFromRoom(room).forEach(function (cs) { return result_4[cs.pos.x][cs.pos.y] = false; });
-            this.structureWrappers.forEach(function (sw) {
-                if (sw.element.room.name == room.name) {
-                    result_4[sw.element.pos.x][sw.element.pos.y] = false;
-                    if (sw.element.structureType == STRUCTURE_CONTROLLER) {
-                        _this.blackoutMap(result_4, sw.element.pos, 3);
-                    }
-                }
-            });
-            this.getMySources().forEach(function (sw) { _this.blackoutMap(result_4, sw.source.pos, 3); });
+            this.structureWrappers.forEach(function (sw) { if (sw.element.room.name == room.name)
+                result_4[sw.element.pos.x][sw.element.pos.y] = false; });
+            this.getMySources().forEach(function (sw) { if (sw.source.room.name == room.name)
+                result_4[sw.source.pos.x][sw.source.pos.y] = false; });
             this.possibleConstructionSitesCache[room.name] = result_4;
         }
-        return this.possibleConstructionSitesCache[room.name];
+        return this.possibleConstructionSitesCache[room.name].map(function (row) { return row.map(function (cell) { return cell; }); });
     };
     ParaverseImpl.prototype.blackoutMap = function (map, pos, range) {
         for (var x1 = Math.max(0, pos.x - range); x1 < Math.min(pos.x + range + 1, map.length); ++x1) {
@@ -445,7 +440,11 @@ var ParaverseImpl = (function () {
         }
     };
     ParaverseImpl.prototype.constructNextSite = function (room, structureType) {
+        var _this = this;
         var possibleConstructionSites = this.getPossibleConstructionSites(room);
+        this.getMyStructuresByRoomAndType(room, STRUCTURE_CONTROLLER).forEach(function (sw) { _this.blackoutMap(possibleConstructionSites, sw.element.pos, 3); });
+        this.getMySources().forEach(function (sw) { if (sw.source.room.name == room.name)
+            _this.blackoutMap(possibleConstructionSites, sw.source.pos, 3); });
         var optXy = mms.searchForConstructionSite(possibleConstructionSites);
         if (optXy.isPresent)
             return room.createConstructionSite(optXy.get.x, optXy.get.y, structureType) == OK;

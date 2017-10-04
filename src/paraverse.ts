@@ -629,20 +629,11 @@ class ParaverseImpl implements Paraverse {
         if (this.possibleConstructionSitesCache[room.name] === undefined) {
             let result: boolean[][] = this.getTerrain(room).map((row) => row.map((col) => col == this.TERRAIN_CODE_PLAIN || col == this.TERRAIN_CODE_SWAMP));
             this.getConstructionSitesFromRoom(room).forEach(cs => result[cs.pos.x][cs.pos.y] = false);
-            this.structureWrappers.forEach(
-                sw => {
-                    if (sw.element.room.name == room.name) {
-                        result[sw.element.pos.x][sw.element.pos.y] = false;
-                        if (sw.element.structureType == STRUCTURE_CONTROLLER) {
-                            this.blackoutMap(result, sw.element.pos, 3)
-                        }
-                    }
-                }
-            );
-            this.getMySources().forEach(sw => { this.blackoutMap(result, sw.source.pos, 3); });
+            this.structureWrappers.forEach(sw => { if (sw.element.room.name == room.name) result[sw.element.pos.x][sw.element.pos.y] = false; });
+            this.getMySources().forEach(sw => { if (sw.source.room.name == room.name) result[sw.source.pos.x][sw.source.pos.y] = false; });
             this.possibleConstructionSitesCache[room.name] = result;
         }
-        return this.possibleConstructionSitesCache[room.name];
+        return this.possibleConstructionSitesCache[room.name].map(row => row.map(cell => cell));
     }
 
     blackoutMap(map: boolean[][], pos: RoomPosition, range: number) {
@@ -655,6 +646,8 @@ class ParaverseImpl implements Paraverse {
 
     constructNextSite(room: Room, structureType: string): boolean {
         let possibleConstructionSites = this.getPossibleConstructionSites(room);
+        this.getMyStructuresByRoomAndType(room, STRUCTURE_CONTROLLER).forEach(sw => { this.blackoutMap(possibleConstructionSites, sw.element.pos, 3); });
+        this.getMySources().forEach(sw => { if (sw.source.room.name == room.name) this.blackoutMap(possibleConstructionSites, sw.source.pos, 3); });
         let optXy = mms.searchForConstructionSite(possibleConstructionSites);
         if (optXy.isPresent)
             return room.createConstructionSite(optXy.get.x, optXy.get.y, structureType) == OK;

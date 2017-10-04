@@ -16,7 +16,7 @@ class TowerWrapper implements StructureWrapper {
                 amount: demand,
                 requestorId: tower.id,
                 resourceRequestType: pv.PULL_REQUEST,
-                isBlocker: tower.energy == 0
+                isBlocker: tower.energy <= .75 * tower.energyCapacity
             }]
             : [];
     }
