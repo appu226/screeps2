@@ -215,7 +215,7 @@ class RRMap {
 export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     // collect queued requests
     let queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
-    // queuedrr.forEach(rr => pv.log.debug(`from memory ${rrToString(rr, pv)}`));
+    queuedrr.forEach(rr => pv.log(["transporter", "manageResourcesForRoom", "debug"], () => `from memory ${rrToString(rr, pv)}`));
 
     // collect all current requests
     let currentrr =
@@ -250,7 +250,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
     // remove empty requests
     let queueDll = mopt.makeDLList(queuedrr);
-    // queueDll.forEach(entry => pv.log.debug(`after makeDLList ${rrToString(entry.elem, pv)}`));
+    queueDll.forEach(entry => pv.log(["transporter", "manageResourcesForRoom", "debug"], () => `after makeDLList ${rrToString(entry.elem, pv)}`));
     let queuedResourceTypes: string[] = [];
     let qrrSet: Dictionary<boolean> = {};
     queueDll.forEach(rre => {
@@ -264,7 +264,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     if (queueDll.length == 0) return;
 
     // try to assign resourceTypes to free transporters
-    // queueDll.forEach(entry => pv.log.debug(`preAssignment ${rrToString(entry.elem, pv)}`));
+    queueDll.forEach(entry => pv.log(["transporter", "manageResourcesForRoom", "debug"], () => `preAssignment ${rrToString(entry.elem, pv)}`));
     transporters.sort((a, b) => {
         let an = a.element.name;
         let bn = b.element.name;
@@ -279,7 +279,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
     // put queueDll back into queuerr
     pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
-    // pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => pv.log.debug(`postAssignment ${rrToString(rr, pv)}`));
+    pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => pv.log(["transporter", "manageResourcesForRoom", "debug"], () => `postAssignment ${rrToString(rr, pv)}`));
 
 
     if (
@@ -353,7 +353,7 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
         if (amt > 0) {
             rr.amount -= amt;
             collectedAmount += amt;
-            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
+            pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
             let rrNew = {
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
@@ -382,7 +382,7 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
         if (amt > 0) {
             rr.amount -= amt;
             deliveredAmount += amt;
-            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
+            pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
             let rrNew = {
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,

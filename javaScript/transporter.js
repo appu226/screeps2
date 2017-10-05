@@ -190,7 +190,7 @@ var RRMap = (function () {
 function manageResourcesForRoom(room, pv) {
     // collect queued requests
     var queuedrr = pv.getRoomMemory(room).queuedResourceRequests;
-    // queuedrr.forEach(rr => pv.log.debug(`from memory ${rrToString(rr, pv)}`));
+    queuedrr.forEach(function (rr) { return pv.log(["transporter", "manageResourcesForRoom", "debug"], function () { return "from memory " + rrToString(rr, pv); }); });
     // collect all current requests
     var currentrr = mopt.flatten(pv.getMyCreepsByRoom(room).map(function (cw) { return cw.resourceRequests; })).concat(mopt.flatten(pv.getMyStructuresByRoom(room).map(function (sw) { return sw.resourceRequests; })));
     // collect transporters
@@ -217,7 +217,7 @@ function manageResourcesForRoom(room, pv) {
     unqueued.forEach(function (rr) { queuedrr.push(rr); });
     // remove empty requests
     var queueDll = mopt.makeDLList(queuedrr);
-    // queueDll.forEach(entry => pv.log.debug(`after makeDLList ${rrToString(entry.elem, pv)}`));
+    queueDll.forEach(function (entry) { return pv.log(["transporter", "manageResourcesForRoom", "debug"], function () { return "after makeDLList " + rrToString(entry.elem, pv); }); });
     var queuedResourceTypes = [];
     var qrrSet = {};
     queueDll.forEach(function (rre) {
@@ -231,7 +231,7 @@ function manageResourcesForRoom(room, pv) {
     if (queueDll.length == 0)
         return;
     // try to assign resourceTypes to free transporters
-    // queueDll.forEach(entry => pv.log.debug(`preAssignment ${rrToString(entry.elem, pv)}`));
+    queueDll.forEach(function (entry) { return pv.log(["transporter", "manageResourcesForRoom", "debug"], function () { return "preAssignment " + rrToString(entry.elem, pv); }); });
     transporters.sort(function (a, b) {
         var an = a.element.name;
         var bn = b.element.name;
@@ -248,7 +248,7 @@ function manageResourcesForRoom(room, pv) {
     });
     // put queueDll back into queuerr
     pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
-    // pv.getRoomMemory(room).queuedResourceRequests.forEach(rr => pv.log.debug(`postAssignment ${rrToString(rr, pv)}`));
+    pv.getRoomMemory(room).queuedResourceRequests.forEach(function (rr) { return pv.log(["transporter", "manageResourcesForRoom", "debug"], function () { return "postAssignment " + rrToString(rr, pv); }); });
     if (pv.getMyCreepsByRoom(room).length * 3 / 4 >= transporters.length // not more than 3/4ths should be transporters
         && pv.getTransporterEfficiency(room) > .9 // transporters should not be idle
         && avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) // transporters should make a difference
@@ -319,7 +319,7 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
         if (amt > 0) {
             rr.amount -= amt;
             collectedAmount += amt;
-            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
+            pv.log(["transporter", "assignRequest", "debug"], function () { return "transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".collection for " + amt + " of " + rr.resourceType + "."; });
             var rrNew = {
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
@@ -352,7 +352,7 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
         if (amt > 0) {
             rr.amount -= amt;
             deliveredAmount += amt;
-            // pv.log.debug(`transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
+            pv.log(["transporter", "assignRequest", "debug"], function () { return "transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".delivery for " + amt + " of " + rr.resourceType + "."; });
             var rrNew = {
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
