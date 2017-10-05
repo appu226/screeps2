@@ -36,6 +36,7 @@
         "src/screeps.d.ts",
         "src/source.ts",
         "src/spawn.ts",
+        "src/storage.ts",
         "src/structure.ts",
         "src/terrain.ts",
         "src/tower.ts",
