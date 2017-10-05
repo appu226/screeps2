@@ -129,3 +129,9 @@ export function searchForContainerConstructionSite(possibleConstructionSites: bo
     searchMap(problem);
     return problem.result;
 }
+
+export function searchForStorageConstructionSite(possibleConstructionSites: boolean[][], startX: number, startY: number): Option<XY> {
+    let problem = new ConstructionSiteProblem(possibleConstructionSites, startX, startY, true);
+    searchMap(problem);
+    return problem.result;
+}

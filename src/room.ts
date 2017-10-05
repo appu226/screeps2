@@ -32,6 +32,8 @@ class RoomWrapperImpl implements RoomWrapper {
             } else if (canBuild(me, STRUCTURE_ROAD, pv) && pv.mustBuildRoad(me)) {
                 let roadPos = pv.getRoadToBeBuilt(me);
                 me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
+            } else if (canBuild(me, STRUCTURE_STORAGE, pv)) {
+                pv.constructNextStorage(me);
             }
 
             let hostileCreeps = pv.getHostileCreepsInRoom(me);

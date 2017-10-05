@@ -31,6 +31,9 @@ var RoomWrapperImpl = (function () {
                 var roadPos = pv.getRoadToBeBuilt(me);
                 me.createConstructionSite(roadPos.x, roadPos.y, STRUCTURE_ROAD);
             }
+            else if (canBuild(me, STRUCTURE_STORAGE, pv)) {
+                pv.constructNextStorage(me);
+            }
             var hostileCreeps = pv.getHostileCreepsInRoom(me);
             for (var hci = 0; hci < hostileCreeps.length; ++hci) {
                 var hc = hostileCreeps[hci];

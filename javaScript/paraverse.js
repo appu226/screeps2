@@ -459,7 +459,22 @@ var ParaverseImpl = (function () {
             return source.room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_CONTAINER) == OK;
         }
         else {
-            this.log(["paraverse", "constructNextContainer"], function () { return "Failed to create container for source " + source.id + " in room " + source.room.name; });
+            this.log(["paraverse", "warning", "constructNextContainer"], function () { return "Failed to create container for source " + source.id + " in room " + source.room.name; });
+            return false;
+        }
+    };
+    ParaverseImpl.prototype.constructNextStorage = function (room) {
+        var _this = this;
+        var possibleConstructionSites = this.getPossibleConstructionSites(room);
+        this.getMySources().forEach(function (sw) { if (sw.source.room.name == room.name)
+            _this.blackoutMap(possibleConstructionSites, sw.source.pos, 3); });
+        var optXy = mms.searchForStorageConstructionSite(possibleConstructionSites, room.controller.pos.x, room.controller.pos.y);
+        if (optXy.isPresent) {
+            this.log(["paraverse", "constructNextStorage"], function () { return "Creating storage at " + room.name + "[" + optXy.get.x + "][" + optXy.get.y + "]."; });
+            return room.createConstructionSite(optXy.get.x, optXy.get.y, STRUCTURE_STORAGE) == OK;
+        }
+        else {
+            this.log(["paraverse", "warning", "constructNextStorage"], function () { return "Failed to create storage for room " + room.name + "."; });
             return false;
         }
     };

@@ -49,6 +49,7 @@ declare interface Paraverse {
 
     constructNextSite(room: Room, structureType: string): boolean;
     constructNextContainer(source: Source): boolean;
+    constructNextStorage(room: Room): boolean;
 
     isCloseToLair(source: Source, sourceMemory: SourceMemory): boolean;
 

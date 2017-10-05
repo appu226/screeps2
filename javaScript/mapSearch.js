@@ -112,3 +112,9 @@ function searchForContainerConstructionSite(possibleConstructionSites, startX, s
     return problem.result;
 }
 exports.searchForContainerConstructionSite = searchForContainerConstructionSite;
+function searchForStorageConstructionSite(possibleConstructionSites, startX, startY) {
+    var problem = new ConstructionSiteProblem(possibleConstructionSites, startX, startY, true);
+    searchMap(problem);
+    return problem.result;
+}
+exports.searchForStorageConstructionSite = searchForStorageConstructionSite;
