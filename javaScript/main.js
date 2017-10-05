@@ -3,7 +3,7 @@ var o = require("./option");
 var paraverse = require("./paraverse");
 function loop() {
     var pv = paraverse.makeParaverse(Game, Game.map, Memory);
-    pv.log(["version"], function () { return "v 17.10.3"; });
+    pv.log(["version"], function () { return "v 17.10.5"; });
     pv.endTimer("startup");
     pv.startTimer("main");
     var rooms = pv.getMyRooms();
