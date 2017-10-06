@@ -8,6 +8,7 @@ import mtower = require('./tower');
 import mwall = require('./wall');
 import mcontainer = require('./container');
 import mmiscstructure = require('./miscStructure');
+import mstorage = require('./storage');
 
 export function makeStructureWrapper(structure: Structure, pv: Paraverse): StructureWrapper {
     switch (structure.structureType) {
@@ -29,6 +30,8 @@ export function makeStructureWrapper(structure: Structure, pv: Paraverse): Struc
             return mcontainer.makeContainerWrapper(<StructureContainer>structure, pv);
         case STRUCTURE_WALL:
             return mwall.makeWallWrapper(<StructureWall>structure);
+        case STRUCTURE_STORAGE:
+            return mstorage.makeStorageWrapper(<StructureStorage>structure);
         default:
             pv.log(["structure", "makeStructureWrapper"], () => `structure/makeStructureWrapper: type ${structure.structureType} not yet supported.`);
             return mmiscstructure.makeMiscStructureWrapper(structure, pv);

@@ -229,11 +229,21 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     // remove requests in progress from currentrr
     let currentmap = new RRMap(currentrr, pv);
     transporters.forEach(tcw => {
-        tcw.memory.collection.forEach(rr => currentmap.subtract(rr, pv));
+        tcw.memory.collection.forEach(rr => { currentmap.subtract(rr, pv) });
         tcw.memory.delivery.forEach(rr => currentmap.subtract(rr, pv));
         if (tcw.memory.currentRequest.isPresent)
             currentmap.subtract(tcw.memory.currentRequest.get, pv);
     });
+
+    // collect stored resources, and account for to-be-collected resources
+    let storedrr = getStoredResources(room, pv);
+    if (room.storage) {
+        transporters.forEach(tcw => {
+            tcw.memory.collection.forEach(rr => {
+                if (rr.requestorId == room.storage.id) storedrr[rr.resourceType] -= Math.min(rr.amount, storedrr[rr.resourceType]);
+            });
+        });
+    }
 
 
     // replace queued amount with current amount
@@ -274,7 +284,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
     })
     transporters.forEach(tcw => {
         let mem = tcw.memory;
-        queuedResourceTypes.forEach(rt => { assignRequest(tcw, queueDll, rt, pv); });
+        queuedResourceTypes.forEach(rt => { assignRequest(tcw, queueDll, rt, storedrr, pv); });
     });
 
     // put queueDll back into queuerr
@@ -293,6 +303,15 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
             4
         );
     }
+}
+
+function getStoredResources(room: Room, pv: Paraverse): Dictionary<number> {
+    if (room.storage === undefined || room.storage == null) return {};
+    let store = room.storage.store;
+    let result: Dictionary<number> = {};
+    for (let resource in store)
+        result[resource] = store[resource];
+    return result;
 }
 
 // check whether there is a pending request that is a blocker
@@ -324,37 +343,42 @@ class RRVec {
             this.map[rr.requestorId].amount += rr.amount;
         } else {
             this.map[rr.requestorId] = rr;
+            this.vec.push(rr);
         }
     }
 }
 
-function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRequest>, resourceType: string, pv: Paraverse) {
+function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRequest>, resourceType: string, storedrr: Dictionary<number>, pv: Paraverse) {
     let mem = tcw.memory;
 
-    // if transporter is already assigned to a different resource type, return
-    let tcwRt: string = null;
-    if (mem.currentRequest.isPresent) tcwRt = mem.currentRequest.get.resourceType;
-    else if (mem.delivery.length > 0) tcwRt = mem.delivery[0].resourceType;
-    else if (mem.collection.length > 0) tcwRt = mem.collection[0].resourceType;
-    if (tcwRt != null && tcwRt != resourceType) return;
-    let isFreeTransporter = (tcwRt == null);
+    // if transporter is already assigned, return
+    if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0) return;
+
+    // do not mess with requestor the transporter is just about to deal with
+    let requestorToAvoid: string = "";
+    if (tcw.memory.currentRequest.isPresent) {
+        let creq = pv.getRequestorById(tcw.memory.currentRequest.get.requestorId);
+        if (creq.isPresent && pv.manhattan(creq.get.element.pos, tcw.element.pos) < 3)
+            requestorToAvoid = creq.get.element.id;
+    }
 
     // search for collections first
     let collectedAmount = 0;
     let collectableAmount = tcw.emptyStorage();
     if (mem.currentRequest.isPresent && mem.currentRequest.get.resourceRequestType == pv.PUSH_REQUEST) collectedAmount += mem.currentRequest.get.amount;
     mem.collection.forEach(cr => { collectedAmount += cr.amount; });
-    let cvec: RRVec = isFreeTransporter ? null : new RRVec(mem.collection);
+    let cvec = new RRVec(mem.collection);
     queueDll.forEach(entry => {
         if (collectedAmount >= collectableAmount) return;
         let rr = entry.elem;
+        if (rr.requestorId == requestorToAvoid) return;
         if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PUSH_REQUEST) return;
         let amt = Math.min(rr.amount, collectableAmount - collectedAmount);
         if (amt > 0) {
             rr.amount -= amt;
             collectedAmount += amt;
             pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.collection for ${amt} of ${rr.resourceType}.`);
-            let rrNew = {
+            let rrNew: ResourceRequest = {
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
                 resourceRequestType: rr.resourceRequestType,
@@ -362,40 +386,74 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
                 amount: amt,
                 isBlocker: rr.isBlocker
             };
-            if (isFreeTransporter) mem.collection.push(rrNew);
-            else cvec.push(rrNew);
+            cvec.push(rrNew);
             queueDll.remove(entry);
         }
     });
+
+    // how much can be collected from storage if required
+    let storedCollectable = Math.min(collectableAmount, pv.resourceAmount(storedrr, resourceType));
+    let storedCollected = 0;
 
     // search for deliveries
     let deliverableAmount = tcw.resourceAmount(resourceType) + collectedAmount;
     let deliveredAmount = 0;
     if (mem.currentRequest.get && mem.currentRequest.get.resourceRequestType == pv.PULL_REQUEST) deliveredAmount += mem.currentRequest.get.amount;
     mem.delivery.forEach(dr => { deliveredAmount += dr.amount; });
-    let dvec: RRVec = isFreeTransporter ? null : new RRVec(mem.delivery);
+    let dvec = new RRVec(mem.delivery);
     queueDll.forEach(entry => {
-        if (deliveredAmount >= deliverableAmount) return;
+        if (deliveredAmount + storedCollected >= deliverableAmount + storedCollectable) return;
         let rr = entry.elem;
+        if (rr.requestorId == requestorToAvoid) return;
         if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PULL_REQUEST) return;
+
+        // try to deliver from non-storage collections
         let amt = Math.min(rr.amount, deliverableAmount - deliveredAmount);
-        if (amt > 0) {
-            rr.amount -= amt;
+        // if required, try to deliver from storage collecitons
+        let amtFromStorage = Math.min(rr.amount - amt, storedCollectable - storedCollected);
+
+        if (amt + amtFromStorage > 0) {
+            rr.amount -= (amt + amtFromStorage);
             deliveredAmount += amt;
-            pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt} of ${rr.resourceType}.`);
-            let rrNew = {
+            storedCollected += amtFromStorage;
+            pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt + amtFromStorage} of ${rr.resourceType}.`);
+            let rrNew: ResourceRequest = {
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
                 resourceRequestType: rr.resourceRequestType,
                 requestorId: rr.requestorId,
-                amount: amt,
+                amount: amt + amtFromStorage,
                 isBlocker: rr.isBlocker
             };
-            if (isFreeTransporter) mem.delivery.push(rrNew);
-            else dvec.push(rrNew);
+            dvec.push(rrNew);
             queueDll.remove(entry);
         }
     });
+
+    if (storedCollected > 0 && tcw.element.room.storage) {
+        let rrNew: ResourceRequest = {
+            roomName: tcw.element.pos.roomName,
+            resourceType: resourceType,
+            resourceRequestType: pv.PUSH_REQUEST,
+            requestorId: tcw.element.room.storage.id,
+            amount: storedCollected,
+            isBlocker: false
+        };
+        pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rrNew.requestorId} to ${tcw.element.name}.collection for ${rrNew.amount} of ${rrNew.resourceType}.`);
+        cvec.push(rrNew);
+    } else if (deliveredAmount < collectedAmount && tcw.element.room.storage) {
+        let rrNew: ResourceRequest = {
+            roomName: tcw.element.pos.roomName,
+            resourceType: resourceType,
+            resourceRequestType: pv.PULL_REQUEST,
+            requestorId: tcw.element.room.storage.id,
+            amount: collectedAmount - deliveredAmount,
+            isBlocker: false
+        };
+        pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rrNew.requestorId} to ${tcw.element.name}.delivery for ${rrNew.amount} of ${rrNew.resourceType}.`);
+        dvec.push(rrNew);
+    }
+
     tcw.preprocess(pv);
 }
 

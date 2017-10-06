@@ -199,11 +199,21 @@ function manageResourcesForRoom(room, pv) {
     // remove requests in progress from currentrr
     var currentmap = new RRMap(currentrr, pv);
     transporters.forEach(function (tcw) {
-        tcw.memory.collection.forEach(function (rr) { return currentmap.subtract(rr, pv); });
+        tcw.memory.collection.forEach(function (rr) { currentmap.subtract(rr, pv); });
         tcw.memory.delivery.forEach(function (rr) { return currentmap.subtract(rr, pv); });
         if (tcw.memory.currentRequest.isPresent)
             currentmap.subtract(tcw.memory.currentRequest.get, pv);
     });
+    // collect stored resources, and account for to-be-collected resources
+    var storedrr = getStoredResources(room, pv);
+    if (room.storage) {
+        transporters.forEach(function (tcw) {
+            tcw.memory.collection.forEach(function (rr) {
+                if (rr.requestorId == room.storage.id)
+                    storedrr[rr.resourceType] -= Math.min(rr.amount, storedrr[rr.resourceType]);
+            });
+        });
+    }
     // replace queued amount with current amount
     queuedrr.forEach(function (qrr) { qrr.amount = 0; qrr.isBlocker = false; });
     var queuedmap = new RRMap(queuedrr, pv);
@@ -244,7 +254,7 @@ function manageResourcesForRoom(room, pv) {
     });
     transporters.forEach(function (tcw) {
         var mem = tcw.memory;
-        queuedResourceTypes.forEach(function (rt) { assignRequest(tcw, queueDll, rt, pv); });
+        queuedResourceTypes.forEach(function (rt) { assignRequest(tcw, queueDll, rt, storedrr, pv); });
     });
     // put queueDll back into queuerr
     pv.getRoomMemory(room).queuedResourceRequests = queueDll.toArray();
@@ -257,6 +267,15 @@ function manageResourcesForRoom(room, pv) {
     }
 }
 exports.manageResourcesForRoom = manageResourcesForRoom;
+function getStoredResources(room, pv) {
+    if (room.storage === undefined || room.storage == null)
+        return {};
+    var store = room.storage.store;
+    var result = {};
+    for (var resource in store)
+        result[resource] = store[resource];
+    return result;
+}
 // check whether there is a pending request that is a blocker
 // that could have been avoided if we had more transporters
 function avoidableBlocker(queuedRequests, pv) {
@@ -285,34 +304,36 @@ var RRVec = (function () {
         }
         else {
             this.map[rr.requestorId] = rr;
+            this.vec.push(rr);
         }
     };
     return RRVec;
 }());
-function assignRequest(tcw, queueDll, resourceType, pv) {
+function assignRequest(tcw, queueDll, resourceType, storedrr, pv) {
     var mem = tcw.memory;
-    // if transporter is already assigned to a different resource type, return
-    var tcwRt = null;
-    if (mem.currentRequest.isPresent)
-        tcwRt = mem.currentRequest.get.resourceType;
-    else if (mem.delivery.length > 0)
-        tcwRt = mem.delivery[0].resourceType;
-    else if (mem.collection.length > 0)
-        tcwRt = mem.collection[0].resourceType;
-    if (tcwRt != null && tcwRt != resourceType)
+    // if transporter is already assigned, return
+    if (mem.currentRequest.isPresent || mem.delivery.length > 0 || mem.collection.length > 0)
         return;
-    var isFreeTransporter = (tcwRt == null);
+    // do not mess with requestor the transporter is just about to deal with
+    var requestorToAvoid = "";
+    if (tcw.memory.currentRequest.isPresent) {
+        var creq = pv.getRequestorById(tcw.memory.currentRequest.get.requestorId);
+        if (creq.isPresent && pv.manhattan(creq.get.element.pos, tcw.element.pos) < 3)
+            requestorToAvoid = creq.get.element.id;
+    }
     // search for collections first
     var collectedAmount = 0;
     var collectableAmount = tcw.emptyStorage();
     if (mem.currentRequest.isPresent && mem.currentRequest.get.resourceRequestType == pv.PUSH_REQUEST)
         collectedAmount += mem.currentRequest.get.amount;
     mem.collection.forEach(function (cr) { collectedAmount += cr.amount; });
-    var cvec = isFreeTransporter ? null : new RRVec(mem.collection);
+    var cvec = new RRVec(mem.collection);
     queueDll.forEach(function (entry) {
         if (collectedAmount >= collectableAmount)
             return;
         var rr = entry.elem;
+        if (rr.requestorId == requestorToAvoid)
+            return;
         if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PUSH_REQUEST)
             return;
         var amt = Math.min(rr.amount, collectableAmount - collectedAmount);
@@ -328,46 +349,73 @@ function assignRequest(tcw, queueDll, resourceType, pv) {
                 amount: amt,
                 isBlocker: rr.isBlocker
             };
-            if (isFreeTransporter)
-                mem.collection.push(rrNew);
-            else
-                cvec.push(rrNew);
+            cvec.push(rrNew);
             queueDll.remove(entry);
         }
     });
+    // how much can be collected from storage if required
+    var storedCollectable = Math.min(collectableAmount, pv.resourceAmount(storedrr, resourceType));
+    var storedCollected = 0;
     // search for deliveries
     var deliverableAmount = tcw.resourceAmount(resourceType) + collectedAmount;
     var deliveredAmount = 0;
     if (mem.currentRequest.get && mem.currentRequest.get.resourceRequestType == pv.PULL_REQUEST)
         deliveredAmount += mem.currentRequest.get.amount;
     mem.delivery.forEach(function (dr) { deliveredAmount += dr.amount; });
-    var dvec = isFreeTransporter ? null : new RRVec(mem.delivery);
+    var dvec = new RRVec(mem.delivery);
     queueDll.forEach(function (entry) {
-        if (deliveredAmount >= deliverableAmount)
+        if (deliveredAmount + storedCollected >= deliverableAmount + storedCollectable)
             return;
         var rr = entry.elem;
+        if (rr.requestorId == requestorToAvoid)
+            return;
         if (rr.resourceType != resourceType || rr.resourceRequestType != pv.PULL_REQUEST)
             return;
+        // try to deliver from non-storage collections
         var amt = Math.min(rr.amount, deliverableAmount - deliveredAmount);
-        if (amt > 0) {
-            rr.amount -= amt;
+        // if required, try to deliver from storage collecitons
+        var amtFromStorage = Math.min(rr.amount - amt, storedCollectable - storedCollected);
+        if (amt + amtFromStorage > 0) {
+            rr.amount -= (amt + amtFromStorage);
             deliveredAmount += amt;
-            pv.log(["transporter", "assignRequest", "debug"], function () { return "transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".delivery for " + amt + " of " + rr.resourceType + "."; });
+            storedCollected += amtFromStorage;
+            pv.log(["transporter", "assignRequest", "debug"], function () { return "transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".delivery for " + (amt + amtFromStorage) + " of " + rr.resourceType + "."; });
             var rrNew = {
                 roomName: rr.roomName,
                 resourceType: rr.resourceType,
                 resourceRequestType: rr.resourceRequestType,
                 requestorId: rr.requestorId,
-                amount: amt,
+                amount: amt + amtFromStorage,
                 isBlocker: rr.isBlocker
             };
-            if (isFreeTransporter)
-                mem.delivery.push(rrNew);
-            else
-                dvec.push(rrNew);
+            dvec.push(rrNew);
             queueDll.remove(entry);
         }
     });
+    if (storedCollected > 0 && tcw.element.room.storage) {
+        var rrNew_1 = {
+            roomName: tcw.element.pos.roomName,
+            resourceType: resourceType,
+            resourceRequestType: pv.PUSH_REQUEST,
+            requestorId: tcw.element.room.storage.id,
+            amount: storedCollected,
+            isBlocker: false
+        };
+        pv.log(["transporter", "assignRequest", "debug"], function () { return "transporter/assignRequest: pushing " + rrNew_1.requestorId + " to " + tcw.element.name + ".collection for " + rrNew_1.amount + " of " + rrNew_1.resourceType + "."; });
+        cvec.push(rrNew_1);
+    }
+    else if (deliveredAmount < collectedAmount && tcw.element.room.storage) {
+        var rrNew_2 = {
+            roomName: tcw.element.pos.roomName,
+            resourceType: resourceType,
+            resourceRequestType: pv.PULL_REQUEST,
+            requestorId: tcw.element.room.storage.id,
+            amount: collectedAmount - deliveredAmount,
+            isBlocker: false
+        };
+        pv.log(["transporter", "assignRequest", "debug"], function () { return "transporter/assignRequest: pushing " + rrNew_2.requestorId + " to " + tcw.element.name + ".delivery for " + rrNew_2.amount + " of " + rrNew_2.resourceType + "."; });
+        dvec.push(rrNew_2);
+    }
     tcw.preprocess(pv);
 }
 function rrToString(rr, pv) {

@@ -9,6 +9,7 @@ var mtower = require("./tower");
 var mwall = require("./wall");
 var mcontainer = require("./container");
 var mmiscstructure = require("./miscStructure");
+var mstorage = require("./storage");
 function makeStructureWrapper(structure, pv) {
     switch (structure.structureType) {
         case STRUCTURE_SPAWN:
@@ -29,6 +30,8 @@ function makeStructureWrapper(structure, pv) {
             return mcontainer.makeContainerWrapper(structure, pv);
         case STRUCTURE_WALL:
             return mwall.makeWallWrapper(structure);
+        case STRUCTURE_STORAGE:
+            return mstorage.makeStorageWrapper(structure);
         default:
             pv.log(["structure", "makeStructureWrapper"], function () { return "structure/makeStructureWrapper: type " + structure.structureType + " not yet supported."; });
             return mmiscstructure.makeMiscStructureWrapper(structure, pv);
