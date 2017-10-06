@@ -629,7 +629,7 @@ class ParaverseImpl implements Paraverse {
         if (this.possibleConstructionSitesCache[room.name] === undefined) {
             let result: boolean[][] = this.getTerrain(room).map((row) => row.map((col) => col == this.TERRAIN_CODE_PLAIN || col == this.TERRAIN_CODE_SWAMP));
             this.getConstructionSitesFromRoom(room).forEach(cs => result[cs.pos.x][cs.pos.y] = false);
-            this.structureWrappers.forEach(sw => { if (sw.element.room.name == room.name) result[sw.element.pos.x][sw.element.pos.y] = false; });
+            this.structureWrappers.forEach(sw => { if (sw.element.room.name == room.name && sw.element.structureType != STRUCTURE_ROAD) result[sw.element.pos.x][sw.element.pos.y] = false; });
             this.getMySources().forEach(sw => { if (sw.source.room.name == room.name) result[sw.source.pos.x][sw.source.pos.y] = false; });
             this.possibleConstructionSitesCache[room.name] = result;
         }

@@ -424,7 +424,7 @@ var ParaverseImpl = (function () {
         if (this.possibleConstructionSitesCache[room.name] === undefined) {
             var result_4 = this.getTerrain(room).map(function (row) { return row.map(function (col) { return col == _this.TERRAIN_CODE_PLAIN || col == _this.TERRAIN_CODE_SWAMP; }); });
             this.getConstructionSitesFromRoom(room).forEach(function (cs) { return result_4[cs.pos.x][cs.pos.y] = false; });
-            this.structureWrappers.forEach(function (sw) { if (sw.element.room.name == room.name)
+            this.structureWrappers.forEach(function (sw) { if (sw.element.room.name == room.name && sw.element.structureType != STRUCTURE_ROAD)
                 result_4[sw.element.pos.x][sw.element.pos.y] = false; });
             this.getMySources().forEach(function (sw) { if (sw.source.room.name == room.name)
                 result_4[sw.source.pos.x][sw.source.pos.y] = false; });
