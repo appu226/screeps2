@@ -416,6 +416,7 @@ function assignRequest(tcw: TransporterCreepWrapper, queueDll: DLList<ResourceRe
             rr.amount -= (amt + amtFromStorage);
             deliveredAmount += amt;
             storedCollected += amtFromStorage;
+            storedrr[resourceType] -= amtFromStorage;
             pv.log(["transporter", "assignRequest", "debug"], () => `transporter/assignRequest: pushing ${rr.requestorId} to ${tcw.element.name}.delivery for ${amt + amtFromStorage} of ${rr.resourceType}.`);
             let rrNew: ResourceRequest = {
                 roomName: rr.roomName,

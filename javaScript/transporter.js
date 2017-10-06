@@ -379,6 +379,7 @@ function assignRequest(tcw, queueDll, resourceType, storedrr, pv) {
             rr.amount -= (amt + amtFromStorage);
             deliveredAmount += amt;
             storedCollected += amtFromStorage;
+            storedrr[resourceType] -= amtFromStorage;
             pv.log(["transporter", "assignRequest", "debug"], function () { return "transporter/assignRequest: pushing " + rr.requestorId + " to " + tcw.element.name + ".delivery for " + (amt + amtFromStorage) + " of " + rr.resourceType + "."; });
             var rrNew = {
                 roomName: rr.roomName,

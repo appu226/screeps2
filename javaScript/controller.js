@@ -13,7 +13,8 @@ var ControllerWrapper = (function () {
         var upgraders = pv.getMyCreepsByRoomAndType(this.element.room, pv.CREEP_TYPE_UPGRADER).filter(function (cw) { return cw.element.ticksToLive > 50; });
         var totalEfficiency = o.sum(upgraders.map(function (cw) { return pv.getEfficiency(cw.element.memory); }));
         var upgradeCapacity = o.sum(upgraders.map(function (cw) { return cw.element.getActiveBodyparts(WORK); }));
-        if (totalEfficiency >= upgraders.length * 90.0 / 100.0 && upgradeCapacity < 15) {
+        if (totalEfficiency >= upgraders.length * 90.0 / 100.0
+            && (this.element.level < 8 || upgradeCapacity < 15)) {
             pv.log(["controller", "process", "scheduleCreep"], function () { return "controller.ts/ControllerWrapper.process: Scheduling upgrader for room " + roomName; });
             pv.scheduleCreep(this.element.room, pv.makeUpgraderOrder("Upgrader_" + roomName, roomName), 2);
         }

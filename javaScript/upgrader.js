@@ -57,27 +57,53 @@ var UpgraderCreepWrapper = (function () {
             throw new Error(this.element.name + " could not find room " + roomName);
         }
         var creep = this.element;
-        var controller = room.controller;
-        var upgradeResult = creep.upgradeController(controller);
-        switch (upgradeResult) {
-            case OK: {
-                pv.pushEfficiency(this.memory, 1);
-                pv.avoidObstacle(this);
-                break;
+        if (pv.resourceAmount(creep.carry, RESOURCE_ENERGY) == 0 && room.storage) {
+            var withdrawResult = creep.withdraw(room.storage, RESOURCE_ENERGY);
+            switch (withdrawResult) {
+                case OK: {
+                    pv.pushEfficiency(this.memory, 1);
+                    pv.avoidObstacle(this);
+                    break;
+                }
+                case ERR_NOT_IN_RANGE: {
+                    pv.pushEfficiency(this.memory, pv.moveCreep(this, room.storage.pos) ? 1 : 0);
+                    break;
+                }
+                case ERR_NOT_ENOUGH_ENERGY: {
+                    pv.pushEfficiency(this.memory, 0);
+                    pv.avoidObstacle(this);
+                    break;
+                }
+                default: {
+                    pv.pushEfficiency(this.memory, 0);
+                    pv.avoidObstacle(this);
+                    throw new Error(creep.name + " withdrawing from storage of " + roomName + " failed with code " + withdrawResult + ".");
+                }
             }
-            case ERR_NOT_IN_RANGE: {
-                pv.pushEfficiency(this.memory, pv.moveCreep(this, controller.pos) ? 1 : 0);
-                break;
-            }
-            case ERR_NOT_ENOUGH_ENERGY: {
-                pv.pushEfficiency(this.memory, 0);
-                pv.avoidObstacle(this);
-                break;
-            }
-            default: {
-                pv.pushEfficiency(this.memory, 0);
-                pv.avoidObstacle(this);
-                throw new Error(creep.name + " upgrading " + roomName + " failed with code " + upgradeResult + ".");
+        }
+        else {
+            var controller = room.controller;
+            var upgradeResult = creep.upgradeController(controller);
+            switch (upgradeResult) {
+                case OK: {
+                    pv.pushEfficiency(this.memory, 1);
+                    pv.avoidObstacle(this);
+                    break;
+                }
+                case ERR_NOT_IN_RANGE: {
+                    pv.pushEfficiency(this.memory, pv.moveCreep(this, controller.pos) ? 1 : 0);
+                    break;
+                }
+                case ERR_NOT_ENOUGH_ENERGY: {
+                    pv.pushEfficiency(this.memory, 0);
+                    pv.avoidObstacle(this);
+                    break;
+                }
+                default: {
+                    pv.pushEfficiency(this.memory, 0);
+                    pv.avoidObstacle(this);
+                    throw new Error(creep.name + " upgrading " + roomName + " failed with code " + upgradeResult + ".");
+                }
             }
         }
     };

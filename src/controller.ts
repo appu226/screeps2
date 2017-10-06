@@ -15,7 +15,9 @@ class ControllerWrapper implements StructureWrapper {
         let upgraders = pv.getMyCreepsByRoomAndType(this.element.room, pv.CREEP_TYPE_UPGRADER).filter(cw => cw.element.ticksToLive > 50);
         let totalEfficiency = o.sum(upgraders.map(cw => pv.getEfficiency(cw.element.memory)));
         let upgradeCapacity = o.sum(upgraders.map(cw => cw.element.getActiveBodyparts(WORK)));
-        if (totalEfficiency >= upgraders.length * 90.0 / 100.0 && upgradeCapacity < 15) {
+        if (totalEfficiency >= upgraders.length * 90.0 / 100.0
+            && (this.element.level < 8 || upgradeCapacity < 15)
+        ) {
             pv.log(["controller", "process", "scheduleCreep"], () => `controller.ts/ControllerWrapper.process: Scheduling upgrader for room ${roomName}`);
             pv.scheduleCreep(this.element.room, pv.makeUpgraderOrder(`Upgrader_${roomName}`, roomName), 2);
         } else {
