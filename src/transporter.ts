@@ -293,7 +293,7 @@ export function manageResourcesForRoom(room: Room, pv: Paraverse): void {
 
 
     if (
-        pv.getMyCreepsByRoom(room).length * 3 / 4 >= transporters.length  // not more than 3/4ths should be transporters
+        pv.getMyCreepsByRoom(room).length * 1 / 2 >= transporters.length  // not more than half should be transporters
         && pv.getTransporterEfficiency(room) > .9 // transporters should not be idle
         && avoidableBlocker(pv.getRoomMemory(room).queuedResourceRequests, pv) // transporters should make a difference
     ) {
