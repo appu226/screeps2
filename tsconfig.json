@@ -31,6 +31,7 @@
         "src/paraverse.d.ts",
         "src/paraverse.ts",
         "src/rampart.ts",
+        "src/remoteMiner.ts",
         "src/road.ts",
         "src/room.ts",
         "src/screeps.d.ts",

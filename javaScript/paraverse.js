@@ -14,6 +14,7 @@ var mlogger = require("./logger");
 var mroom = require("./room");
 var mterrain = require("./terrain");
 var mms = require("./mapSearch");
+var mremoteMiner = require("./remoteMiner");
 function makeParaverse(game, map, memory) {
     var paraMemory = memory;
     if (paraMemory.logCategories === undefined)
@@ -56,6 +57,7 @@ var ParaverseImpl = (function () {
         this.CREEP_TYPE_UPGRADER = "upgrader";
         this.CREEP_TYPE_FOREIGNER = "foreigner";
         this.CREEP_TYPE_CLAIMER = "claimer";
+        this.CREEP_TYPE_REMOTE_MINER = "remoteMiner";
         this.TERRAIN_CODE_PLAIN = 0;
         this.TERRAIN_CODE_SWAMP = TERRAIN_MASK_SWAMP;
         this.TERRAIN_CODE_WALL = TERRAIN_MASK_WALL;
@@ -121,6 +123,12 @@ var ParaverseImpl = (function () {
                 delete this.memory.towerMemory[towerId];
         }
         this.myCreepWrappers = this.creepWrappers.filter(function (cw) { return cw.element.my; });
+        this.remoteMinersBySourceId = {};
+        this.creepWrappers.forEach(function (cw) {
+            var sid = mremoteMiner.getSourceIdIfRemoteMiner(cw, _this);
+            if (sid != "")
+                dictionary.getOrAdd(_this.remoteMinersBySourceId, sid, []).push(cw);
+        });
         this.hostileStructuresByRoom =
             dictionary.arrayToDictionary(this.structureWrappers.filter(function (sw) { return !sw.my; }).map(function (sw) { return sw.element; }).filter(function (hs) {
                 return (hs.structureType != STRUCTURE_CONTROLLER
@@ -201,6 +209,9 @@ var ParaverseImpl = (function () {
         else
             return o.Some(this.creepsById[id]);
     };
+    ParaverseImpl.prototype.getRemoteMinersBySourceId = function (sourceId) {
+        return dictionary.getOrElse(this.remoteMinersBySourceId, sourceId, []);
+    };
     ParaverseImpl.prototype.getMyStructures = function () {
         return this.myStructures;
     };
@@ -234,8 +245,8 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.getMyFlags = function () {
         return this.myFlags;
     };
-    ParaverseImpl.prototype.getMyFlagsByRoom = function (room) {
-        return dictionary.getOrElse(this.myFlagsByRoom, room.name, []);
+    ParaverseImpl.prototype.getMyFlagsByRoom = function (roomName) {
+        return dictionary.getOrElse(this.myFlagsByRoom, roomName, []);
     };
     ParaverseImpl.prototype.getMyFlagsByRoomAndColors = function (room, color, secondaryColor) {
         return dictionary.getOrElse(dictionary.getOrElse(dictionary.getOrElse(this.myFlagsByRoomAndColors, room.name, {}), color.toString(), {}), secondaryColor.toString(), []);
@@ -249,13 +260,13 @@ var ParaverseImpl = (function () {
         var roomMemory = dictionary.getOrAdd(this.memory.roomMemories, room.name, {
             queuedResourceRequests: [],
             roomsToClaim: [],
-            roomsToMine: [],
+            remoteMines: [],
             roomsToSign: []
         });
         if (roomMemory.roomsToClaim === undefined)
             roomMemory.roomsToClaim = [];
-        if (roomMemory.roomsToMine === undefined)
-            roomMemory.roomsToMine = [];
+        if (roomMemory.remoteMines === undefined)
+            roomMemory.remoteMines = [];
         if (roomMemory.roomsToSign === undefined)
             roomMemory.roomsToSign = [];
         return roomMemory;
@@ -348,6 +359,7 @@ var ParaverseImpl = (function () {
     ParaverseImpl.prototype.makeUpgraderOrder = function (orderName, roomName) { return mupgrader.makeUpgraderOrder(orderName, roomName, this); };
     ParaverseImpl.prototype.makeDefenderOrder = function (orderName, targetId) { return mdefender.makeDefenderOrder(orderName, targetId, this); };
     ParaverseImpl.prototype.makeClaimerOrder = function (orderName, destination, destinationPath, addClaimPart) { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, addClaimPart, this); };
+    ParaverseImpl.prototype.makeRemoteMinerOrder = function (orderName, sourceId, collectionRoom, deliveryRoom) { return mremoteMiner.makeRemoteMinerOrder(orderName, sourceId, collectionRoom, deliveryRoom, this); };
     ParaverseImpl.prototype.getTerrain = function (room) {
         var _this = this;
         if (this.memory.terrainMap[room.name] === undefined) {
@@ -511,6 +523,12 @@ var ParaverseImpl = (function () {
         return ++(this.memory.uid);
     };
     ParaverseImpl.prototype.moveCreep = function (cw, pos) {
+        var flaggedPos = pos;
+        if (pos.roomName !== cw.element.room.name) {
+            var flagName = cw.element.room.name + "_" + pos.roomName;
+            if (this.game.flags[flagName] !== undefined)
+                flaggedPos = this.game.flags[flagName].pos;
+        }
         if (cw.element.fatigue > 0 && this.getPossibleConstructionSites(cw.element.room)[cw.element.pos.x][cw.element.pos.y])
             this.recordFatigue(cw.element.pos.x, cw.element.pos.y, cw.element.pos.roomName);
         var isStuck = false;
@@ -526,7 +544,7 @@ var ParaverseImpl = (function () {
             if (cw.memory.lastTimeOfMoveAttempt >= 3)
                 isStuck = true;
         }
-        return cw.element.moveTo(pos, { reusePath: isStuck ? 0 : 50, ignoreCreeps: !isStuck }) == OK;
+        return cw.element.moveTo(flaggedPos, { reusePath: isStuck ? 0 : 50, ignoreCreeps: !isStuck }) == OK;
     };
     ParaverseImpl.prototype.makeCreepWrapper = function (c) {
         if (!c.my)
@@ -544,6 +562,8 @@ var ParaverseImpl = (function () {
                 return new mdefender.DefenderCreepWrapper(c, this);
             case this.CREEP_TYPE_CLAIMER:
                 return new mclaimer.ClaimerCreepWrapper(c, this);
+            case this.CREEP_TYPE_REMOTE_MINER:
+                return new mremoteMiner.RemoteMinerCreepWrapper(c, this);
             default:
                 this.log(["error", "paraverse", "makeCreepWrapper"], function () { return "makeCreepWrapper: creep " + c.name + " of type " + c.memory.creepType + " not yet supported."; });
                 return new mMiscCreep.MiscCreepWrapper(c, c.memory.creepType);
@@ -694,7 +714,7 @@ var ParaverseImpl = (function () {
             var log = this.memory.timerLogs[label];
             var avg = log.totalTime / log.count;
             var std = Math.sqrt((log.totalTimeSq / log.count) - avg * avg);
-            console.log(label + "\t: " + Math.round(avg * 100000) / 100000 + " \t+- " + Math.round(std * 300000) / 100000);
+            console.log(label + "\t: " + Math.round(avg * 100000) / 100000 + " \t+- " + Math.round(std * 100000) / 100000);
         }
     };
     return ParaverseImpl;

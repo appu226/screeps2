@@ -44,8 +44,8 @@ var RoomWrapperImpl = (function () {
                 }
             }
             pv.manageResources(me);
+            var memory = pv.getRoomMemory(me);
             if (me.controller.level >= 4 && me.energyCapacityAvailable >= 900) {
-                var memory = pv.getRoomMemory(me);
                 var rtcToKeep = [];
                 for (var rtci = 0; rtci < memory.roomsToClaim.length; ++rtci) {
                     var rtc = memory.roomsToClaim[rtci];
@@ -61,6 +61,12 @@ var RoomWrapperImpl = (function () {
                 while (memory.roomsToClaim.length > rtcToKeep.length)
                     memory.roomsToClaim.pop();
             }
+            memory.remoteMines.forEach(function (remoteMine) {
+                var creeps = pv.getRemoteMinersBySourceId(remoteMine.sourceId).filter(function (cw) { return cw.element.ticksToLive > 50; });
+                if (creeps.length == 0) {
+                    pv.scheduleCreep(me, pv.makeRemoteMinerOrder("remoteMiner_" + remoteMine.sourceId, remoteMine.sourceId, remoteMine.sourceRoomName, me.name), 2);
+                }
+            });
         }
     };
     return RoomWrapperImpl;

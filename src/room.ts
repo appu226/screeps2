@@ -49,8 +49,8 @@ class RoomWrapperImpl implements RoomWrapper {
                 }
             }
             pv.manageResources(me);
+            let memory = pv.getRoomMemory(me);
             if (me.controller.level >= 4 && me.energyCapacityAvailable >= 900) {
-                let memory = pv.getRoomMemory(me);
                 let rtcToKeep: RoomPath[] = [];
                 for (let rtci = 0; rtci < memory.roomsToClaim.length; ++rtci) {
                     let rtc = memory.roomsToClaim[rtci];
@@ -64,8 +64,13 @@ class RoomWrapperImpl implements RoomWrapper {
                 for (let rtci = 0; rtci < rtcToKeep.length; ++rtci)
                     memory.roomsToClaim[rtci] = rtcToKeep[rtci];
                 while (memory.roomsToClaim.length > rtcToKeep.length) memory.roomsToClaim.pop();
-
             }
+            memory.remoteMines.forEach(remoteMine => {
+                let creeps: CreepWrapper[] = pv.getRemoteMinersBySourceId(remoteMine.sourceId).filter((cw: CreepWrapper) => cw.element.ticksToLive > 50);
+                if (creeps.length == 0) {
+                    pv.scheduleCreep(me, pv.makeRemoteMinerOrder(`remoteMiner_${remoteMine.sourceId}`, remoteMine.sourceId, remoteMine.sourceRoomName, me.name), 2);
+                }
+            });
         }
     }
 

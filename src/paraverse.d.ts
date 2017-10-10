@@ -10,6 +10,7 @@ declare interface Paraverse {
     getMyCreepsByRoom(room: Room): CreepWrapper[];
     getMyCreepsByRoomAndType(room: Room, creepType: string): CreepWrapper[];
     getCreepById(id: string): Option<CreepWrapper>;
+    getRemoteMinersBySourceId(sourceId: string): CreepWrapper[];
     getMySources(): SourceWrapper[];
     getSourceMemory(source: Source): SourceMemory;
     getMyStructures(): StructureWrapper[];
@@ -18,7 +19,7 @@ declare interface Paraverse {
     getStructureById(id: string): Option<StructureWrapper>;
     getRequestorById(id: string): Option<ResourceRequestor>;
     getMyFlags(): Flag[];
-    getMyFlagsByRoom(room: Room): Flag[];
+    getMyFlagsByRoom(roomName: string): Flag[];
     getMyFlagsByRoomAndColors(room: Room, color: number, secondaryColor: number): Flag[];
 
     manageResources(room: Room): void;
@@ -39,6 +40,7 @@ declare interface Paraverse {
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder;
     makeDefenderOrder(orderName: string, targetId: string): CreepOrder;
     makeClaimerOrder(orderName: string, roomName: string, roomPath: string[], addClaimPart: boolean): CreepOrder;
+    makeRemoteMinerOrder(orderName: string, sourceId: string, collectionRoom: string, deliveryRoom: string): CreepOrder;
 
     getConstructionSitesFromRoom(room: Room): ConstructionSite[];
     getConstructionSitesFromRoomOfType(room: Room, structureType: string): ConstructionSite[];
@@ -99,6 +101,7 @@ declare interface Paraverse {
     CREEP_TYPE_UPGRADER: string;
     CREEP_TYPE_FOREIGNER: string;
     CREEP_TYPE_CLAIMER: string;
+    CREEP_TYPE_REMOTE_MINER: string;
 
     TERRAIN_CODE_PLAIN: number;
     TERRAIN_CODE_SWAMP: number;
@@ -211,11 +214,16 @@ declare interface RoomPath {
     destination: string;
 }
 
+declare interface RemoteMines {
+    sourceRoomName: string;
+    sourceId: string;
+}
+
 declare interface RoomMemory {
     queuedResourceRequests: ResourceRequest[];
     roomsToClaim: RoomPath[];
     roomsToSign: RoomPath[];
-    roomsToMine: RoomPath[];
+    remoteMines: RemoteMines[];
 }
 
 declare interface TimerLog {

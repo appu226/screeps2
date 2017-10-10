@@ -13,6 +13,7 @@ import mlogger = require('./logger');
 import mroom = require('./room');
 import mterrain = require('./terrain');
 import mms = require('./mapSearch');
+import mremoteMiner = require('./remoteMiner');
 
 interface FatigueRecord {
     xy: XY;
@@ -85,6 +86,8 @@ class ParaverseImpl implements Paraverse {
     myCreepWrappersByRoomAndType: Dictionary<Dictionary<CreepWrapper[]>>;
     creepsById: Dictionary<CreepWrapper>;
 
+    remoteMinersBySourceId: Dictionary<CreepWrapper[]>;
+
     myFlags: Flag[];
     myFlagsByRoom: Dictionary<Flag[]>;
     myFlagsByRoomAndColors: Dictionary<Dictionary<Dictionary<Flag[]>>>;
@@ -110,6 +113,7 @@ class ParaverseImpl implements Paraverse {
     CREEP_TYPE_UPGRADER: string;
     CREEP_TYPE_FOREIGNER: string;
     CREEP_TYPE_CLAIMER: string;
+    CREEP_TYPE_REMOTE_MINER: string;
 
     TERRAIN_CODE_PLAIN: number;
     TERRAIN_CODE_SWAMP: number;
@@ -148,6 +152,7 @@ class ParaverseImpl implements Paraverse {
         this.CREEP_TYPE_UPGRADER = "upgrader";
         this.CREEP_TYPE_FOREIGNER = "foreigner";
         this.CREEP_TYPE_CLAIMER = "claimer";
+        this.CREEP_TYPE_REMOTE_MINER = "remoteMiner";
 
         this.TERRAIN_CODE_PLAIN = 0;
         this.TERRAIN_CODE_SWAMP = TERRAIN_MASK_SWAMP;
@@ -245,6 +250,12 @@ class ParaverseImpl implements Paraverse {
         }
 
         this.myCreepWrappers = this.creepWrappers.filter(cw => cw.element.my);
+        this.remoteMinersBySourceId = {};
+        this.creepWrappers.forEach(cw => {
+            let sid = mremoteMiner.getSourceIdIfRemoteMiner(cw, this);
+            if (sid != "") dictionary.getOrAdd(this.remoteMinersBySourceId, sid, []).push(cw);
+        });
+
         this.hostileStructuresByRoom =
             dictionary.arrayToDictionary<Structure>(
                 this.structureWrappers.filter(
@@ -371,6 +382,10 @@ class ParaverseImpl implements Paraverse {
             return o.Some<CreepWrapper>(this.creepsById[id]);
     }
 
+    getRemoteMinersBySourceId(sourceId: string): CreepWrapper[] {
+        return dictionary.getOrElse(this.remoteMinersBySourceId, sourceId, []);
+    }
+
     getMyStructures(): StructureWrapper[] {
         return this.myStructures;
     }
@@ -410,8 +425,8 @@ class ParaverseImpl implements Paraverse {
         return this.myFlags;
     }
 
-    getMyFlagsByRoom(room: Room): Flag[] {
-        return dictionary.getOrElse(this.myFlagsByRoom, room.name, []);
+    getMyFlagsByRoom(roomName: string): Flag[] {
+        return dictionary.getOrElse(this.myFlagsByRoom, roomName, []);
     }
 
     getMyFlagsByRoomAndColors(room: Room, color: number, secondaryColor: number): Flag[] {
@@ -442,11 +457,11 @@ class ParaverseImpl implements Paraverse {
             {
                 queuedResourceRequests: [],
                 roomsToClaim: [],
-                roomsToMine: [],
+                remoteMines: [],
                 roomsToSign: []
             });
         if (roomMemory.roomsToClaim === undefined) roomMemory.roomsToClaim = [];
-        if (roomMemory.roomsToMine === undefined) roomMemory.roomsToMine = [];
+        if (roomMemory.remoteMines === undefined) roomMemory.remoteMines = [];
         if (roomMemory.roomsToSign === undefined) roomMemory.roomsToSign = [];
         return roomMemory;
     }
@@ -552,6 +567,7 @@ class ParaverseImpl implements Paraverse {
     makeUpgraderOrder(orderName: string, roomName: string): CreepOrder { return mupgrader.makeUpgraderOrder(orderName, roomName, this); }
     makeDefenderOrder(orderName: string, targetId: string): CreepOrder { return mdefender.makeDefenderOrder(orderName, targetId, this); }
     makeClaimerOrder(orderName: string, destination: string, destinationPath: string[], addClaimPart: boolean): CreepOrder { return mclaimer.makeClaimerOrder(orderName, destination, destinationPath, addClaimPart, this); }
+    makeRemoteMinerOrder(orderName: string, sourceId: string, collectionRoom: string, deliveryRoom: string): CreepOrder { return mremoteMiner.makeRemoteMinerOrder(orderName, sourceId, collectionRoom, deliveryRoom, this); }
 
     getTerrain(room: Room): number[][] {
         if (this.memory.terrainMap[room.name] === undefined) {
@@ -723,6 +739,12 @@ class ParaverseImpl implements Paraverse {
     }
 
     moveCreep(cw: CreepWrapper, pos: RoomPosition): boolean {
+        let flaggedPos = pos;
+        if (pos.roomName !== cw.element.room.name) {
+            let flagName = `${cw.element.room.name}_${pos.roomName}`;
+            if (this.game.flags[flagName] !== undefined)
+                flaggedPos = this.game.flags[flagName].pos;
+        }
         if (cw.element.fatigue > 0 && this.getPossibleConstructionSites(cw.element.room)[cw.element.pos.x][cw.element.pos.y])
             this.recordFatigue(
                 cw.element.pos.x,
@@ -740,7 +762,7 @@ class ParaverseImpl implements Paraverse {
             if (cw.memory.lastTimeOfMoveAttempt >= 3)
                 isStuck = true;
         }
-        return cw.element.moveTo(pos, { reusePath: isStuck ? 0 : 50, ignoreCreeps: !isStuck }) == OK;
+        return cw.element.moveTo(flaggedPos, { reusePath: isStuck ? 0 : 50, ignoreCreeps: !isStuck }) == OK;
     }
 
     makeCreepWrapper(c: Creep): CreepWrapper {
@@ -759,6 +781,8 @@ class ParaverseImpl implements Paraverse {
                 return new mdefender.DefenderCreepWrapper(c, this);
             case this.CREEP_TYPE_CLAIMER:
                 return new mclaimer.ClaimerCreepWrapper(c, this);
+            case this.CREEP_TYPE_REMOTE_MINER:
+                return new mremoteMiner.RemoteMinerCreepWrapper(c, this);
             default:
                 this.log(["error", "paraverse", "makeCreepWrapper"], () => `makeCreepWrapper: creep ${c.name} of type ${(<CreepMemory>c.memory).creepType} not yet supported.`);
                 return new mMiscCreep.MiscCreepWrapper(c, (<CreepMemory>c.memory).creepType);
@@ -929,7 +953,7 @@ class ParaverseImpl implements Paraverse {
             let log = this.memory.timerLogs[label];
             let avg = log.totalTime / log.count;
             let std = Math.sqrt((log.totalTimeSq / log.count) - avg * avg);
-            console.log(`${label}\t: ${Math.round(avg * 100000) / 100000} \t+- ${Math.round(std * 300000) / 100000}`);
+            console.log(`${label}\t: ${Math.round(avg * 100000) / 100000} \t+- ${Math.round(std * 100000) / 100000}`);
         }
     }
 
