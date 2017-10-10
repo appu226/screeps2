@@ -3,7 +3,7 @@ import paraverse = require('./paraverse');
 
 export function loop(): void {
     let pv = paraverse.makeParaverse(Game, Game.map, Memory);
-    pv.log(["version"], () => "v 17.10.6.1");
+    pv.log(["version"], () => "v 17.10.10.0");
     pv.endTimer("startup");
     pv.startTimer("main");
 
